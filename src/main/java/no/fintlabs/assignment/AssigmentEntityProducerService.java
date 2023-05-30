@@ -15,7 +15,7 @@ public class AssigmentEntityProducerService {
         entityProducer = entityProducerFactory.createProducer(SimpleAssignment.class);
         entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("resourcegroupmembership")
+                .resource("resource-group-membership")
                 .build();
     }
 

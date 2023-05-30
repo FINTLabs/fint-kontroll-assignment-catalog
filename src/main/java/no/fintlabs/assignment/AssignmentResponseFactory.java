@@ -88,6 +88,4 @@ public class AssignmentResponseFactory {
                 HttpStatus.OK
         );
     }
-
-
 }
