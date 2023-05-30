@@ -12,4 +12,5 @@ public class SimpleAssignment {
     private String resourceRef;
     private String userRef;
     private String roleRef;
+    private String organizationUnitId;
 }

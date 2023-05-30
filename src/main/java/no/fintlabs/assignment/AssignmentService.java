@@ -35,8 +35,11 @@ public class AssignmentService {
         List<Assignment> allAssignments = assignmentRepository.findAll().stream().collect(Collectors.toList());
         return Flux.fromIterable(allAssignments);
     }
-    public Mono<Assignment> findAssignmentById(Long id) {
-        Assignment assignment = assignmentRepository.findById(id).orElse(new Assignment());
+    public Mono<DetailedAssignment> findAssignmentById(Long id) {
+        DetailedAssignment assignment = assignmentRepository
+                .findById(id)
+                .map(Assignment::toDetailedAssignment)
+                .orElse(new DetailedAssignment());
         return Mono.just(assignment);
     }
     public List<SimpleAssignment> getSimpleAssignments(
@@ -57,6 +60,11 @@ public class AssignmentService {
             Assignment nesAssignment = assignmentRepository.save(assignment);
             simpeAssignmentService.process(assignment);
         };
+    }
+
+    public void deleteAssignment(Long id) {
+        Assignment assignment= assignmentRepository.getById(id);
+        assignmentRepository.deleteById(id);
     }
 }
 

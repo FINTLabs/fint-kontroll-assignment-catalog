@@ -2,6 +2,7 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -34,7 +35,7 @@ public class AssignmentController {
     }
 
     @GetMapping("{id}")
-    public Mono<Assignment> getAssignmentById(@PathVariable Long id){
+    public Mono<DetailedAssignment> getAssignmentById(@PathVariable Long id){
         log.info("Fetching assignment info for : "+ id.toString());
         return  assignmentService.findAssignmentById(id);
     }
@@ -42,6 +43,13 @@ public class AssignmentController {
     public Mono<Assignment> createAssignment(@RequestBody Assignment assignment) {
         log.info("Creating new assignment for resource {} and user {}", assignment.getResourceRef(), assignment.getUserRef());
         return assignmentService.createNewAssignment(assignment);
+    }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable Long id) {
+        //log.info("Creating new assignment for resource {} and user {}", assignment.getResourceRef(), assignment.getUserRef());
+        assignmentService.deleteAssignment(id);
+        return new ResponseEntity<>(HttpStatus.GONE);
     }
 
 }

@@ -2,14 +2,9 @@ package no.fintlabs.assignment;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Hibernate;
-import org.hibernate.annotations.NaturalId;
 
 import javax.persistence.*;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -29,6 +24,7 @@ public class Assignment {
     private String roleRef;
     private String userRef;
     private String resourceRef;
+    private String organizationUnitId;
     private Long assignerRef;
     private Long AssignerRoleRef;
     private Date assignmentDate;
@@ -42,6 +38,21 @@ public class Assignment {
                 .resourceRef(resourceRef)
                 .userRef(userRef)
                 .roleRef(roleRef)
+                .organizationUnitId(organizationUnitId)
+                .build();
+    }
+    public DetailedAssignment toDetailedAssignment() {
+        return DetailedAssignment
+                .builder()
+                .id(id)
+                .resourceRef(resourceRef)
+                .userRef(userRef)
+                .roleRef(roleRef)
+                .organizationUnitId(organizationUnitId)
+                .AssignerRoleRef(assignerRef)
+                .assignmentDate(assignmentDate)
+                .validFrom(validFrom)
+                .validTo(validTo)
                 .build();
     }
 
