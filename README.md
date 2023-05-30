@@ -1,4 +1,4 @@
-# FINT Spring Boot Template project
+# FINT Kontroll Assignment Catalog
 
 ## Setting up a new project based on the template
 ### Clone
