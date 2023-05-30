@@ -24,13 +24,25 @@ public class Assignment {
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long roleRef;
-    private Long userRef;
-    private Long resourceRef;
+
+    private String assignmentId;
+    private String roleRef;
+    private String userRef;
+    private String resourceRef;
     private Long assignerRef;
     private Long AssignerRoleRef;
     private Date assignmentDate;
     private Date validFrom;
     private Date validTo;
+
+    public SimpleAssignment toSimpleAssignment() {
+        return SimpleAssignment
+                .builder()
+                .id(id)
+                .resourceRef(resourceRef)
+                .userRef(userRef)
+                .roleRef(roleRef)
+                .build();
+    }
 
 }
