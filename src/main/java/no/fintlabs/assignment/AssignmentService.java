@@ -21,7 +21,7 @@ public class AssignmentService {
         this.simpeAssignmentService = simpeAssignmentService;
     }
 
-    public Mono<Assignment> createNewAssignment(Assignment assignment) {
+    public Assignment createNewAssignment(Assignment assignment) {
         String resourceRef = assignment.getResourceRef();
         //TODO: check if the assignment is for user or role
         String userRef = assignment.getUserRef();
@@ -29,7 +29,7 @@ public class AssignmentService {
         log.info("Trying to save assignment {}", assignment.getAssignmentId());
         Assignment newsAssignment = assignmentRepository.save(assignment);
         simpeAssignmentService.process(newsAssignment);
-        return Mono.just(newsAssignment);
+        return newsAssignment;
     }
     public Flux<Assignment> getAllAssignments(){
         List<Assignment> allAssignments = assignmentRepository.findAll().stream().collect(Collectors.toList());
