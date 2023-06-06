@@ -39,10 +39,12 @@ public class AssignmentController {
         log.info("Fetching assignment info for : "+ id.toString());
         return  assignmentService.findAssignmentById(id);
     }
+    //TODO Make it return response entity as Mono?
     @PostMapping()
-    public Mono<Assignment> createAssignment(@RequestBody Assignment assignment) {
+    public ResponseEntity<Assignment> createAssignment(@RequestBody Assignment assignment) {
         log.info("Creating new assignment for resource {} and user {}", assignment.getResourceRef(), assignment.getUserRef());
-        return assignmentService.createNewAssignment(assignment);
+        Assignment newAssignment = assignmentService.createNewAssignment(assignment);
+        return new ResponseEntity<Assignment>(newAssignment, HttpStatus.CREATED);
     }
 
     @DeleteMapping("{id}")
