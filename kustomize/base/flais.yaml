@@ -1,0 +1,26 @@
+apiVersion: fintlabs.no/v1alpha1
+kind: Application
+metadata:
+  name: fint-kontroll-assignment-catalog
+  namespace: fintlabs-no
+spec:
+  orgId: fintlabs.no
+  image: ghcr.io/fintlabs/fint-kontroll-assignment-catalog:latest
+  imagePullPolicy: Always
+  url:
+    hostname: kontroll.vigoiks.no
+    basePath: /beta/fintlabs-no
+  ingress:
+    enabled: true
+    basePath: /beta/fintlabs-no/api/assignments
+    middlewares:
+      - fint-kontroll-sso
+  kafka:
+    enabled: true
+    acls:
+      - topic: 'fintlabs-no.kontroll.*'
+        permission: read
+      - topic: 'fintlabs-no.kontroll.*'
+        permission: admin
+  database:
+    database: fint-kontroll
