@@ -3,41 +3,23 @@ fint:
   cache:
     defaultCacheEntryTimeToLiveMillis: 518400000
     defaultCacheHeapSize: 1000000
-  kafka:
-    topic:
-      org-id: ${fint.org-id}
-      domain-context: kontroll
-    application-id: ${fint.application-id}
   integration:
     service:
       authorized-role: https://role-catalog.vigoiks.no/vigo/samtykke/user
-  client:
-    password: ${fint.password}
-    username: ${fint.username}
-    base-url: https://beta.felleskomponent.no
-    registration-id: fint
   kontroll:
-    role-catalog:
-      pagesize: 15
+    assignment-catalog:
+      pagesize: 50
 spring:
-  kafka:
-    consumer:
-      group-id: ${fint.application-id}
-  jpa:
-    properties:
-      hibernate:
-        jdbc:
-          lob:
-            non_contextual_creation: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        enable_lazy_load_no_trans: true
-    hibernate:
-      ddl-auto: create
-    datasource:
-      driver-class-name: org.postgresql.Driver
-
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://idp.felleskomponent.no/nidp/oauth/nam
+  profiles:
+    include:
+      - kafka
+      - db
 logging:
   level:
     root: INFO
     org.apache.kafka: INFO
-    org.hibernate.SQL: DEBUG

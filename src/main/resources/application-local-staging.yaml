@@ -34,3 +34,9 @@ spring:
             scope: fint-client
 server:
   port: 8097
+logging:
+  level:
+    root: INFO
+    org.apache.kafka: INFO
+    org.hibernate.SQL: DEBUG
+
