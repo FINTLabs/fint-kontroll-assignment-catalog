@@ -20,3 +20,4 @@ spring:
   flyway:
     locations: classpath:db/migration/
     lock-retry-count: 300
+    #baselineOnMigrate: true

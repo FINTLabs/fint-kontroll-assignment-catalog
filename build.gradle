@@ -38,6 +38,7 @@ dependencies {
     implementation 'io.netty:netty-resolver-dns-native-macos:4.1.82.Final:osx-aarch_64'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     //implementation 'org.hibernate.validator:hibernate-validator:6.0.19.Final'
+    implementation 'org.flywaydb:flyway-core'
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'no.fintlabs:fint-kafka:2.3.0'
