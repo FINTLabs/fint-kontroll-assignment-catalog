@@ -22,14 +22,19 @@ public class AssignmentService {
     }
 
     public Assignment createNewAssignment(Assignment assignment) {
-        String resourceRef = assignment.getResourceRef();
-        //TODO: check if the assignment is for user or role
-        String userRef = assignment.getUserRef();
-        assignment.setAssignmentId(resourceRef + "_" + userRef);
+        Long userRef = assignment.getUserRef();
+        Long roleRef = assignment.getRoleRef();
+        //TODO: Handle both roleRef and userRef null
+        String assignmentIdSuffix = (userRef != null) ?
+                (userRef + "_user") :
+                (roleRef + "_role");
+
+        Long resourceRef = assignment.getResourceRef();
+        assignment.setAssignmentId(resourceRef.toString() + "_" + assignmentIdSuffix);
         log.info("Trying to save assignment {}", assignment.getAssignmentId());
-        Assignment newsAssignment = assignmentRepository.save(assignment);
-        simpeAssignmentService.process(newsAssignment);
-        return newsAssignment;
+        Assignment newAssignment = assignmentRepository.save(assignment);
+        simpeAssignmentService.process(newAssignment);
+        return newAssignment;
     }
     public Flux<Assignment> getAllAssignments(){
         List<Assignment> allAssignments = assignmentRepository.findAll().stream().collect(Collectors.toList());
