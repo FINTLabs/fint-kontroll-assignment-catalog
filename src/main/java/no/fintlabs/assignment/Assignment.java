@@ -21,9 +21,9 @@ public class Assignment {
     private Long id;
 
     private String assignmentId;
-    private String roleRef;
-    private String userRef;
-    private String resourceRef;
+    private Long roleRef;
+    private Long userRef;
+    private Long resourceRef;
     private String organizationUnitId;
     private Long assignerRef;
     private Long AssignerRoleRef;

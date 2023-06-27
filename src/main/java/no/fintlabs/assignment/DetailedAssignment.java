@@ -11,9 +11,9 @@ import java.util.Date;
 @Builder
 public class DetailedAssignment {
     private Long id;
-    private String resourceRef;
-    private String userRef;
-    private String roleRef;
+    private Long resourceRef;
+    private Long userRef;
+    private Long roleRef;
     private String organizationUnitId;
     private Long AssignerRoleRef;
     private Date assignmentDate;
