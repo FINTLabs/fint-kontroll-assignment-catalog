@@ -17,8 +17,8 @@ spring:
           issuer-uri: https://idp.felleskomponent.no/nidp/oauth/nam
   profiles:
     include:
+      - schema-generation
       - kafka
-      - db
 logging:
   level:
     root: INFO
