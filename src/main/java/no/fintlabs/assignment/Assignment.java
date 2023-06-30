@@ -2,6 +2,8 @@ package no.fintlabs.assignment;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.resource.Resource;
+import no.fintlabs.user.User;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -22,7 +24,9 @@ public class Assignment {
 
     private String assignmentId;
     private Long roleRef;
+    @Column(name="user_ref")
     private Long userRef;
+    @Column(name="resource_ref")
     private Long resourceRef;
     private String organizationUnitId;
     private Long assignerRef;
@@ -30,6 +34,20 @@ public class Assignment {
     private Date assignmentDate;
     private Date validFrom;
     private Date validTo;
+    @ManyToOne(fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JoinColumn(
+            name="user_ref",
+            insertable = false,
+            updatable = false)//, nullable = false
+    private User user;
+    @ManyToOne(fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JoinColumn(
+            name="resource_ref",
+            insertable = false,
+            updatable = false)//, nullable = false
+    private Resource resource;
 
     public SimpleAssignment toSimpleAssignment() {
         return SimpleAssignment
