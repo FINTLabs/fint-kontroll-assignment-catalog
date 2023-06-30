@@ -1,0 +1,1 @@
+alter table users ADD user_ref varchar(255);
