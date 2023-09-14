@@ -26,8 +26,12 @@ public class Assignment {
     private Long roleRef;
     @Column(name="user_ref")
     private Long userRef;
+    private String userFirstName;
+    private String userLastName;
+    private String userUserType;
     @Column(name="resource_ref")
     private Long resourceRef;
+    private String resourceName;
     private String organizationUnitId;
     private Long assignerRef;
     private Long AssignerRoleRef;
@@ -54,7 +58,10 @@ public class Assignment {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
+                .resourceName(resourceName)
                 .userRef(userRef)
+                .userDisplayname(userFirstName + ' ' + userLastName)
+                .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
                 .build();
