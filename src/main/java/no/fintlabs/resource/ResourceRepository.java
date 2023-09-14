@@ -11,4 +11,5 @@ import java.util.Set;
 
 @Repository
 public interface ResourceRepository  extends JpaRepository<Resource, Long>{
+
 }
