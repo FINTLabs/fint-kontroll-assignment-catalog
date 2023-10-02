@@ -21,7 +21,7 @@ public class ResourceController {
         this.resourceService = resourceService;
     }
 
-    @GetMapping("{id}/users")
+    @GetMapping("resource/{id}/users")
     public ResponseEntity<Map<String , Object>> getUsersByResourceId(@AuthenticationPrincipal Jwt jwt,
                                                                    @PathVariable Long id,
                                                                    @RequestParam(defaultValue = "0") int page,

@@ -1,5 +1,6 @@
 package no.fintlabs.user;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
@@ -32,6 +33,7 @@ public class User {
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
+    @JsonManagedReference
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();

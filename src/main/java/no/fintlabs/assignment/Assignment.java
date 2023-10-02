@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
@@ -44,6 +45,7 @@ public class Assignment {
             name="user_ref",
             insertable = false,
             updatable = false)//, nullable = false
+    @JsonBackReference
     private User user;
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
@@ -51,6 +53,7 @@ public class Assignment {
             name="resource_ref",
             insertable = false,
             updatable = false)//, nullable = false
+    @JsonBackReference
     private Resource resource;
 
     public SimpleAssignment toSimpleAssignment() {
