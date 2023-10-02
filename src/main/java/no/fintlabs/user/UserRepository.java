@@ -10,7 +10,9 @@ import java.util.List;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>{
 
-    @Query("select u from User u join fetch u.assignments assignments")
+    @Query("""
+    select u from User u join u.assignments assignments where assignments.resourceRef = ?1
+    """)
     List<User> getUsersByResourceId(Long id);
 
 }
