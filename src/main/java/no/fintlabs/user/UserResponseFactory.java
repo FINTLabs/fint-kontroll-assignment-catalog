@@ -25,7 +25,11 @@ public class UserResponseFactory {
             Long id,
             int page,
             int size){
-        List<User> users = (List<User>) userRepository.getUsersByResourceId(id);
+        List<SimpleUser> users = userRepository
+                .getUsersByResourceId(id)
+                .stream()
+                .map(User::toSimpleUser)
+                .toList();
         ResponseEntity<Map<String,Object>> entity = toResponseEntity(
                 toPage(users, PageRequest.of(page,size)
                 )
@@ -33,7 +37,7 @@ public class UserResponseFactory {
         return entity;
     }
 
-    private Page<User> toPage(List<User> list, Pageable paging) {
+    private Page<SimpleUser> toPage(List<SimpleUser> list, Pageable paging) {
         int start = (int) paging.getOffset();
         int end = Math.min((start + paging.getPageSize()), list.size());
 
@@ -41,7 +45,7 @@ public class UserResponseFactory {
                 ? new PageImpl<>(new ArrayList<>(), paging, list.size())
                 : new PageImpl<>(list.subList(start, end), paging, list.size());
     }
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<User> userPage) {
+    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<SimpleUser> userPage) {
 
         return new ResponseEntity<>(
                 Map.of( "users", userPage.getContent(),
