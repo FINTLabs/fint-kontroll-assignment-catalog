@@ -5,11 +5,8 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import org.hibernate.Hibernate;
-import org.hibernate.annotations.NaturalId;
 
 import javax.persistence.*;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +34,16 @@ public class User {
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
+
+    public SimpleUser toSimpleUser() {
+        return SimpleUser
+                .builder()
+                .id(id)
+                .firstName(firstName)
+                .lastName(lastName)
+                .userType(userType)
+                .build();
+    }
 
 }
 

@@ -37,4 +37,13 @@ public class Resource {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
+    public SimpleResource toSimpleResource() {
+        return SimpleResource
+                .builder()
+                .id(id)
+                .resourceId(resourceId)
+                .resourceName(resourceName)
+                .resourceType(resourceType)
+                .build();
+    }
 }
