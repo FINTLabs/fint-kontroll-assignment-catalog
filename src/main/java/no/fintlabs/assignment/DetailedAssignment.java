@@ -12,7 +12,11 @@ import java.util.Date;
 public class DetailedAssignment {
     private Long id;
     private Long resourceRef;
+    private String resourceName;
     private Long userRef;
+    private String userFirstName;
+    private String userLastName;
+    private String userType;
     private Long roleRef;
     private String organizationUnitId;
     private Long AssignerRoleRef;
