@@ -7,8 +7,6 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,16 +54,12 @@ public class AssignmentService {
         simpeAssignmentService.process(newAssignment);
         return newAssignment;
     }
-    public Flux<Assignment> getAllAssignments(){
-        List<Assignment> allAssignments = assignmentRepository.findAll().stream().collect(Collectors.toList());
-        return Flux.fromIterable(allAssignments);
-    }
-    public Mono<DetailedAssignment> findAssignmentById(Long id) {
-        DetailedAssignment assignment = assignmentRepository
+    public DetailedAssignment findAssignmentById(Long id) {
+
+        return assignmentRepository
                 .findById(id)
                 .map(Assignment::toDetailedAssignment)
                 .orElse(new DetailedAssignment());
-        return Mono.just(assignment);
     }
     public List<SimpleAssignment> getSimpleAssignments(
             FintJwtEndUserPrincipal principal
