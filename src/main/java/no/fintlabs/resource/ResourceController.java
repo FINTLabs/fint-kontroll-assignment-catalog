@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/assignmentresources")
+@RequestMapping("/api/assignments")
 public class ResourceController {
     private final UserResponseFactory userResponseFactory;
     private final ResourceService resourceService;
@@ -21,7 +21,7 @@ public class ResourceController {
         this.resourceService = resourceService;
     }
 
-    @GetMapping("{id}/users")
+    @GetMapping("resource/{id}/users")
     public ResponseEntity<Map<String , Object>> getUsersByResourceId(@AuthenticationPrincipal Jwt jwt,
                                                                    @PathVariable Long id,
                                                                    @RequestParam(defaultValue = "0") int page,
