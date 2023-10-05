@@ -22,15 +22,12 @@ public class AssignmentResponseFactory {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentService assignmentService;
 
-
-
     public AssignmentResponseFactory( AssignmentRepository assignmentRepository, AssignmentService assignmentService) //FintFilterService fintFilterService,
     {
         //this.fintFilterService = fintFilterService;
         this.assignmentRepository = assignmentRepository;
         this.assignmentService = assignmentService;
     }
-
     public ResponseEntity<Map<String, Object>> toResponseEntity(FintJwtEndUserPrincipal principal,
                                                                 String search,
                                                                 List<String> orgUnits,
@@ -42,8 +39,6 @@ public class AssignmentResponseFactory {
 
         return entity;
     }
-
-
     public ResponseEntity<Map<String, Object>> toResponseEntity(
             FintJwtEndUserPrincipal principal,
             //String filter,
