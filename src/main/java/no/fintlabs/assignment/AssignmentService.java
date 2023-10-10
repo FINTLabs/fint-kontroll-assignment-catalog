@@ -36,11 +36,13 @@ public class AssignmentService {
         assignment.setUserLastName(user.getLastName());
         assignment.setUserUserType(user.getUserType());
 
-        Long roleRef = assignment.getRoleRef();
+        String assignmentIdSuffix = userRef + "_user";
+//TODO: implement assignment for roles(groups)
+//        Long roleRef = assignment.getRoleRef();
 
-        String assignmentIdSuffix = (userRef != null) ?
-                (userRef + "_user") :
-                (roleRef + "_role");
+//        String assignmentIdSuffix = (userRef != null) ?
+//                (userRef + "_user") :
+//                (roleRef + "_role");
 
         Long resourceRef = assignment.getResourceRef();
         Resource resource = resourceRepository.findById(resourceRef).get();
