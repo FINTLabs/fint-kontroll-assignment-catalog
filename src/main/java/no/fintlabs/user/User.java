@@ -30,7 +30,7 @@ public class User {
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
-    @JsonManagedReference
+    @JsonManagedReference(value="user-assignment")
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
