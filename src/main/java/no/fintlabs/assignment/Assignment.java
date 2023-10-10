@@ -46,7 +46,7 @@ public class Assignment {
             name="user_ref",
             insertable = false,
             updatable = false)//, nullable = false
-    @JsonBackReference
+    @JsonBackReference(value="user-assignment")
     private User user;
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
@@ -54,7 +54,7 @@ public class Assignment {
             name="resource_ref",
             insertable = false,
             updatable = false)//, nullable = false
-    @JsonBackReference
+    @JsonBackReference(value="resource-assignment")
     private Resource resource;
 
     public SimpleAssignment toSimpleAssignment() {
