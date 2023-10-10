@@ -32,7 +32,7 @@ public class Resource {
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
-    @JsonManagedReference
+    @JsonManagedReference(value="resource-assignment")
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
