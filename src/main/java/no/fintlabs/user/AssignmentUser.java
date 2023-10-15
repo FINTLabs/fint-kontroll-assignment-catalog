@@ -9,10 +9,11 @@ import javax.persistence.Id;
 @Getter
 @Setter
 @Builder
-public class SimpleUser {
+public class AssignmentUser {
     @Id
     private Long id;
     private String firstName;
     private String lastName;
     private String userType;
+    private Long assignmentRef;
 }

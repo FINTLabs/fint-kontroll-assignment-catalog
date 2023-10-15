@@ -15,21 +15,15 @@ import java.util.Map;
 
 @Component
 public class UserResponseFactory {
-    private final UserRepository userRepository;
-    public UserResponseFactory(UserRepository userRepository) {
-
-        this.userRepository = userRepository;
-
+    private final AssigmentUserService assigmentUserService;
+    public UserResponseFactory(AssigmentUserService assigmentUserService) {
+        this.assigmentUserService = assigmentUserService;
     }
     public ResponseEntity<Map<String ,Object>> toResponseEntity(
             Long id,
             int page,
             int size){
-        List<SimpleUser> users = userRepository
-                .getUsersByResourceId(id)
-                .stream()
-                .map(User::toSimpleUser)
-                .toList();
+        List<AssignmentUser> users = assigmentUserService.getUsersAssignedToResource(id);
         ResponseEntity<Map<String,Object>> entity = toResponseEntity(
                 toPage(users, PageRequest.of(page,size)
                 )
@@ -37,7 +31,7 @@ public class UserResponseFactory {
         return entity;
     }
 
-    private Page<SimpleUser> toPage(List<SimpleUser> list, Pageable paging) {
+    private Page<AssignmentUser> toPage(List<AssignmentUser> list, Pageable paging) {
         int start = (int) paging.getOffset();
         int end = Math.min((start + paging.getPageSize()), list.size());
 
@@ -45,7 +39,7 @@ public class UserResponseFactory {
                 ? new PageImpl<>(new ArrayList<>(), paging, list.size())
                 : new PageImpl<>(list.subList(start, end), paging, list.size());
     }
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<SimpleUser> userPage) {
+    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentUser> userPage) {
 
         return new ResponseEntity<>(
                 Map.of( "users", userPage.getContent(),
