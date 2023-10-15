@@ -5,11 +5,8 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import org.hibernate.Hibernate;
-import org.hibernate.annotations.NaturalId;
 
 import javax.persistence.*;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,8 +34,8 @@ public class Resource {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    public SimpleResource toSimpleResource() {
-        return SimpleResource
+    public AssignmentResource toSimpleResource() {
+        return AssignmentResource
                 .builder()
                 .id(id)
                 .resourceId(resourceId)
