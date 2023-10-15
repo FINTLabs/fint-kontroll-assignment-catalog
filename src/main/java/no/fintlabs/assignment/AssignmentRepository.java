@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
-
+    Assignment findAssignmentByUserRefAndResourceRef (Long userRef, Long resourceRef);
 }

@@ -9,10 +9,11 @@ import javax.persistence.Id;
 @Getter
 @Setter
 @Builder
-public class SimpleResource {
+public class AssignmentResource {
     @Id
     private Long id;
     private String resourceId;
     private String resourceName;
     private String resourceType;
+    private Long assignmentRef;
 }

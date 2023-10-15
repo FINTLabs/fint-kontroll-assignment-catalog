@@ -14,20 +14,16 @@ import java.util.Map;
 
 @Component
 public class ResourceResponseFactory {
-    private final ResourceRepository resourceRepository;
-    public ResourceResponseFactory(ResourceRepository resourceRepository) {
-
-        this.resourceRepository = resourceRepository;
-
+    private final AssignmentResourceService assignmentResourceService;
+    public ResourceResponseFactory(AssignmentResourceService assignmentResourceService) {
+        this.assignmentResourceService = assignmentResourceService;
     }
     public ResponseEntity<Map<String ,Object>> toResponseEntity(
             Long id,
             int page,
             int size){
-        List<SimpleResource> resources = (List<SimpleResource>) resourceRepository.getResourcesByUserId(id)
-                .stream()
-                .map(Resource::toSimpleResource)
-                .toList();
+        List<AssignmentResource> resources = assignmentResourceService.getResourcesAssignedToUser(id);
+
         ResponseEntity<Map<String,Object>> entity = toResponseEntity(
                 toPage(resources, PageRequest.of(page,size)
                 )
@@ -43,7 +39,7 @@ public class ResourceResponseFactory {
 //                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
 //                : new PageImpl<>(list.subList(start, end), paging, list.size());
 //    }
-    private Page<SimpleResource> toPage(List<SimpleResource> list, Pageable paging) {
+    private Page<AssignmentResource> toPage(List<AssignmentResource> list, Pageable paging) {
         int start = (int) paging.getOffset();
         int end = Math.min((start + paging.getPageSize()), list.size());
 
@@ -51,7 +47,7 @@ public class ResourceResponseFactory {
                 ? new PageImpl<>(new ArrayList<>(), paging, list.size())
                 : new PageImpl<>(list.subList(start, end), paging, list.size());
     }
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<SimpleResource> resourcePage) {
+    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
 
         return new ResponseEntity<>(
                 Map.of( "resources", resourcePage.getContent(),
