@@ -35,14 +35,22 @@ public class User {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    public SimpleUser toSimpleUser() {
-        return SimpleUser
+    public AssignmentUser toSimpleUser() {
+        return AssignmentUser
                 .builder()
                 .id(id)
                 .firstName(firstName)
                 .lastName(lastName)
                 .userType(userType)
+                //.assignmentRef(getAssignmentId(resourceRef))
                 .build();
+    }
+
+    private Long getAssignmentId(Long resourceRef) {
+        return  assignments.stream()
+                .filter(assignment -> assignment.getResourceRef().equals(resourceRef))
+                .map(assignment -> assignment.getId())
+                .toList().get(0);
     }
 
 }
