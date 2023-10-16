@@ -1,10 +1,12 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -31,6 +33,12 @@ public class AssignmentResourceService {
 
     }
     private Long getAssignmentRef(Long userId, Long resourceId) {
-        return assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId).getId();
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+
+        if (assignment.isPresent()) {
+            //return Optional.of(assignment.get().getId());
+            return assignment.get().getId();
+        }
+        return null;
     }
 }
