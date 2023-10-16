@@ -1,10 +1,13 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+
 @Service
 @Slf4j
 public class AssigmentUserService {
@@ -30,8 +33,14 @@ public class AssigmentUserService {
         return users;
 
     }
-    private Long getAssignmentRef(Long userid, Long resourceId) {
-        return assignmentRepository.findAssignmentByUserRefAndResourceRef(userid, resourceId).getId();
+    private Long getAssignmentRef(Long userId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+
+        if (assignment.isPresent()) {
+            //return Optional.of(assignment.get().getId());
+            return assignment.get().getId();
+        }
+        return null;
     }
 }
 

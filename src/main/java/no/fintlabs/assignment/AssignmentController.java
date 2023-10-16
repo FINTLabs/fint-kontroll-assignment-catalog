@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -50,8 +51,16 @@ public class AssignmentController {
                 .organizationUnitId(request.organizationUnitId)
                 .build();
 
-        Assignment newAssignment = assignmentService.createNewAssignment(assignment);
-        return new ResponseEntity<>(newAssignment, HttpStatus.CREATED);
+        try {
+            Assignment newAssignment = assignmentService.createNewAssignment(assignment);
+            return new ResponseEntity<>(newAssignment, HttpStatus.CREATED);
+        }
+        catch (AssignmentAlreadyExistsException exception)
+        {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, exception.getMessage(),exception
+            );
+        }
     }
 
     @DeleteMapping("{id}")
