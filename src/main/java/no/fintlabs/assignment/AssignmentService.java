@@ -9,6 +9,7 @@ import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +32,15 @@ public class AssignmentService {
         //TODO: handle Optional.Empty return
         //TODO: Handle both roleRef and userRef null
         Long userRef = assignment.getUserRef();
+        Long resourceRef = assignment.getResourceRef();
+
+        Optional<Assignment> existingAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userRef, resourceRef);
+
+        if (existingAssignment.isPresent()) {
+            throw  new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
+        }
+
+        Resource resource = resourceRepository.findById(resourceRef).get();
         User user = userRepository.findById(userRef).get();
         assignment.setUserFirstName(user.getFirstName());
         assignment.setUserLastName(user.getLastName());
@@ -44,8 +54,7 @@ public class AssignmentService {
 //                (userRef + "_user") :
 //                (roleRef + "_role");
 
-        Long resourceRef = assignment.getResourceRef();
-        Resource resource = resourceRepository.findById(resourceRef).get();
+
         assignment.setResourceName(resource.getResourceName());
 
         assignment.setAssignmentId(resourceRef.toString() + "_" + assignmentIdSuffix);
