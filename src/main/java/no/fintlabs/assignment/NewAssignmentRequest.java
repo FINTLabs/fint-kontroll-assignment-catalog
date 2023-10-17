@@ -6,5 +6,6 @@ import lombok.Getter;
 public class NewAssignmentRequest {
     Long resourceRef;
     Long userRef;
+    Long roleRef;
     String organizationUnitId;
 }

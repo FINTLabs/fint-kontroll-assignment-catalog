@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
 
 import javax.persistence.*;
@@ -25,7 +26,10 @@ public class Assignment {
     private Long id;
 
     private String assignmentId;
+    @Column(name="role_ref")
     private Long roleRef;
+    private String roleName;
+    private String roleType;
     @Column(name="user_ref")
     private Long userRef;
     private String userFirstName;
@@ -48,6 +52,14 @@ public class Assignment {
             updatable = false)//, nullable = false
     @JsonBackReference(value="user-assignment")
     private User user;
+    @ManyToOne(fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JoinColumn(
+            name="role_ref",
+            insertable = false,
+            updatable = false)//, nullable = false
+    @JsonBackReference(value="role-assignment")
+    private Role role;
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(
