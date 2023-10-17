@@ -1,11 +1,16 @@
 package no.fintlabs.role;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.annotate.JsonIgnore;
+import no.fintlabs.assignment.Assignment;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.NaturalId;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -18,6 +23,17 @@ import java.util.Date;
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 public class Role {
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String roleObjectId;
+    private String roleName;
+    private String roleType;
+    @OneToMany(mappedBy = "role",
+            fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JsonManagedReference(value="role-assignment")
+    @JsonIgnore
+    @ToString.Exclude
+    private Set<Assignment> assignments = new HashSet<>();
+
 }

@@ -43,13 +43,23 @@ public class AssignmentController {
     @PostMapping()
     public ResponseEntity<Assignment> createAssignment(@RequestBody NewAssignmentRequest request,
                                                        @AuthenticationPrincipal Jwt jwt) {
-        log.info("Creating new assignment for resource {} and user {}", request.getResourceRef(), request.getUserRef());
-
         Assignment assignment = Assignment.builder()
                 .resourceRef(request.resourceRef)
-                .userRef(request.userRef)
                 .organizationUnitId(request.organizationUnitId)
                 .build();
+
+
+        if (request.userRef != null) {
+            assignment.setUserRef(request.userRef);
+        }
+        if (request.roleRef != null) {
+            assignment.setRoleRef(request.roleRef);
+        }
+
+        log.info("Trying to create new assignment for resource {} and {}"
+                , request.getResourceRef()
+                , request.userRef != null ? "user " + request.getUserRef() : "role " + request.getRoleRef()
+        );
 
         try {
             Assignment newAssignment = assignmentService.createNewAssignment(assignment);

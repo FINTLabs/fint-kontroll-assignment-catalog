@@ -3,6 +3,8 @@ package no.fintlabs.assignment;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.role.Role;
+import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
@@ -10,53 +12,59 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class AssignmentService {
+    private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
     private final SimpeAssignmentService simpeAssignmentService;
     private final ResourceRepository resourceRepository;
 
     public AssignmentService(AssignmentRepository assignmentRepository, SimpeAssignmentService simpeAssignmentService, ResourceRepository resourceRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             RoleRepository roleRepository) {
         this.assignmentRepository = assignmentRepository;
         this.simpeAssignmentService = simpeAssignmentService;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
     }
 
     public Assignment createNewAssignment(Assignment assignment) {
         //TODO: handle Optional.Empty return
         //TODO: Handle both roleRef and userRef null
         Long userRef = assignment.getUserRef();
+        Long roleRef = assignment.getRoleRef();
         Long resourceRef = assignment.getResourceRef();
 
-        Optional<Assignment> existingAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userRef, resourceRef);
+        if (userRef != null) {
+            Optional<Assignment> existingUserAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userRef, resourceRef);
 
-        if (existingAssignment.isPresent()) {
-            throw  new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
+            if (existingUserAssignment.isPresent()) {
+                throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
+            }
+            User user = userRepository.findById(userRef).get();
+            assignment.setUserFirstName(user.getFirstName());
+            assignment.setUserLastName(user.getLastName());
+            assignment.setUserUserType(user.getUserType());
         }
 
+        if (roleRef != null) {
+            Optional<Assignment> existingRoleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleRef, resourceRef);
+
+            if (existingRoleAssignment.isPresent()) {
+                throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
+            }
+            Role role = roleRepository.findById(roleRef).get();
+            assignment.setRoleName(role.getRoleName());
+            assignment.setRoleType(role.getRoleType());
+        }
+        String assignmentIdSuffix = userRef != null ? userRef + "_user": roleRef + "_role";
+
         Resource resource = resourceRepository.findById(resourceRef).get();
-        User user = userRepository.findById(userRef).get();
-        assignment.setUserFirstName(user.getFirstName());
-        assignment.setUserLastName(user.getLastName());
-        assignment.setUserUserType(user.getUserType());
-
-        String assignmentIdSuffix = userRef + "_user";
-//TODO: implement assignment for roles(groups)
-//        Long roleRef = assignment.getRoleRef();
-
-//        String assignmentIdSuffix = (userRef != null) ?
-//                (userRef + "_user") :
-//                (roleRef + "_role");
-
-
         assignment.setResourceName(resource.getResourceName());
-
         assignment.setAssignmentId(resourceRef.toString() + "_" + assignmentIdSuffix);
 
 
