@@ -9,6 +9,7 @@ import no.fintlabs.assignment.Assignment;
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -24,6 +25,7 @@ public class Resource {
     private Long id;
     private String resourceId;
     private String groupObjectId;
+    private UUID azureAdGroupId;
     private String resourceName;
     private String resourceType;
     @OneToMany(mappedBy = "resource",

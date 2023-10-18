@@ -9,6 +9,7 @@ import no.fintlabs.assignment.Assignment;
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -24,6 +25,7 @@ public class User {
     private Long id;
     private Long userRef;
     private String userObjectId;
+    private UUID azureAdUserId;
     private String firstName;
     private String lastName;
     private String userType;
