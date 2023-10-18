@@ -1,8 +1,6 @@
 package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.resource.ResourceService;
-import no.fintlabs.resource.ResourceResponseFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,20 +12,18 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/assignments")
 public class RoleController {
-    private final ResourceResponseFactory resourceResponseFactory;
-    private final ResourceService resourceService;
+    private final  RoleResponseFactory roleResponseFactory;
 
-    public RoleController(ResourceResponseFactory resourceResponseFactory, ResourceService resourceService) {
-        this.resourceResponseFactory = resourceResponseFactory;
-        this.resourceService = resourceService;
+    public RoleController( RoleResponseFactory roleResponseFactory) {
+        this.roleResponseFactory = roleResponseFactory;
     }
 
-    @GetMapping("role/{id}/resources")
-    public ResponseEntity<Map<String , Object>> getResourcesByRoleId(@AuthenticationPrincipal Jwt jwt,
-                                                                         @PathVariable Long id,
-                                                                         @RequestParam(defaultValue = "0") int page,
-                                                                         @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching resources for role with Id: " +id);
-        return resourceResponseFactory.toResponseEntity(id,page,size);
+    @GetMapping("resource/{id}/roles")
+    public ResponseEntity<Map<String , Object>> getRolesByResourceId(@AuthenticationPrincipal Jwt jwt,
+                                                                     @PathVariable Long id,
+                                                                     @RequestParam(defaultValue = "0") int page,
+                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
+        log.info("Fetching roles for resource with Id: " +id);
+        return roleResponseFactory.toResponseEntity(id,page,size);
     }
 }

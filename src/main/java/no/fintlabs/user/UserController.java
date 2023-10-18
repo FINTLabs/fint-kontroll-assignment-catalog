@@ -14,20 +14,17 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/assignments")
 public class UserController {
-    private final ResourceResponseFactory resourceResponseFactory;
-    private final ResourceService resourceService;
+    private final UserResponseFactory userResponseFactory;
 
-    public UserController(ResourceResponseFactory resourceResponseFactory, ResourceService resourceService) {
-        this.resourceResponseFactory = resourceResponseFactory;
-        this.resourceService = resourceService;
+    public UserController(UserResponseFactory userResponseFactory) {
+        this.userResponseFactory = userResponseFactory;
     }
-
-    @GetMapping("user/{id}/resources")
-    public ResponseEntity<Map<String , Object>> getResourcesByResourceId(@AuthenticationPrincipal Jwt jwt,
+    @GetMapping("resource/{id}/users")
+    public ResponseEntity<Map<String , Object>> getUsersByResourceId(@AuthenticationPrincipal Jwt jwt,
                                                                      @PathVariable Long id,
                                                                      @RequestParam(defaultValue = "0") int page,
                                                                      @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching resources for user with Id: " +id);
-        return resourceResponseFactory.toResponseEntity(id,page,size);
+        log.info("Fetching users for resource with Id: " +id);
+        return userResponseFactory.toResponseEntity(id,page,size);
     }
 }

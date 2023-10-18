@@ -30,15 +30,6 @@ public class RoleResponseFactory {
         );
         return entity;
     }
-
-    //    private Page<Role> toPage(List<Role> list, Pageable paging) {
-//        int start = (int) paging.getOffset();
-//        int end = Math.min((start + paging.getPageSize()), list.size());
-//
-//        return start > list.size()
-//                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
-//                : new PageImpl<>(list.subList(start, end), paging, list.size());
-//    }
     private Page<AssignmentRole> toPage(List<AssignmentRole> list, Pageable paging) {
         int start = (int) paging.getOffset();
         int end = Math.min((start + paging.getPageSize()), list.size());
