@@ -52,6 +52,5 @@ public class User {
                 .map(assignment -> assignment.getId())
                 .toList().get(0);
     }
-
 }
 
