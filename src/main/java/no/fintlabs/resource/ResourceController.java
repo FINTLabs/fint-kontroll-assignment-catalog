@@ -14,31 +14,25 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/assignments")
 public class ResourceController {
-    private final UserResponseFactory userResponseFactory;
-    private final RoleResponseFactory roleResponseFactory;
-    private final ResourceService resourceService;
+    private final ResourceResponseFactory resourceResponseFactory;
 
-    public ResourceController(UserResponseFactory userResponseFactory, RoleResponseFactory roleResponseFactory, ResourceService resourceService) {
-        this.userResponseFactory = userResponseFactory;
-        this.roleResponseFactory = roleResponseFactory;
-        this.resourceService = resourceService;
+    public ResourceController( ResourceResponseFactory resourceResponseFactory) {
+        this.resourceResponseFactory = resourceResponseFactory;
     }
-
-    @GetMapping("resource/{id}/users")
-    public ResponseEntity<Map<String , Object>> getUsersByResourceId(@AuthenticationPrincipal Jwt jwt,
-                                                                   @PathVariable Long id,
-                                                                   @RequestParam(defaultValue = "0") int page,
-                                                                   @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching users for resource with Id: " +id);
-        return userResponseFactory.toResponseEntity(id,page,size);
-    }
-    @GetMapping("resource/{id}/roles")
-    public ResponseEntity<Map<String , Object>> getRolesByResourceId(@AuthenticationPrincipal Jwt jwt,
+    @GetMapping("role/{id}/resources")
+    public ResponseEntity<Map<String , Object>> getResourcesByRoleId(@AuthenticationPrincipal Jwt jwt,
                                                                      @PathVariable Long id,
                                                                      @RequestParam(defaultValue = "0") int page,
                                                                      @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching roles for resource with Id: " +id);
-        return roleResponseFactory.toResponseEntity(id,page,size);
+        log.info("Fetching resources for role with Id: " +id);
+        return resourceResponseFactory.toResponseEntity(id,page,size);
     }
-
+    @GetMapping("user/{id}/resources")
+    public ResponseEntity<Map<String , Object>> getResourcesByResourceId(@AuthenticationPrincipal Jwt jwt,
+                                                                         @PathVariable Long id,
+                                                                         @RequestParam(defaultValue = "0") int page,
+                                                                         @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
+        log.info("Fetching resources for user with Id: " +id);
+        return resourceResponseFactory.toResponseEntity(id,page,size);
+    }
 }
