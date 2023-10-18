@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
+import javax.validation.Valid;
 import java.util.Map;
 
 @Slf4j
@@ -41,7 +42,7 @@ public class AssignmentController {
         return  assignmentService.findAssignmentById(id);
     }
     @PostMapping()
-    public ResponseEntity<Assignment> createAssignment(@RequestBody NewAssignmentRequest request,
+    public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request,
                                                        @AuthenticationPrincipal Jwt jwt) {
         Assignment assignment = Assignment.builder()
                 .resourceRef(request.resourceRef)
