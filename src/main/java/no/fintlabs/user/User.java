@@ -25,7 +25,7 @@ public class User {
     private Long id;
     private Long userRef;
     private String userObjectId;
-    private UUID azureAdUserId;
+    private UUID identityProviderUserObjectId;
     private String firstName;
     private String lastName;
     private String userType;

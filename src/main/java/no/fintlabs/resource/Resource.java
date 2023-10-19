@@ -25,7 +25,7 @@ public class Resource {
     private Long id;
     private String resourceId;
     private String groupObjectId;
-    private UUID azureAdGroupId;
+    private UUID identityProviderGroupObjectId;
     private String resourceName;
     private String resourceType;
     @OneToMany(mappedBy = "resource",
