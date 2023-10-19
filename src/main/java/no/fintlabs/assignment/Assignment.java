@@ -33,14 +33,14 @@ public class Assignment {
     private String roleType;
     @Column(name="user_ref")
     private Long userRef;
-    private UUID  azureAdUserId;
+    private UUID azureAdUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
     @Column(name="resource_ref")
     private Long resourceRef;
     private String resourceName;
-    private UUID  azureAdGroupId;
+    private UUID azureAdGroupId;
     private String organizationUnitId;
     private Long assignerRef;
     private Long AssignerRoleRef;
@@ -77,10 +77,10 @@ public class Assignment {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
-                .azureAdUserId(azureAdUserId)
+                .azureGroupRef(azureAdGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
-                .azureAdUserId(azureAdUserId)
+                .azureUserRef(azureAdUserId)
                 .userDisplayname(userFirstName + ' ' + userLastName)
                 .userType(userUserType)
                 .roleRef(roleRef)
