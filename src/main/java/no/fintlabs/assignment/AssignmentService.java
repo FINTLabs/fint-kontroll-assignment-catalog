@@ -46,7 +46,7 @@ public class AssignmentService {
                 throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
             }
             User user = userRepository.findById(userRef).get();
-            assignment.setAzureAdUserId(user.getAzureAdUserId());
+            assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
             assignment.setUserUserType(user.getUserType());
@@ -67,7 +67,7 @@ public class AssignmentService {
         Resource resource = resourceRepository.findById(resourceRef).get();
         assignment.setResourceName(resource.getResourceName());
         assignment.setAssignmentId(resourceRef.toString() + "_" + assignmentIdSuffix);
-        assignment.setAzureAdGroupId(resource.getAzureAdGroupId());
+        assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
 
 
         log.info("Trying to save assignment {}", assignment.getAssignmentId());
