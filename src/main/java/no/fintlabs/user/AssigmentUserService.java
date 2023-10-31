@@ -3,6 +3,10 @@ package no.fintlabs.user;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,9 +24,13 @@ public class AssigmentUserService {
         this.assignmentRepository = assignmentRepository;
     }
 
-    public List<AssignmentUser> getUsersAssignedToResource(Long resourceId) {
-        List<AssignmentUser> users = userRepository
-                .getUsersByResourceId(resourceId)
+    public List<AssignmentUser> getUsersAssignedToResource(Long resourceId, String userType) {
+
+        List<User> users = userType.equals("ALLTYPES")
+                ? userRepository.getUsersByResourceId(resourceId)
+                : userRepository.getUsersByResourceId(resourceId, userType);
+
+        return users
                 .stream()
                 .map(User::toSimpleUser)
                 .map(user ->  {
@@ -30,7 +38,14 @@ public class AssigmentUserService {
                     return user;
                 })
                 .toList();
-        return users;
+    }
+    public Page<AssignmentUser> findBySearchCriteria(Specification<User> spec, Pageable page){
+        List<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
+                .stream()
+                .map(User::toSimpleUser)
+                .toList();
+
+        return new PageImpl<>(assignmentUsers);
 
     }
     private Long getAssignmentRef(Long userId, Long resourceId) {
@@ -42,5 +57,6 @@ public class AssigmentUserService {
         }
         return null;
     }
+
 }
 

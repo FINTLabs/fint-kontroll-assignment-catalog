@@ -43,7 +43,9 @@ public class AssignmentResponseFactory {
             FintJwtEndUserPrincipal principal,
             //String filter,
             int page,
-            int size) {
+            int size,
+            String userType
+    ) {
         Stream<Assignment> assignmentStream = assignmentRepository.findAll().stream();
         ResponseEntity<Map<String, Object>> entity = toResponseEntity(
 //                toPage(
