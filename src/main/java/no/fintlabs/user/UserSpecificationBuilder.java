@@ -29,9 +29,9 @@ public class UserSpecificationBuilder {
         if (!isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
-//        if (!orgUnits.contains("ALLORGUNITS")) {
-//            spec = spec.and(belongToOrgUnit(orgUnits));
-//        }
+        if (orgUnits!=null && !orgUnits.isEmpty()) {
+            spec = spec.and(belongsToOrgUnit(orgUnits));
+        }
         return spec;
     }
 
@@ -47,10 +47,10 @@ public class UserSpecificationBuilder {
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString + "%"),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString + "%"));
     }
-//    private Specification<User> belongToOrgUnit(List<String> orgUnits) {
-//        return (root, query, criteriaBuilder)-> criteriaBuilder.in(root.get(), orgUnits);
-//
-//    }
+    private Specification<User> belongsToOrgUnit(List<String> orgUnits) {
+        return (root, query, criteriaBuilder)-> criteriaBuilder.in(root.get("organisationUnitId")).value(orgUnits);
+
+    }
 
     private Join<User, Assignment> resourceJoin(Root<User> root){
         return root.join("assignments");

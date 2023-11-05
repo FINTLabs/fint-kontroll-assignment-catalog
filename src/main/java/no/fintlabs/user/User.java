@@ -39,14 +39,15 @@ public class User {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    public AssignmentUser toSimpleUser() {
+    public AssignmentUser toAssignmentUser() {
         return AssignmentUser
                 .builder()
                 .id(id)
                 .firstName(firstName)
                 .lastName(lastName)
                 .userType(userType)
-                //.assignmentRef(getAssignmentId(resourceRef))
+                .organisationUnitId(organisationUnitId)
+                .organisationUnitName(organisationUnitName)
                 .build();
     }
 

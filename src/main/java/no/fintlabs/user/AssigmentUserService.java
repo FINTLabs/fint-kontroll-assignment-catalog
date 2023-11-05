@@ -9,8 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.Root;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,17 +32,20 @@ public class AssigmentUserService {
 
         return users
                 .stream()
-                .map(User::toSimpleUser)
+                .map(User::toAssignmentUser)
                 .map(user ->  {
                     user.setAssignmentRef(getAssignmentRef(user.getId(), resourceId));
                     return user;
                 })
                 .toList();
     }
-    public Page<AssignmentUser> findBySearchCriteria(Specification<User> spec, Pageable page){
+    public Page<AssignmentUser> findBySearchCriteria(Long resourceId, Specification<User> spec, Pageable page){
         List<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
-                .stream()
-                .map(User::toSimpleUser)
+                .map(User::toAssignmentUser)
+                .map(user ->  {
+                    user.setAssignmentRef(getAssignmentRef(user.getId(), resourceId));
+                    return user;
+                })
                 .toList();
 
         return new PageImpl<>(assignmentUsers);
