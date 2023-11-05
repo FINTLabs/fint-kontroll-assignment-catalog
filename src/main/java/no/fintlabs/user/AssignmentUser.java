@@ -16,4 +16,6 @@ public class AssignmentUser {
     private String lastName;
     private String userType;
     private Long assignmentRef;
+    private String organisationUnitId;
+    private String organisationUnitName;
 }

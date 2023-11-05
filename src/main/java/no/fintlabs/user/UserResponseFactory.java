@@ -32,7 +32,7 @@ public class UserResponseFactory {
                 Sort.by("firstName").ascending()
                         .and(Sort.by("lastName")).ascending());
 
-        Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(builder.build(), page);
+        Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(resourceId, builder.build(), page);
         return toResponseEntity(usersPage);
 
 //        List<AssignmentUser> users = assigmentUserService.getUsersAssignedToResource(id, userType);
