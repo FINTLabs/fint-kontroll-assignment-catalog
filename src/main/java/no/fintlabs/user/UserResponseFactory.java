@@ -1,8 +1,5 @@
 package no.fintlabs.user;
 
-
-import no.fintlabs.search.SearchCriteria;
-import no.fintlabs.search.SearchOperation;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,27 +18,15 @@ public class UserResponseFactory {
         this.userService = userService;
     }
     public ResponseEntity<Map<String ,Object>> toResponseEntity(
-            Long id,
-            int pageNumber,
-            int pageSize,
+            Long resourceId,
             String userType,
-            String search
+            List<String> orgUnits,
+            String searchString,
+            int pageNumber,
+            int pageSize
     ){
-        UserSpecificationBuilder builder = new UserSpecificationBuilder();
-        SearchCriteria resourceFilter  = new SearchCriteria("resourceRef","eq", id, "all");
-        builder.with(resourceFilter);
+        UserSpecificationBuilder builder = new UserSpecificationBuilder(resourceId, userType, orgUnits, searchString);
 
-        if (!userType.equals("ALLTYPES")) {
-            SearchCriteria searchCriteria = new SearchCriteria("userType", "eq", (Object) userType, "all");
-            builder.with(searchCriteria);
-        }
-        if (search != null) {
-            SearchCriteria searchFirstName = new SearchCriteria("firstName", "cn", (Object) search, "all");
-            builder.with(searchFirstName);
-            //TODO: Find a way to use or criteria
-//            SearchCriteria searchLastName = new SearchCriteria("lastName", "cn", (Object) search, "all");
-//            builder.with(searchLastName);
-        }
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,
                 Sort.by("firstName").ascending()

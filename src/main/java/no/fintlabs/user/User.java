@@ -29,6 +29,8 @@ public class User {
     private String firstName;
     private String lastName;
     private String userType;
+    private String organisationUnitId;
+    private String organisationUnitName;
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})

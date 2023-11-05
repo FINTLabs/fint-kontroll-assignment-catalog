@@ -1,38 +1,62 @@
 package no.fintlabs.user;
 
-import no.fintlabs.search.SearchCriteria;
-import no.fintlabs.search.SearchOperation;
+import no.fintlabs.assignment.Assignment;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.ArrayList;
+import javax.persistence.criteria.Join;
+import javax.persistence.criteria.Root;
 import java.util.List;
 
 public class UserSpecificationBuilder {
 
-    private final List<SearchCriteria> params;
+    private final Long resourceId;
+    private final String userType;
+    private final List<String> orgUnits;
+    private final String searchString;
 
-    public UserSpecificationBuilder(){
-        this.params = new ArrayList<>();
+    public UserSpecificationBuilder(Long resourceId, String userType, List<String> orgUnits, String searchString){
+        this.resourceId = resourceId;
+        this.userType = userType;
+        this.orgUnits = orgUnits;
+        this.searchString = searchString;
     }
-    public final UserSpecificationBuilder with(String key, String operation, Object value){
-        params.add(new SearchCriteria(key, operation, value,null));
-        return this;
-    }
-    public final UserSpecificationBuilder with(SearchCriteria searchCriteria){
-        params.add(searchCriteria);
-        return this;
-    }
-    public Specification<User> build(){
-        if(params.size() == 0){
-            return null;
+    public Specification<User> build() {
+        Specification<User> spec = resourceEquals(resourceId);
+
+        if (!userType.equals("ALLTYPES")) {
+            spec = spec.and(userTypeEquals(userType.toLowerCase()));
         }
-        Specification<User> result = new UserSpecification(params.get(0));
-        for (int idx = 1; idx < params.size(); idx++){
-            SearchCriteria criteria = params.get(idx);
-            result = SearchOperation.getDataOption(criteria.getDataOption()) == SearchOperation.ALL
-                    ? Specification.where(result).and(new UserSpecification(criteria))
-                    : Specification.where(result).or(new UserSpecification(criteria));
+        if (!isEmptyString(searchString)) {
+            spec = spec.and(nameLike(searchString.toLowerCase()));
         }
-        return result;
+//        if (!orgUnits.contains("ALLORGUNITS")) {
+//            spec = spec.and(belongToOrgUnit(orgUnits));
+//        }
+        return spec;
+    }
+
+    private Specification<User> resourceEquals(Long resourceId) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(resourceJoin(root).get("resourceRef"), resourceId);
+    }
+    private  Specification<User> userTypeEquals(String userType) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(criteriaBuilder.lower(root.get("userType")), userType);
+    }
+    private Specification<User> nameLike(String searchString) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString + "%"));
+    }
+//    private Specification<User> belongToOrgUnit(List<String> orgUnits) {
+//        return (root, query, criteriaBuilder)-> criteriaBuilder.in(root.get(), orgUnits);
+//
+//    }
+
+    private Join<User, Assignment> resourceJoin(Root<User> root){
+        return root.join("assignments");
+
+    }
+    private boolean isEmptyString(String string) {
+        return string == null || string.length() == 0;
     }
 }

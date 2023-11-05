@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -26,9 +27,10 @@ public class UserController {
                                                                      @RequestParam(defaultValue = "0") int page,
                                                                      @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
                                                                      @RequestParam(value = "userType", defaultValue = "ALLTYPES") String userType,
+                                                                     @RequestParam(value= "orgUnits", defaultValue = "ALLORGUNITS") List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
                                                                      ){
         log.info("Fetching users for resource with Id: " +id);
-        return userResponseFactory.toResponseEntity(id,page,size, userType, search);
+        return userResponseFactory.toResponseEntity(id, userType, orgUnits, search, page,size);
     }
 }
