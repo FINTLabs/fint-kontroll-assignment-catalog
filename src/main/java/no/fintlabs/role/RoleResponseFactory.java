@@ -1,9 +1,8 @@
 package no.fintlabs.role;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import no.fintlabs.role.AssignmentRole;
+import no.fintlabs.role.RoleSpecificationBuilder;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -19,6 +18,31 @@ public class RoleResponseFactory {
         this.assignmentRoleService = assignmentRoleService;
     }
     public ResponseEntity<Map<String ,Object>> toResponseEntity(
+            Long resourceId,
+            String roleType,
+            List<String> orgUnits,
+            String searchString,
+            int pageNumber,
+            int pageSize
+    ){
+        RoleSpecificationBuilder builder = new RoleSpecificationBuilder(resourceId, roleType, orgUnits, searchString);
+
+        Pageable page = PageRequest.of(pageNumber,
+                pageSize,
+                Sort.by("roleName").ascending()
+                        .and(Sort.by("organisationUnitName")).ascending());
+
+        Page<AssignmentRole> rolesPage = assignmentRoleService.findBySearchCriteria(resourceId, builder.build(), page);
+        return toResponseEntity(rolesPage);
+
+//        List<AssignmentRole> roles = assigmentRoleService.getRolesAssignedToResource(id, roleType);
+//        ResponseEntity<Map<String,Object>> entity = toResponseEntity(
+//                toPage(roles, PageRequest.of(pageNumber,pageSize)
+//                )
+//        );
+//        return entity;
+    }
+    public ResponseEntity<Map<String ,Object>> toResponseEntity(
             Long id,
             int page,
             int size){
@@ -30,6 +54,7 @@ public class RoleResponseFactory {
         );
         return entity;
     }
+    
     private Page<AssignmentRole> toPage(List<AssignmentRole> list, Pageable paging) {
         int start = (int) paging.getOffset();
         int end = Math.min((start + paging.getPageSize()), list.size());

@@ -4,7 +4,6 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.user.AssignmentUser;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -26,6 +25,8 @@ public class Role {
     private String roleObjectId;
     private String roleName;
     private String roleType;
+    private String organisationUnitId;
+    private String organisationUnitName;
     @OneToMany(mappedBy = "role",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
@@ -34,12 +35,14 @@ public class Role {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    public AssignmentRole toAssignemntRole() {
+    public AssignmentRole toAssignmentRole() {
         return AssignmentRole
                 .builder()
                 .id(id)
                 .roleName(roleName)
                 .roleType(roleType)
+                .organisationUnitId(organisationUnitId)
+                .organisationUnitName(organisationUnitName)
                 .build();
     }
 
