@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -22,8 +23,12 @@ public class RoleController {
     public ResponseEntity<Map<String , Object>> getRolesByResourceId(@AuthenticationPrincipal Jwt jwt,
                                                                      @PathVariable Long id,
                                                                      @RequestParam(defaultValue = "0") int page,
-                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
+                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+                                                                     @RequestParam(value = "roleType", defaultValue = "ALLTYPES") String roleType,
+                                                                     @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
+                                                                     @RequestParam(value = "search", required = false) String search
+    ){
         log.info("Fetching roles for resource with Id: " +id);
-        return roleResponseFactory.toResponseEntity(id,page,size);
+        return roleResponseFactory.toResponseEntity(id, roleType, orgUnits, search, page,size);
     }
 }
