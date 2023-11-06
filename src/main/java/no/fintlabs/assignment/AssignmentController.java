@@ -31,9 +31,11 @@ public class AssignmentController {
     @GetMapping()
     public ResponseEntity<Map<String,Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                   @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size ) {
+                                                                   @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+                                                                   @RequestParam(defaultValue = "ALLTYPES", required = false) String userType
+    ) {
 
-        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt),page, size);
+        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt),page, size, userType);
     }
 
     @GetMapping("{id}")
