@@ -20,7 +20,7 @@ import java.util.Set;
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 public class Role {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //@GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String roleObjectId;
     private String roleName;
