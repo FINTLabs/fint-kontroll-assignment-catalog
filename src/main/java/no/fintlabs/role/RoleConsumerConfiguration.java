@@ -18,7 +18,7 @@ public class RoleConsumerConfiguration {
     ){
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("role")
+                .resource("role-catalog-role")
                 .build();
 
         ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(
