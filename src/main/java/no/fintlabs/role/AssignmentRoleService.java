@@ -48,16 +48,13 @@ public class AssignmentRoleService {
     }
 
     public Page<AssignmentRole> findBySearchCriteria(Long resourceId, Specification<Role> specification, Pageable page) {
-        List<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
+        Page<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
                 .map(Role::toAssignmentRole)
                 .map(role ->  {
                     role.setAssignmentRef(getAssignmentRef(role.getId(), resourceId));
                     return role;
-                })
-                .toList();
-
-        return new PageImpl<>(assignmentRoles);
-
+                });
+        return assignmentRoles;
     }
 }
 
