@@ -40,16 +40,13 @@ public class AssigmentUserService {
                 .toList();
     }
     public Page<AssignmentUser> findBySearchCriteria(Long resourceId, Specification<User> spec, Pageable page){
-        List<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
+        Page<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
                 .map(User::toAssignmentUser)
                 .map(user ->  {
                     user.setAssignmentRef(getAssignmentRef(user.getId(), resourceId));
                     return user;
-                })
-                .toList();
-
-        return new PageImpl<>(assignmentUsers);
-
+                });
+        return assignmentUsers;
     }
     private Long getAssignmentRef(Long userId, Long resourceId) {
         Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);

@@ -1,11 +1,9 @@
 package no.fintlabs.assignment;
 
 import no.fint.antlr.FintFilterService;
+import no.fintlabs.user.AssignmentUser;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -42,10 +40,18 @@ public class AssignmentResponseFactory {
     public ResponseEntity<Map<String, Object>> toResponseEntity(
             FintJwtEndUserPrincipal principal,
             //String filter,
-            int page,
-            int size,
+            int pageNumber,
+            int pageSize,
             String userType
     ) {
+        Pageable page = PageRequest.of(pageNumber,
+                pageSize,
+                Sort.by("resourceName").ascending()
+                        .and(Sort.by("userDisplayname")).ascending());
+
+        //Page<SimpleAssignment> assignmentPage = assignmentRepository.findAll(page);
+        //return toResponseEntity(assignmentPage);
+
         Stream<Assignment> assignmentStream = assignmentRepository.findAll().stream();
         ResponseEntity<Map<String, Object>> entity = toResponseEntity(
 //                toPage(
@@ -58,7 +64,7 @@ public class AssignmentResponseFactory {
 //                )
                 toPage(
                         assignmentStream.map(Assignment::toSimpleAssignment).toList(),
-                        PageRequest.of(page, size))
+                        PageRequest.of(pageNumber, pageSize))
         );
         return entity;
     }
