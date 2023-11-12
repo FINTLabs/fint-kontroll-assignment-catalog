@@ -33,7 +33,7 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'io.netty:netty-resolver-dns-native-macos:4.1.90.Final:osx-aarch_64'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     //implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -49,10 +49,11 @@ dependencies {
     implementation 'no.fintlabs:fint-antlr:1.1.1'
     //implementation 'no.fintlabs:fint-flyt-resource-server:0.0.1'
     implementation 'no.fintlabs:fint-resource-server-security:1.1.0'
+    implementation 'no.fintlabs:fint-kontroll-authorization:1.0.6'
     implementation 'no.fint:fint-model-resource:0.4.1'
     implementation 'io.projectreactor:reactor-core'
-    implementation 'io.springfox:springfox-boot-starter:3.0.0'
-    implementation 'io.springfox:springfox-swagger-ui:3.0.0'
+    //implementation 'io.springfox:springfox-boot-starter:3.0.0'
+    //implementation 'io.springfox:springfox-swagger-ui:3.0.0'
 
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'

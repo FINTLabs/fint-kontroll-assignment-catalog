@@ -8,6 +8,9 @@ fint:
     base-url: https://beta.felleskomponent.no
   kafka:
     default-replicas: 1
+  kontroll:
+    opa:
+      url: http://localhost:8181/v1/data/accessmanagement
 spring:
   kafka:
     bootstrap-servers: localhost:9092
