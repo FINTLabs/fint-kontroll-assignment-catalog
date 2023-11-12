@@ -34,22 +34,6 @@ public class UserResponseFactory {
 
         Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(resourceId, builder.build(), page);
         return toResponseEntity(usersPage);
-
-//        List<AssignmentUser> users = assigmentUserService.getUsersAssignedToResource(id, userType);
-//        ResponseEntity<Map<String,Object>> entity = toResponseEntity(
-//                toPage(users, PageRequest.of(pageNumber,pageSize)
-//                )
-//        );
-//        return entity;
-    }
-
-    private Page<AssignmentUser> toPage(List<AssignmentUser> list, Pageable paging) {
-        int start = (int) paging.getOffset();
-        int end = Math.min((start + paging.getPageSize()), list.size());
-
-        return start > list.size()
-                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
-                : new PageImpl<>(list.subList(start, end), paging, list.size());
     }
     public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentUser> assignmentUserPage) {
 

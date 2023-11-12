@@ -1,13 +1,12 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.role.RoleResponseFactory;
-import no.fintlabs.user.UserResponseFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -19,20 +18,28 @@ public class ResourceController {
     public ResourceController( ResourceResponseFactory resourceResponseFactory) {
         this.resourceResponseFactory = resourceResponseFactory;
     }
-    @GetMapping("role/{id}/resources")
+    @GetMapping("role/{roleId}/resources")
     public ResponseEntity<Map<String , Object>> getResourcesByRoleId(@AuthenticationPrincipal Jwt jwt,
-                                                                     @PathVariable Long id,
+                                                                     @PathVariable Long roleId,
                                                                      @RequestParam(defaultValue = "0") int page,
-                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching resources for role with Id: " +id);
-        return resourceResponseFactory.toResponseEntity(id,page,size);
+                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+                                                                     @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
+                                                                     @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
+                                                                     @RequestParam(value = "search", required = false) String search
+    ){
+        log.info("Fetching resources for role with Id: " + roleId);
+        return resourceResponseFactory.toResponseEntity(null,roleId,resourceType, orgUnits, search, page,size);
     }
-    @GetMapping("user/{id}/resources")
-    public ResponseEntity<Map<String , Object>> getResourcesByResourceId(@AuthenticationPrincipal Jwt jwt,
-                                                                         @PathVariable Long id,
+    @GetMapping("user/{userId}/resources")
+    public ResponseEntity<Map<String , Object>> getResourcesByUserId(@AuthenticationPrincipal Jwt jwt,
+                                                                         @PathVariable Long userId,
                                                                          @RequestParam(defaultValue = "0") int page,
-                                                                         @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size){
-        log.info("Fetching resources for user with Id: " +id);
-        return resourceResponseFactory.toResponseEntity(id,page,size);
+                                                                         @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+                                                                         @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
+                                                                         @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
+                                                                         @RequestParam(value = "search", required = false) String search
+    ){
+        log.info("Fetching resources for user with Id: " +userId);
+        return resourceResponseFactory.toResponseEntity(userId,null,resourceType, orgUnits, search, page,size);
     }
 }
