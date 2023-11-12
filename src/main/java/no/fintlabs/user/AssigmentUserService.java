@@ -23,22 +23,6 @@ public class AssigmentUserService {
         this.userRepository = userRepository;
         this.assignmentRepository = assignmentRepository;
     }
-
-    public List<AssignmentUser> getUsersAssignedToResource(Long resourceId, String userType) {
-
-        List<User> users = userType.equals("ALLTYPES")
-                ? userRepository.getUsersByResourceId(resourceId)
-                : userRepository.getUsersByResourceId(resourceId, userType);
-
-        return users
-                .stream()
-                .map(User::toAssignmentUser)
-                .map(user ->  {
-                    user.setAssignmentRef(getAssignmentRef(user.getId(), resourceId));
-                    return user;
-                })
-                .toList();
-    }
     public Page<AssignmentUser> findBySearchCriteria(Long resourceId, Specification<User> spec, Pageable page){
         Page<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
                 .map(User::toAssignmentUser)

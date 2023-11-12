@@ -24,29 +24,6 @@ public class AssignmentRoleService {
         this.roleRepository = roleRepository;
         this.assignmentRepository = assignmentRepository;
     }
-
-    public List<AssignmentRole> getRolesAssignedToResource(Long resourceId) {
-        List<AssignmentRole> roles = roleRepository
-                .getRolesByResourceId(resourceId)
-                .stream()
-                .map(Role::toAssignmentRole)
-                .map(role ->  {
-                    role.setAssignmentRef(getAssignmentRef(role.getId(), resourceId));
-                    return role;
-                })
-                .toList();
-        return roles;
-    }
-    private Long getAssignmentRef(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (assignment.isPresent()) {
-            //return Optional.of(assignment.get().getId());
-            return assignment.get().getId();
-        }
-        return null;
-    }
-
     public Page<AssignmentRole> findBySearchCriteria(Long resourceId, Specification<Role> specification, Pageable page) {
         Page<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
                 .map(Role::toAssignmentRole)
@@ -55,6 +32,14 @@ public class AssignmentRoleService {
                     return role;
                 });
         return assignmentRoles;
+    }
+    private Long getAssignmentRef(Long roleId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+
+        if (assignment.isPresent()) {
+            return assignment.get().getId();
+        }
+        return null;
     }
 }
 
