@@ -1,9 +1,7 @@
 package no.fintlabs.resource;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import no.fintlabs.user.UserSpecificationBuilder;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -19,34 +17,27 @@ public class ResourceResponseFactory {
         this.assignmentResourceService = assignmentResourceService;
     }
     public ResponseEntity<Map<String ,Object>> toResponseEntity(
-            Long id,
-            int page,
-            int size){
-        List<AssignmentResource> resources = assignmentResourceService.getResourcesAssignedToUser(id);
+            Long userId,
+            Long roleId,
+            String resourceType,
+            List<String> orgUnits,
+            String searchString,
+            int pageNumber,
+            int pageSize
+    ){
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(userId, roleId, resourceType, orgUnits, searchString);
+        Pageable page = PageRequest.of(pageNumber,
+                pageSize,
+                Sort.by("resourceName").ascending());
 
-        ResponseEntity<Map<String,Object>> entity = toResponseEntity(
-                toPage(resources, PageRequest.of(page,size)
-                )
-        );
-        return entity;
+        if (userId != null) {
+            return toResponseEntity(assignmentResourceService.getResourcesAssignedToUser(userId, builder.build(), page));
+        }
+        else {
+            return toResponseEntity(assignmentResourceService.getResourcesAssignedToRole(roleId, builder.build(), page));
+        }
     }
 
-//    private Page<Resource> toPage(List<Resource> list, Pageable paging) {
-//        int start = (int) paging.getOffset();
-//        int end = Math.min((start + paging.getPageSize()), list.size());
-//
-//        return start > list.size()
-//                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
-//                : new PageImpl<>(list.subList(start, end), paging, list.size());
-//    }
-    private Page<AssignmentResource> toPage(List<AssignmentResource> list, Pageable paging) {
-        int start = (int) paging.getOffset();
-        int end = Math.min((start + paging.getPageSize()), list.size());
-
-        return start > list.size()
-                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
-                : new PageImpl<>(list.subList(start, end), paging, list.size());
-    }
     public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
 
         return new ResponseEntity<>(

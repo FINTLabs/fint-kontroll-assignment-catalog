@@ -3,9 +3,11 @@ package no.fintlabs.resource;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -19,21 +21,36 @@ public class AssignmentResourceService {
         this.assignmentRepository = assignmentRepository;
     }
 
-    public List<AssignmentResource> getResourcesAssignedToUser(Long userId) {
-        List<AssignmentResource> resources = resourceRepository
-                .getResourcesByUserId(userId)
-                .stream()
+    public Page<AssignmentResource> getResourcesAssignedToUser(Long userId, Specification<Resource> spec, Pageable page) {
+        Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
                 .map(Resource::toSimpleResource)
                 .map(resource ->  {
-                    resource.setAssignmentRef(getAssignmentRef(userId, resource.getId()));
+                    resource.setAssignmentRef(getAssignmentRefForUser(userId, resource.getId()));
                     return resource;
-                })
-                .toList();
+                });
         return resources;
-
     }
-    private Long getAssignmentRef(Long userId, Long resourceId) {
+    public Page<AssignmentResource> getResourcesAssignedToRole(Long roleId, Specification<Resource> spec, Pageable page) {
+        Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
+                .map(Resource::toSimpleResource)
+                .map(resource ->  {
+                    resource.setAssignmentRef(getAssignmentRefForRole(roleId, resource.getId()));
+                    return resource;
+                });
+        return resources;
+    }
+    private Long getAssignmentRefForUser(Long userId, Long resourceId) {
         Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+
+        if (assignment.isPresent()) {
+            //return Optional.of(assignment.get().getId());
+            return assignment.get().getId();
+        }
+        return null;
+    }
+    //findAssignmentByRoleRefAndResourceRef
+    private Long getAssignmentRefForRole(Long roleId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(roleId, resourceId);
 
         if (assignment.isPresent()) {
             //return Optional.of(assignment.get().getId());

@@ -34,34 +34,6 @@ public class RoleResponseFactory {
 
         Page<AssignmentRole> rolesPage = assignmentRoleService.findBySearchCriteria(resourceId, builder.build(), page);
         return toResponseEntity(rolesPage);
-
-//        List<AssignmentRole> roles = assigmentRoleService.getRolesAssignedToResource(id, roleType);
-//        ResponseEntity<Map<String,Object>> entity = toResponseEntity(
-//                toPage(roles, PageRequest.of(pageNumber,pageSize)
-//                )
-//        );
-//        return entity;
-    }
-    public ResponseEntity<Map<String ,Object>> toResponseEntity(
-            Long id,
-            int page,
-            int size){
-        List<AssignmentRole> roles = assignmentRoleService.getRolesAssignedToResource(id);
-
-        ResponseEntity<Map<String,Object>> entity = toResponseEntity(
-                toPage(roles, PageRequest.of(page,size)
-                )
-        );
-        return entity;
-    }
-    
-    private Page<AssignmentRole> toPage(List<AssignmentRole> list, Pageable paging) {
-        int start = (int) paging.getOffset();
-        int end = Math.min((start + paging.getPageSize()), list.size());
-
-        return start > list.size()
-                ? new PageImpl<>(new ArrayList<>(), paging, list.size())
-                : new PageImpl<>(list.subList(start, end), paging, list.size());
     }
     public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentRole> rolePage) {
 
