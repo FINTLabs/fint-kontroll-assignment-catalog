@@ -43,17 +43,14 @@ public class AssignmentResourceService {
         Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
 
         if (assignment.isPresent()) {
-            //return Optional.of(assignment.get().getId());
             return assignment.get().getId();
         }
         return null;
     }
-    //findAssignmentByRoleRefAndResourceRef
     private Long getAssignmentRefForRole(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(roleId, resourceId);
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
 
         if (assignment.isPresent()) {
-            //return Optional.of(assignment.get().getId());
             return assignment.get().getId();
         }
         return null;
