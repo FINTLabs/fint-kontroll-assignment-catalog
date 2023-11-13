@@ -1,36 +1,50 @@
 package no.fintlabs.user;
 
+import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.opa.model.OrgUnitType;
+import no.fintlabs.utils.Utils;
 import org.springframework.data.jpa.domain.Specification;
 
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 import java.util.List;
 
+@Slf4j
 public class UserSpecificationBuilder {
-
     private final Long resourceId;
     private final String userType;
     private final List<String> orgUnits;
+    private final List<String> orgUnitsInScope;
     private final String searchString;
-
-    public UserSpecificationBuilder(Long resourceId, String userType, List<String> orgUnits, String searchString){
+    private final Utils utils;
+    public UserSpecificationBuilder(
+            Long resourceId,
+            String userType,
+            List<String> orgUnits,
+            List<String> orgUnitsInScope,
+            String searchString,
+            Utils utils
+    ){
         this.resourceId = resourceId;
         this.userType = userType;
         this.orgUnits = orgUnits;
+        this.orgUnitsInScope = orgUnitsInScope;
         this.searchString = searchString;
+        this.utils = utils;
     }
     public Specification<User> build() {
         Specification<User> spec = resourceEquals(resourceId);
+        List<String> orgUnitsTofilter = utils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
 
+        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
+        }
         if (!userType.equals("ALLTYPES")) {
             spec = spec.and(userTypeEquals(userType.toLowerCase()));
         }
-        if (!isEmptyString(searchString)) {
+        if (!utils.isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
-        }
-        if (orgUnits!=null && !orgUnits.isEmpty()) {
-            spec = spec.and(belongsToOrgUnit(orgUnits));
         }
         return spec;
     }
@@ -54,9 +68,6 @@ public class UserSpecificationBuilder {
 
     private Join<User, Assignment> resourceJoin(Root<User> root){
         return root.join("assignments");
+    }
 
-    }
-    private boolean isEmptyString(String string) {
-        return string == null || string.length() == 0;
-    }
 }
