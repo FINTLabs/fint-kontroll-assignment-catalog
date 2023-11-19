@@ -1,6 +1,7 @@
 package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.opa.OpaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,9 +15,10 @@ import java.util.Map;
 @RequestMapping("/api/assignments")
 public class RoleController {
     private final  RoleResponseFactory roleResponseFactory;
-
-    public RoleController( RoleResponseFactory roleResponseFactory) {
+    private final OpaService opaService;
+    public RoleController(RoleResponseFactory roleResponseFactory, OpaService opaService) {
         this.roleResponseFactory = roleResponseFactory;
+        this.opaService = opaService;
     }
 
     @GetMapping("resource/{id}/roles")
@@ -28,7 +30,9 @@ public class RoleController {
                                                                      @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
     ){
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching roles for resource with Id: " +id);
-        return roleResponseFactory.toResponseEntity(id, roleType, orgUnits, search, page,size);
+        return roleResponseFactory.toResponseEntity(id, roleType, orgUnits, orgUnitsInScope,search, page,size);
     }
 }
