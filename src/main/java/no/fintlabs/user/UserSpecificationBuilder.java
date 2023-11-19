@@ -2,8 +2,9 @@ package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
-import no.fintlabs.utils.Utils;
+import no.fintlabs.opa.OpaUtils;
 import org.springframework.data.jpa.domain.Specification;
 
 import javax.persistence.criteria.Join;
@@ -17,25 +18,23 @@ public class UserSpecificationBuilder {
     private final List<String> orgUnits;
     private final List<String> orgUnitsInScope;
     private final String searchString;
-    private final Utils utils;
     public UserSpecificationBuilder(
             Long resourceId,
             String userType,
             List<String> orgUnits,
             List<String> orgUnitsInScope,
-            String searchString,
-            Utils utils
+            String searchString
     ){
         this.resourceId = resourceId;
         this.userType = userType;
         this.orgUnits = orgUnits;
         this.orgUnitsInScope = orgUnitsInScope;
         this.searchString = searchString;
-        this.utils = utils;
     }
     public Specification<User> build() {
         Specification<User> spec = resourceEquals(resourceId);
-        List<String> orgUnitsTofilter = utils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+
+        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
 
         if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
             spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
@@ -43,7 +42,7 @@ public class UserSpecificationBuilder {
         if (!userType.equals("ALLTYPES")) {
             spec = spec.and(userTypeEquals(userType.toLowerCase()));
         }
-        if (!utils.isEmptyString(searchString)) {
+        if (!OpaUtils.isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
         return spec;
