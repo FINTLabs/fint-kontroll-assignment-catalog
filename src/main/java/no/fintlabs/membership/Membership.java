@@ -15,13 +15,12 @@ import java.util.UUID;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="Assignment_memberships")
+@Table(name="Assignmentemberships")
 @AllArgsConstructor
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 public class Membership {
     @Id
-    private String id;
-    private Long roleId;
-    private Long memberId;
-    private UUID identityProviderUserObjectId;
+    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    private Long id;
+    private Long userId;
 }
