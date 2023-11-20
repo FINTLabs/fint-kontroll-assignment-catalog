@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.NaturalId;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Date;
 
 @Getter
@@ -14,7 +14,7 @@ import java.util.Date;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="Assignmentemberships")
+@Table(name="AssignmentMemberships")
 @AllArgsConstructor
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 public class Membership {

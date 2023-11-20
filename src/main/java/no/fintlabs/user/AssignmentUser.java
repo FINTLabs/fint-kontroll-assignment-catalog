@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Id;
+import jakarta.persistence.Id;
 
 @Getter
 @Setter
