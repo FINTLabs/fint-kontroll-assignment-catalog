@@ -1,9 +1,7 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.resource.ResourceService;
-import no.fintlabs.resource.ResourceResponseFactory;
-import org.apache.kafka.common.protocol.types.Field;
+import no.fintlabs.opa.OpaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,9 +15,11 @@ import java.util.Map;
 @RequestMapping("/api/assignments")
 public class UserController {
     private final UserResponseFactory userResponseFactory;
+    private final OpaService opaService;
 
-    public UserController(UserResponseFactory userResponseFactory) {
+    public UserController(UserResponseFactory userResponseFactory, OpaService opaService) {
         this.userResponseFactory = userResponseFactory;
+        this.opaService = opaService;
     }
     @GetMapping("resource/{id}/users")
     public ResponseEntity<Map<String , Object>> getUsersByResourceId(@AuthenticationPrincipal Jwt jwt,
@@ -29,8 +29,10 @@ public class UserController {
                                                                      @RequestParam(value = "userType", defaultValue = "ALLTYPES") String userType,
                                                                      @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
-                                                                     ){
+    ){
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching users for resource with Id: " +id);
-        return userResponseFactory.toResponseEntity(id, userType, orgUnits, search, page,size);
+        return userResponseFactory.toResponseEntity(id, userType, orgUnits, orgUnitsInScope,search, page,size);
     }
 }

@@ -1,13 +1,10 @@
 package no.fintlabs.role;
 
-import no.fintlabs.role.AssignmentRole;
-import no.fintlabs.role.RoleSpecificationBuilder;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -21,11 +18,12 @@ public class RoleResponseFactory {
             Long resourceId,
             String roleType,
             List<String> orgUnits,
+            List<String> orgUnitsInScope,
             String searchString,
             int pageNumber,
             int pageSize
     ){
-        RoleSpecificationBuilder builder = new RoleSpecificationBuilder(resourceId, roleType, orgUnits, searchString);
+        RoleSpecificationBuilder builder = new RoleSpecificationBuilder(resourceId, roleType, orgUnits,  orgUnitsInScope, searchString);
 
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,
