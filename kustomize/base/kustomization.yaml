@@ -10,3 +10,4 @@ commonLabels:
     fintlabs.no/org-id: fintlabs.no
 resources:
   - flais.yaml
+  - config-map.yaml
