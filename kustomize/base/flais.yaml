@@ -24,3 +24,6 @@ spec:
         permission: admin
   database:
     database: fint-kontroll
+  envFrom:
+    - configMapRef:
+        name: fint-kontroll-access-management-config

@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ofk-no
+resources:
+  - ../../../base
+commonLabels:
+  app.kubernetes.io/name: fint-kontroll-assignment-catalog
+  app.kubernetes.io/instance: fint-kontroll-assignment-catalog_ofk-no
+  app.kubernetes.io/version: latest
+  app.kubernetes.io/component: backend
+  app.kubernetes.io/part-of: fint-kontroll
+  fintlabs.no/team: bas
+  fintlabs.no/org-id: ofk.no
+patches:
+  - patch: |-
+      - op: replace
+        path: "/spec/orgId"
+        value: "ofk.no"
+      - op: replace
+        path: "/spec/env/0/value"
+        value: "https://role-catalog.vigoiks.no/vigo/kontroll/user"
+      - op: replace
+        path: "/spec/env/1/value"
+        value: "ofk.no"
+      - op: replace
+        path: "/spec/kafka/acls/0/topic"
+        value: "ofk-no.kontroll.*"
+      - op: replace
+        path: "/spec/kafka/acls/1/topic"
+        value: "ofk-no.kontroll.*"
+      - op: replace
+        path: "/spec/ingress/basePath"
+        value: "/ofk-no/api/assignments"
+      - op: replace
+        path: "/spec/url/basePath"
+        value: "/ofk-no"
+    target:
+      kind: Application
+      name: fint-kontroll-assignment-catalog
+
