@@ -7,6 +7,7 @@ import org.hibernate.annotations.NaturalId;
 
 import jakarta.persistence.*;
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,15 +15,13 @@ import java.util.Date;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="AssignmentMemberships")
+@Table(name="Assignment_memberships")
 @AllArgsConstructor
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 public class Membership {
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
-    private Long id;
-    private Long userId;
+    private String id;
+    private Long roleId;
+    private Long memberId;
+    private UUID identityProviderUserObjectId;
 }
-
-
-
