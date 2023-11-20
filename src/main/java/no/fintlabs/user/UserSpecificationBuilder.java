@@ -7,8 +7,8 @@ import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.opa.OpaUtils;
 import org.springframework.data.jpa.domain.Specification;
 
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Root;
 import java.util.List;
 
 @Slf4j
