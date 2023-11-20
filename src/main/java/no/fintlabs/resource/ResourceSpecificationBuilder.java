@@ -1,10 +1,12 @@
 package no.fintlabs.resource;
 
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.opa.OpaUtils;
+import no.fintlabs.opa.model.OrgUnitType;
 import org.springframework.data.jpa.domain.Specification;
 
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Root;
 import java.util.List;
 
 public class ResourceSpecificationBuilder {
@@ -12,26 +14,36 @@ public class ResourceSpecificationBuilder {
     private final Long roleId;
     private final String resourceType;
     private final List<String> orgUnits;
+    private final List<String> orgUnitsInScope;
     private final String searchString;
 
-    public ResourceSpecificationBuilder(Long userId, Long roleId, String resourceType, List<String> orgUnits, String searchString){
+    public ResourceSpecificationBuilder(
+            Long userId,
+            Long roleId,
+            String resourceType,
+            List<String> orgUnits,
+            List<String> orgUnitsInScope,
+            String searchString
+    ){
         this.userId = userId;
         this.roleId = roleId;
         this.resourceType = resourceType;
         this.orgUnits = orgUnits;
+        this.orgUnitsInScope = orgUnitsInScope;
         this.searchString = searchString;
     }
     public Specification<Resource> build() {
         Specification<Resource> spec = userId != null ? userEquals(userId) : roleEquals(roleId);
 
+        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
+        }
         if (!resourceType.equals("ALLTYPES")) {
             spec = spec.and(resourceTypeEquals(resourceType.toLowerCase()));
         }
         if (!isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
-        }
-        if (orgUnits!=null && !orgUnits.isEmpty()) {
-            spec = spec.and(belongsToOrgUnit(orgUnits));
         }
         return spec;
     }

@@ -5,7 +5,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +12,9 @@ import java.util.Map;
 public class UserResponseFactory {
     private final AssigmentUserService assigmentUserService;
     private final UserService userService;
-    public UserResponseFactory(AssigmentUserService assigmentUserService, UserService userService) {
+    public UserResponseFactory(AssigmentUserService assigmentUserService,
+                               UserService userService
+    ) {
         this.assigmentUserService = assigmentUserService;
         this.userService = userService;
     }
@@ -21,11 +22,12 @@ public class UserResponseFactory {
             Long resourceId,
             String userType,
             List<String> orgUnits,
+            List<String> orgUnitsInScope,
             String searchString,
             int pageNumber,
             int pageSize
     ){
-        UserSpecificationBuilder builder = new UserSpecificationBuilder(resourceId, userType, orgUnits, searchString);
+        UserSpecificationBuilder builder = new UserSpecificationBuilder(resourceId, userType, orgUnits, orgUnitsInScope,searchString);
 
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,

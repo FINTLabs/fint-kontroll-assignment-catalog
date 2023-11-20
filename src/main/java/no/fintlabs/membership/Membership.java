@@ -5,8 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.NaturalId;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,6 +24,3 @@ public class Membership {
     private Long id;
     private Long userId;
 }
-
-
-
