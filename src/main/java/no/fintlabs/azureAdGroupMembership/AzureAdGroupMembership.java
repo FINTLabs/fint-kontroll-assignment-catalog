@@ -12,5 +12,8 @@ public class AzureAdGroupMembership {
     private UUID userRef;
 
     public AzureAdGroupMembership(String key, UUID azureUserId, UUID azureAdGroupId) {
+        this.id = key;
+        this.resourceRef = azureAdGroupId;
+        this.userRef = azureUserId;
     }
 }
