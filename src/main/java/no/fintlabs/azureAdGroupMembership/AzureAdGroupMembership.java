@@ -8,12 +8,12 @@ import java.util.UUID;
 @Setter
 public class AzureAdGroupMembership {
     private String id;
-    private UUID resourceRef;
-    private UUID userRef;
+    private UUID azureGroupRef;
+    private UUID azureUserRef;
 
     public AzureAdGroupMembership(String key, UUID azureUserId, UUID azureAdGroupId) {
         this.id = key;
-        this.resourceRef = azureAdGroupId;
-        this.userRef = azureUserId;
+        this.azureGroupRef = azureAdGroupId;
+        this.azureUserRef = azureUserId;
     }
 }
