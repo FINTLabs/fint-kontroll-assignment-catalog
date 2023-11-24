@@ -35,10 +35,10 @@ public class ResourceSpecificationBuilder {
     public Specification<Resource> build() {
         Specification<Resource> spec = userId != null ? userEquals(userId) : roleEquals(roleId);
 
-        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
-        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
-            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
-        }
+//        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+//        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+//            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
+//        }
         if (!resourceType.equals("ALLTYPES")) {
             spec = spec.and(resourceTypeEquals(resourceType.toLowerCase()));
         }
@@ -58,9 +58,7 @@ public class ResourceSpecificationBuilder {
     }
     private Specification<Resource> nameLike(String searchString) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString + "%"));
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceName")), "%" + searchString + "%");
     }
     private Specification<Resource> belongsToOrgUnit(List<String> orgUnits) {
         return (root, query, criteriaBuilder)-> criteriaBuilder.in(root.get("organisationUnitId")).value(orgUnits);
