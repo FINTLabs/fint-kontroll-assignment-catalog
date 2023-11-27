@@ -8,7 +8,6 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import no.fintlabs.kafka.entity.topic.EntityTopicService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.membership.MembershipSpecificationBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -42,8 +41,29 @@ public class AssigmentEntityProducerService {
             membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
                     .stream()
                     .map(Membership::getIdentityProviderUserObjectId)
-                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));            ;
+                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));
         }
+    }
+    public void publishDeletion(Assignment assignment) {
+        if (assignment.getUserRef() != null) {
+            publishDeletion(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
+        }
+        if (assignment.getRoleRef() != null) {
+            membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
+                    .stream()
+                    .map(Membership::getIdentityProviderUserObjectId)
+                    .forEach(azureUserId -> publishDeletion(assignment.getAzureAdGroupId(),azureUserId ));
+        }
+    }
+    private void publishDeletion (UUID azureAdGroupId, UUID azureUserId) {
+        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
+        entityProducer.send(
+                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                        .topicNameParameters(entityTopicNameParameters)
+                        .key(key)
+                        .value(null)
+                        .build()
+        );
     }
     private void publish(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
