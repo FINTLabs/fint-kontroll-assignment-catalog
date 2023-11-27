@@ -120,7 +120,7 @@ public class AssignmentService {
     public void deleteAssignment(Long id) {
         Assignment assignment= assignmentRepository.getReferenceById(id);
         assignmentRepository.deleteById(id);
-        //simpeAssignmentService.processDeletion(assignment);
+        simpeAssignmentService.processDeletion(assignment);
     }
 }
 

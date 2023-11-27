@@ -13,4 +13,8 @@ public class SimpeAssignmentService {
     public void process(Assignment assignment) {
         assigmentEntityProducerService.publish(assignment);
     }
+
+    public void processDeletion(Assignment assignment) {
+        assigmentEntityProducerService.publishDeletion(assignment);
+    }
 }
