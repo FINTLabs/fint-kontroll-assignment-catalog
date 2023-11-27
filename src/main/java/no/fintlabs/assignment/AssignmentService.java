@@ -2,6 +2,7 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
@@ -10,7 +11,6 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -71,7 +71,6 @@ public class AssignmentService {
             if (optionalRole.isEmpty()) {
                 throw new RoleNotFoundException(roleRef.toString());
             }
-
             Role role = optionalRole.get();
             assignment.setRoleName(role.getRoleName());
             assignment.setRoleType(role.getRoleType());
@@ -79,11 +78,15 @@ public class AssignmentService {
         }
         String assignmentIdSuffix = userRef != null ? userRef + "_user": roleRef + "_role";
 
-        Resource resource = resourceRepository.findById(resourceRef).get();
+        Optional<Resource> optionalResource = resourceRepository.findById(resourceRef);
+
+        if (optionalResource.isEmpty()) {
+            throw new ResourceNotFoundException(resourceRef.toString());
+        }
+        Resource resource = optionalResource.get();
         assignment.setResourceName(resource.getResourceName());
         assignment.setAssignmentId(resourceRef + "_" + assignmentIdSuffix);
         assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
-
 
         log.info("Trying to save assignment {}", assignment.getAssignmentId());
         Assignment newAssignment = assignmentRepository.save(assignment);
