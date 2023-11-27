@@ -4,10 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
+import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
+import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,7 +48,12 @@ public class AssignmentService {
             if (existingUserAssignment.isPresent()) {
                 throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
             }
-            User user = userRepository.findById(userRef).get();
+            Optional<User> optionalUser = userRepository.findById(userRef);
+
+            if (optionalUser.isEmpty()) {
+                throw new UserNotFoundException(userRef.toString());
+            }
+            User user = optionalUser.get();
             assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
@@ -58,15 +66,22 @@ public class AssignmentService {
             if (existingRoleAssignment.isPresent()) {
                 throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
             }
-            Role role = roleRepository.findById(roleRef).get();
+
+            Optional<Role> optionalRole = roleRepository.findById(roleRef);
+            if (optionalRole.isEmpty()) {
+                throw new RoleNotFoundException(roleRef.toString());
+            }
+
+            Role role = optionalRole.get();
             assignment.setRoleName(role.getRoleName());
             assignment.setRoleType(role.getRoleType());
+
         }
         String assignmentIdSuffix = userRef != null ? userRef + "_user": roleRef + "_role";
 
         Resource resource = resourceRepository.findById(resourceRef).get();
         assignment.setResourceName(resource.getResourceName());
-        assignment.setAssignmentId(resourceRef.toString() + "_" + assignmentIdSuffix);
+        assignment.setAssignmentId(resourceRef + "_" + assignmentIdSuffix);
         assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
 
 
@@ -97,14 +112,15 @@ public class AssignmentService {
 
     private Runnable onSaveNewAssignment(Assignment assignment) {
         return () -> {
-            Assignment nesAssignment = assignmentRepository.save(assignment);
+            Assignment newAssignment = assignmentRepository.save(assignment);
             simpeAssignmentService.process(assignment);
         };
     }
 
     public void deleteAssignment(Long id) {
-        Assignment assignment= assignmentRepository.getById(id);
+        Assignment assignment= assignmentRepository.getReferenceById(id);
         assignmentRepository.deleteById(id);
+        //simpeAssignmentService.processDeletion(assignment);
     }
 }
 
