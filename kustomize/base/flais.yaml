@@ -29,6 +29,8 @@ spec:
       value: "https://role-catalog.vigoiks.no/vigo/kontroll/user"
     - name: fint.kontroll.authorization.authorized-org-id
       value: "vigo.no"
+    - name: spring.kafka.consumer.group-id
+      value: 'fint-kontroll-assignment-catalog'
   envFrom:
     - configMapRef:
         name: fint-kontroll-access-management-config
