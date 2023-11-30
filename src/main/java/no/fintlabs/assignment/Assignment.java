@@ -8,6 +8,8 @@ import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.util.Date;
 import java.util.UUID;
 
@@ -44,6 +46,7 @@ public class Assignment {
     private String organizationUnitId;
     private Long assignerRef;
     private Long AssignerRoleRef;
+    @CreationTimestamp
     private Date assignmentDate;
     private Date validFrom;
     private Date validTo;
