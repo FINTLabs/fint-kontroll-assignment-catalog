@@ -40,6 +40,8 @@ public class AssigmentEntityProducerService {
         if (assignment.getAzureAdGroupId() == null) {
             throw new AssignmentMissingAzureGroupIdException(assignment.getId(), assignment.getResourceRef());
         }
+        log.info("Publiserng: Azure groupId " +assignment.getAzureAdGroupId() + " for ressurs er funnet");
+
         if (assignment.getUserRef() != null) {
             if (assignment.getAzureAdUserId() == null) {
                 throw new AssignmentMissingAzureUserIdException(assignment.getId(), assignment.getUserRef());
