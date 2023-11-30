@@ -45,6 +45,7 @@ public class Assignment {
     private UUID azureAdGroupId;
     private String organizationUnitId;
     private Long assignerRef;
+    private String assignerUserName;
     private Long AssignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;

@@ -1,6 +1,9 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.opa.OpaApiClient;
+import no.fintlabs.opa.OpaService;
+import no.fintlabs.opa.OpaUtils;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +11,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import reactor.core.publisher.Mono;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -18,12 +20,14 @@ import java.util.Map;
 @RequestMapping("/api/assignments")
 public class AssignmentController {
     private final AssignmentService assignmentService;
+    private final OpaService opaService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentResponseFactory assignmentResponseFactory;
 
-    public AssignmentController(AssignmentService assignmentService, AssignmentRepository assignmentRepository, AssignmentResponseFactory assignmentResponseFactory) {
+    public AssignmentController(AssignmentService assignmentService, OpaService opaService, AssignmentRepository assignmentRepository, AssignmentResponseFactory assignmentResponseFactory) {
 
         this.assignmentService = assignmentService;
+        this.opaService = opaService;
         this.assignmentRepository = assignmentRepository;
         this.assignmentResponseFactory = assignmentResponseFactory;
     }
@@ -47,6 +51,7 @@ public class AssignmentController {
     public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request,
                                                        @AuthenticationPrincipal Jwt jwt) {
         Assignment assignment = Assignment.builder()
+                .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(request.resourceRef)
                 .organizationUnitId(request.organizationUnitId)
                 .build();
