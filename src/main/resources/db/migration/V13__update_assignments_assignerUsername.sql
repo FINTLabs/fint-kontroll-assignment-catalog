@@ -1,0 +1,1 @@
+alter table assignments ADD assigner_user_name  varchar(255);

@@ -8,6 +8,7 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import no.fintlabs.kafka.entity.topic.EntityTopicService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipService;
+import no.fintlabs.membership.MembershipSpecificationBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -34,14 +35,27 @@ public class AssigmentEntityProducerService {
 
     public void publish(Assignment assignment) {
 
+        if (assignment.getAzureAdGroupId() == null) {
+            throw new AssignmentMissingAzureGroupIdException(assignment.getId(), assignment.getResourceRef());
+        }
+        log.info("Publiserng: Azure groupId " +assignment.getAzureAdGroupId() + " for ressurs er funnet");
+
         if (assignment.getUserRef() != null) {
+            if (assignment.getAzureAdUserId() == null) {
+                throw new AssignmentMissingAzureUserIdException(assignment.getId(), assignment.getUserRef());
+            }
+            log.info("Publiserer brukertildeling " + assignment.getAssignmentId());
+
             publish(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
         }
         if (assignment.getRoleRef() != null) {
+            log.info("Publiserer gruppetildeling " + assignment.getAssignmentId());
+
             membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
                     .stream()
-                    .map(Membership::getIdentityProviderUserObjectId)
-                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));
+                    .map( membership -> membership.getIdentityProviderUserObjectId())
+                    .filter(azureUserId -> !(azureUserId == null))
+                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));            ;
         }
     }
     public void publishDeletion(Assignment assignment) {
@@ -68,6 +82,7 @@ public class AssigmentEntityProducerService {
     private void publish(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
         AzureAdGroupMembership azureAdGroupMembership = new AzureAdGroupMembership(key, azureAdGroupId, azureUserId);
+        log.info("Ressurs" + azureAdGroupId + " tildelt bruker " + azureUserId);
         entityProducer.send(
                 EntityProducerRecord.<AzureAdGroupMembership>builder()
                         .topicNameParameters(entityTopicNameParameters)
