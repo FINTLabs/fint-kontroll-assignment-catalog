@@ -55,11 +55,8 @@ public class AssigmentEntityProducerService {
 
             membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
                     .stream()
-                    .map( membership -> {
-                        return Optional.of(membership.getIdentityProviderUserObjectId());
-                    })
-                    .filter(azureUserId -> azureUserId.isPresent())
-                    .map(azureUserId-> azureUserId.get())
+                    .map( membership -> membership.getIdentityProviderUserObjectId())
+                    .filter(azureUserId -> !(azureUserId == null))
                     .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));            ;
         }
     }
