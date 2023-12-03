@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.JSONObject;
 import no.fintlabs.azureAdGroupMembership.AzureAdGroupMembership;
 import no.fintlabs.kafka.entity.EntityProducer;
 import no.fintlabs.kafka.entity.EntityProducerFactory;
@@ -12,7 +13,8 @@ import no.fintlabs.membership.MembershipService;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.Optional;
+import javax.json.Json;
+import javax.json.JsonObject;
 import java.util.UUID;
 
 @Slf4j
@@ -55,10 +57,31 @@ public class AssigmentEntityProducerService {
 
             membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
                     .stream()
-                    .map( membership -> membership.getIdentityProviderUserObjectId())
+                    .map(Membership::getIdentityProviderUserObjectId)
                     .filter(azureUserId -> !(azureUserId == null))
-                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));            ;
+                    .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(),azureUserId ));
         }
+    }
+    public void publishDeletion(Assignment assignment) {
+        if (assignment.getUserRef() != null) {
+            publishDeletion(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
+        }
+        if (assignment.getRoleRef() != null) {
+            membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
+                    .stream()
+                    .map(Membership::getIdentityProviderUserObjectId)
+                    .forEach(azureUserId -> publishDeletion(assignment.getAzureAdGroupId(),azureUserId ));
+        }
+    }
+    private void publishDeletion (UUID azureAdGroupId, UUID azureUserId) {
+        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
+        entityProducer.send(
+                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                        .topicNameParameters(entityTopicNameParameters)
+                        .key(key)
+                        .value(null)
+                        .build()
+        );
     }
     private void publish(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
