@@ -77,6 +77,14 @@ public class Assignment {
     private Resource resource;
 
     public SimpleAssignment toSimpleAssignment() {
+        String displayname;
+        
+        if (userRef!=null) {
+            displayname = userFirstName + ' ' + userLastName;
+        }
+        else {
+            displayname = roleName;
+        }
         return SimpleAssignment
                 .builder()
                 .id(id)
@@ -85,7 +93,7 @@ public class Assignment {
                 .resourceName(resourceName)
                 .userRef(userRef)
                 .azureUserRef(azureAdUserId)
-                .userDisplayname(userFirstName + ' ' + userLastName)
+                .userDisplayname(displayname)
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
