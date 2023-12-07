@@ -45,7 +45,15 @@ public class AssigmentEntityProducerService {
                     log.info("Republisering av assignment {} startet",assignment.getAssignmentId());
                 })
                 .forEach(assignment -> {
-                    publish(assignment);
+                    try {
+                        publish(assignment);
+                    }
+                    catch (Exception exception) {
+                        log.error("Republisering av assignment {} feilet: {}"
+                                ,assignment.getAssignmentId()
+                                ,exception.getMessage()
+                        );
+                    }
                 });
         }
     }
