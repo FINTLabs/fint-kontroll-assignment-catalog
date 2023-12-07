@@ -10,6 +10,7 @@ import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
+import no.fintlabs.user.UserService;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.stereotype.Service;
 
@@ -23,16 +24,18 @@ public class AssignmentService {
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
     private final SimpeAssignmentService simpeAssignmentService;
+    private final UserService userService;
     private final ResourceRepository resourceRepository;
 
     public AssignmentService(AssignmentRepository assignmentRepository, SimpeAssignmentService simpeAssignmentService, ResourceRepository resourceRepository,
                              UserRepository userRepository,
-                             RoleRepository roleRepository) {
+                             RoleRepository roleRepository, UserService userService) {
         this.assignmentRepository = assignmentRepository;
         this.simpeAssignmentService = simpeAssignmentService;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.userService = userService;
     }
 
     public Assignment createNewAssignment(Assignment assignment) {
@@ -41,6 +44,7 @@ public class AssignmentService {
         Long userRef = assignment.getUserRef();
         Long roleRef = assignment.getRoleRef();
         Long resourceRef = assignment.getResourceRef();
+        String assignerUsername = assignment.getAssignerUserName();
 
         if (userRef != null) {
             Optional<Assignment> existingUserAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userRef, resourceRef);
@@ -87,6 +91,16 @@ public class AssignmentService {
         assignment.setResourceName(resource.getResourceName());
         assignment.setAssignmentId(resourceRef + "_" + assignmentIdSuffix);
         assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
+
+        String assignerDisplayname = null;
+        if (!assignerUsername.isEmpty()) {
+            Optional<String> optionalAssignerDisplayname = userService.getUserDisplaynameByUsername(assignerUsername);
+
+            if (optionalAssignerDisplayname.isPresent()) {
+                assignerDisplayname = optionalAssignerDisplayname.get();
+            }
+        }
+        assignment.setAssignerDisplayname(assignerDisplayname);
 
         log.info("Trying to save assignment {}", assignment.getAssignmentId());
         Assignment newAssignment = assignmentRepository.save(assignment);

@@ -28,6 +28,7 @@ public class User {
     private UUID identityProviderUserObjectId;
     private String firstName;
     private String lastName;
+    private String userName;
     private String userType;
     private String organisationUnitId;
     private String organisationUnitName;

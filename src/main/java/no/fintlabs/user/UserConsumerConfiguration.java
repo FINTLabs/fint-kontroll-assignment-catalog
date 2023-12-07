@@ -17,7 +17,7 @@ public class UserConsumerConfiguration {
     ){
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("member")
+                .resource("kontrolluser")
                 .build();
 
         ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(

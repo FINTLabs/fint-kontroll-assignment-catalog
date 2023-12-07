@@ -46,6 +46,7 @@ public class Assignment {
     private String organizationUnitId;
     private Long assignerRef;
     private String assignerUserName;
+    private String assignerDisplayname;
     private Long AssignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
@@ -97,6 +98,7 @@ public class Assignment {
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
+                .assignerDisplayname(assignerUserName)
                 .build();
     }
     public DetailedAssignment toDetailedAssignment() {
