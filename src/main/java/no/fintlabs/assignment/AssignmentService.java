@@ -125,5 +125,9 @@ public class AssignmentService {
         assignmentRepository.deleteById(id);
         simpeAssignmentService.processDeletion(assignment);
     }
+
+    public List<Assignment> getAllAssignments() {
+        return assignmentRepository.findAll();
+    }
 }
 
