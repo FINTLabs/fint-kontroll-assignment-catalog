@@ -9,12 +9,16 @@ fint:
   kontroll:
     assignment-catalog:
       pagesize: 50
+      publishing:
+          initial-delay: 20000
+          fixed-delay: 900000
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
       authorized-role: 'https://role-catalog.vigoiks.no/vigo/kontroll/user'
       authorized-admin-role: 'https://role-catalog.vigoiks.no/vigo/kontroll/admin'
       authorized-org-id: 'vigo.no'
+
 spring:
   security:
     oauth2:

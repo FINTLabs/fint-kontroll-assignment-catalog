@@ -17,8 +17,10 @@ public class AssignmentRePublishingComponent {
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
-    @Scheduled(initialDelayString = "5000",
-            fixedDelayString = "900000")
+    @Scheduled(
+            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}"
+    )
     public void republishAllAssignments() {
         List<Assignment> allAssignments = assignmentService.getAllAssignments();
         assigmentEntityProducerService.rePublish(allAssignments);
