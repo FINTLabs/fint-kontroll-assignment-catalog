@@ -20,6 +20,7 @@ import java.util.UUID;
 @Table(name="Users")
 @AllArgsConstructor
 @NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
+@Builder
 public class User {
     @Id
     private Long id;
