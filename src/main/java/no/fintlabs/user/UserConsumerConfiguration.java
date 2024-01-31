@@ -2,7 +2,6 @@ package no.fintlabs.user;
 
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
-import no.fintlabs.resource.Resource;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,13 +16,13 @@ public class UserConsumerConfiguration {
     ){
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("member")
+                .resource("kontrolluser")
                 .build();
 
         ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(
-                        User.class,
-                        (ConsumerRecord<String,User> consumerRecord)
-                                -> userService.save(consumerRecord.value()))
+                        KontrollUser.class,
+                        (ConsumerRecord<String,KontrollUser> consumerRecord)
+                                -> userService.convertAndSaveAsUser(consumerRecord.value()))
                 .createContainer(entityTopicNameParameters);
 
         return container;
