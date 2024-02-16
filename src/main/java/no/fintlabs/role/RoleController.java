@@ -30,7 +30,7 @@ public class RoleController {
                                                                      @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
     ){
-        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching roles for resource with Id: " +id);
         return roleResponseFactory.toResponseEntity(id, roleType, orgUnits, orgUnitsInScope,search, page,size);

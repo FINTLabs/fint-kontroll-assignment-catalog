@@ -42,6 +42,7 @@ server:
 logging:
   level:
     root: INFO
-    org.apache.kafka: INFO
-    org.hibernate.SQL: INFO
+    org.apache.kafka: WARN
+    no.fintlabs.assignment: WARN
+    #org.hibernate.SQL: DEBUG
 
