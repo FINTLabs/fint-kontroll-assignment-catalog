@@ -19,6 +19,8 @@ public class MembershipService {
 
     public List<Membership> getMembersAssignedToRole (Specification specification) {
         return membershipRepository.findAll(specification);
-
+    }
+    public List<Membership> getRolesAssignedToMember (Specification specification) {
+        return membershipRepository.findAll(specification);
     }
 }

@@ -1,31 +1,30 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.AssignmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @Slf4j
 public class AssignmentResourceService {
     private final ResourceRepository resourceRepository;
-    private final AssignmentRepository assignmentRepository;
+    private final AssignmentService assignmentService;
 
-    public AssignmentResourceService(ResourceRepository resourceRepository, AssignmentRepository assignmentRepository) {
+    public AssignmentResourceService(ResourceRepository resourceRepository, AssignmentService assignmentService) {
         this.resourceRepository = resourceRepository;
-        this.assignmentRepository = assignmentRepository;
+        this.assignmentService = assignmentService;
     }
 
     public Page<AssignmentResource> getResourcesAssignedToUser(Long userId, Specification<Resource> spec, Pageable page) {
         Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
                 .map(Resource::toSimpleResource)
                 .map(resource ->  {
-                    resource.setAssignmentRef(getAssignmentRefForUser(userId, resource.getId()));
+                    resource.setAssignmentRef(assignmentService.getAssignmentRefForUserAssignment(userId, resource.getId()));
+                    resource.setAssignerUsername(assignmentService.getAssignerUsernameForUserAssignment(userId, resource.getId()));
+                    resource.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForUserAssignment(userId, resource.getId()));
                     return resource;
                 });
         return resources;
@@ -34,25 +33,12 @@ public class AssignmentResourceService {
         Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
                 .map(Resource::toSimpleResource)
                 .map(resource ->  {
-                    resource.setAssignmentRef(getAssignmentRefForRole(roleId, resource.getId()));
+                    resource.setAssignmentRef(assignmentService.getAssignmentRefForRoleAssignment(roleId, resource.getId()));
+                    resource.setAssignerUsername(assignmentService.getAssignerUsernameForRoleAssignment(roleId, resource.getId()));
+                    resource.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForRoleAssignment(roleId, resource.getId()));
                     return resource;
                 });
         return resources;
     }
-    private Long getAssignmentRefForUser(Long userId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
 
-        if (assignment.isPresent()) {
-            return assignment.get().getId();
-        }
-        return null;
-    }
-    private Long getAssignmentRefForRole(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (assignment.isPresent()) {
-            return assignment.get().getId();
-        }
-        return null;
-    }
 }

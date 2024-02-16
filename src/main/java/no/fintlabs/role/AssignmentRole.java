@@ -15,6 +15,8 @@ public class AssignmentRole {
     private String roleName;
     private String roleType;
     private Long assignmentRef;
+    private String assignerUsername;
+    private String assignerDisplayname;
     private String organisationUnitId;
     private String organisationUnitName;
 }

@@ -26,6 +26,7 @@ public class User {
     private Long id;
     private Long userRef;
     private String userObjectId;
+    private String userName;
     private UUID identityProviderUserObjectId;
     private String firstName;
     private String lastName;

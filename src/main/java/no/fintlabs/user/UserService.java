@@ -24,6 +24,7 @@ public class UserService {
     public User convertAndSaveAsUser(KontrollUser kontrollUser) {
         User convertedUser = User.builder()
                 .id(kontrollUser.getId())
+                .userName(kontrollUser.getUserName())
                 .identityProviderUserObjectId(kontrollUser.getIdentityProviderUserObjectId())
                 .firstName(kontrollUser.getFirstName())
                 .lastName(kontrollUser.getLastName())
