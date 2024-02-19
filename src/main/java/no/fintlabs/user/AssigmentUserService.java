@@ -1,11 +1,14 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -22,9 +25,9 @@ public class AssigmentUserService {
         Page<AssignmentUser> assignmentUsers = userRepository.findAll(spec, page)
                 .map(User::toAssignmentUser)
                 .map(user ->  {
-                    user.setAssignmentRef(assignmentService.getAssignmentRefForUserAssignment(user.getId(), resourceId));
-                    user.setAssignerUsername(assignmentService.getAssignerUsernameForUserAssignment(user.getId(), resourceId));
-                    user.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForUserAssignment(user.getId(), resourceId));
+                    assignmentService.getAssignmentRefForUserAssignment(user.getId(), resourceId).ifPresent(user::setAssignmentRef);
+                    assignmentService.getAssignerUsernameForUserAssignment(user.getId(), resourceId).ifPresent(user::setAssignerUsername);
+                    assignmentService.getAssignerDisplaynameForUserAssignment(user.getId(), resourceId).ifPresent(user::setAssignerDisplayname);
                     return user;
                 });
         return assignmentUsers;
