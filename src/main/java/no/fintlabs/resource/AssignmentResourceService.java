@@ -1,11 +1,14 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -22,9 +25,9 @@ public class AssignmentResourceService {
         Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
                 .map(Resource::toSimpleResource)
                 .map(resource ->  {
-                    resource.setAssignmentRef(assignmentService.getAssignmentRefForUserAssignment(userId, resource.getId()));
-                    resource.setAssignerUsername(assignmentService.getAssignerUsernameForUserAssignment(userId, resource.getId()));
-                    resource.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForUserAssignment(userId, resource.getId()));
+                    assignmentService.getAssignmentRefForUserAssignment(userId, resource.getId()).ifPresent(resource::setAssignmentRef);
+                    assignmentService.getAssignerUsernameForUserAssignment(userId, resource.getId()).ifPresent(resource::setAssignerUsername);
+                    assignmentService.getAssignerDisplaynameForUserAssignment(userId, resource.getId()).ifPresent(resource::setAssignerDisplayname);
                     return resource;
                 });
         return resources;
@@ -33,9 +36,9 @@ public class AssignmentResourceService {
         Page<AssignmentResource> resources = resourceRepository.findAll(spec,page)
                 .map(Resource::toSimpleResource)
                 .map(resource ->  {
-                    resource.setAssignmentRef(assignmentService.getAssignmentRefForRoleAssignment(roleId, resource.getId()));
-                    resource.setAssignerUsername(assignmentService.getAssignerUsernameForRoleAssignment(roleId, resource.getId()));
-                    resource.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForRoleAssignment(roleId, resource.getId()));
+                    assignmentService.getAssignmentRefForRoleAssignment(roleId, resource.getId()).ifPresent(resource::setAssignmentRef);
+                    assignmentService.getAssignerUsernameForRoleAssignment(roleId, resource.getId()).ifPresent(resource::setAssignerUsername);
+                    assignmentService.getAssignerDisplaynameForRoleAssignment(roleId, resource.getId()).ifPresent(resource::setAssignerDisplayname);
                     return resource;
                 });
         return resources;

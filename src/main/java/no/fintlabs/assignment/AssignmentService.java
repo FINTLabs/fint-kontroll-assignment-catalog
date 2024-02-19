@@ -129,80 +129,36 @@ public class AssignmentService {
     public List<Assignment> getAllAssignments() {
         return assignmentRepository.findAll();
     }
-
-    public Long getUserAssignmentRef(Long userId, Long resourceId) {
-        Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
-
-        if (userAssignment.isPresent()) {
-            return userAssignment.get().getId();
-        }
-        return null;
-    }
-    public Long getRoleAssignmentRef(Long roleId, Long resourceId) {
-        Optional<Assignment> roleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (roleAssignment.isPresent()) {
-            return roleAssignment.get().getId();
-        }
-        return null;
-    }
-    public Long getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
+    public Optional<Long> getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
         Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
-
-        if (assignment.isPresent()) {
-            return assignment.get().getId();
-        }
-        return null;
+        return assignment.map(Assignment::getId);
     }
-    public Long getAssignmentRefForRoleAssignment(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (assignment.isPresent()) {
-            return assignment.get().getId();
-        }
-        return null;
-    }
-    public String getAssignerUsernameForUserAssignment(Long userId, Long resourceId) {
+    public Optional<String>  getAssignerUsernameForUserAssignment(Long userId, Long resourceId) {
         Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
-
-        if (userAssignment.isPresent()) {
-            return userAssignment.get().getAssignerUserName();
-        }
-        return null;
+        return userAssignment.map(Assignment::getAssignerUserName);
     }
-    public String getAssignerUsernameForRoleAssignment(Long roleId, Long resourceId) {
+    public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
+        Optional<String> username = getAssignerUsernameForUserAssignment(userId, resourceId);
+        return getDisplaynameFromUsername(username);
+    }
+    public Optional<Long> getAssignmentRefForRoleAssignment(Long roleId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+        return assignment.map(Assignment::getId);
+    }
+    public Optional<String>  getAssignerUsernameForRoleAssignment(Long roleId, Long resourceId) {
         Optional<Assignment> roleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (roleAssignment.isPresent()) {
-            return roleAssignment.get().getAssignerUserName();
-        }
-        return null;
+        return roleAssignment.map(Assignment::getAssignerUserName);
     }
-    public String getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
-
-        String username = getAssignerUsernameForUserAssignment(userId, resourceId);
-
-        if (username != null && !username.isEmpty()) {
-            Optional<User> user = userRepository.getUserByUserName(username);
-
-            if (user.isPresent()) {
-                return user.get().getFirstName() + " " + user.get().getLastName();
-            }
-        }
-        return null;
+    public Optional<String> getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
+        Optional<String>  username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
+        return getDisplaynameFromUsername(username);
     }
-    public String getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
-
-        String username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
-
-        if (username != null && !username.isEmpty()) {
-            Optional<User> user = userRepository.getUserByUserName(username);
-
-            if (user.isPresent()) {
-                return user.get().getFirstName() + " " + user.get().getLastName();
-            }
+    private Optional<String> getDisplaynameFromUsername (Optional<String> username) {
+        if (username.isPresent()) {
+            Optional<User> user = userRepository.getUserByUserName(username.get());
+            return user.map(u -> u.getDisplayname());
         }
-        return null;
+        return Optional.empty();
     }
 }
 

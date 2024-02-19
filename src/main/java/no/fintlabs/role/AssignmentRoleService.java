@@ -21,13 +21,12 @@ public class AssignmentRoleService {
         Page<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
                 .map(Role::toAssignmentRole)
                 .map(role ->  {
-                    role.setAssignmentRef(assignmentService.getRoleAssignmentRef(role.getId(), resourceId));
-                    role.setAssignerUsername(assignmentService.getAssignerUsernameForRoleAssignment(role.getId(), resourceId));
-                    role.setAssignerDisplayname(assignmentService.getAssignerDisplaynameForRoleAssignment(role.getId(), resourceId));
+                    assignmentService.getAssignmentRefForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignmentRef);
+                    assignmentService.getAssignerUsernameForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignerUsername);
+                    assignmentService.getAssignerDisplaynameForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignerDisplayname);
                     return role;
                 });
         return assignmentRoles;
     }
-
 }
 
