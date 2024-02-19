@@ -137,9 +137,12 @@ public class AssignmentService {
         Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
         return userAssignment.map(Assignment::getAssignerUserName);
     }
-    public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
-        Optional<String> username = getAssignerUsernameForUserAssignment(userId, resourceId);
-        return getDisplaynameFromUsername(username);
+public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
+        Optional<String>  username = getAssignerUsernameForUserAssignment(userId, resourceId);
+        if (username.isPresent()) {
+            return getDisplaynameFromUsername(username.get());
+        }
+        return Optional.empty();
     }
     public Optional<Long> getAssignmentRefForRoleAssignment(Long roleId, Long resourceId) {
         Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
@@ -151,14 +154,14 @@ public class AssignmentService {
     }
     public Optional<String> getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
         Optional<String>  username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
-        return getDisplaynameFromUsername(username);
-    }
-    private Optional<String> getDisplaynameFromUsername (Optional<String> username) {
         if (username.isPresent()) {
-            Optional<User> user = userRepository.getUserByUserName(username.get());
-            return user.map(u -> u.getDisplayname());
+          return getDisplaynameFromUsername(username.get());
         }
         return Optional.empty();
+    }
+    private Optional<String> getDisplaynameFromUsername (String username) {
+            Optional<User> user = userRepository.getUserByUserName(username);
+            return user.map(u -> u.getDisplayname());
     }
 }
 

@@ -63,10 +63,13 @@ public class User {
     }
 
     public String getDisplayname() {
-        if (!firstName.isEmpty() && !lastName.isEmpty()) {
+        if (!stringIsNullOrEmpty(firstName) && !stringIsNullOrEmpty(lastName)) {
             return  firstName + " " + lastName;
         }
         return null;
+    }
+    private boolean stringIsNullOrEmpty(String string) {
+        return string==null || string.isEmpty();
     }
 }
 
