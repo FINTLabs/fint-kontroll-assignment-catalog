@@ -129,5 +129,39 @@ public class AssignmentService {
     public List<Assignment> getAllAssignments() {
         return assignmentRepository.findAll();
     }
+    public Optional<Long> getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+        return assignment.map(Assignment::getId);
+    }
+    public Optional<String>  getAssignerUsernameForUserAssignment(Long userId, Long resourceId) {
+        Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+        return userAssignment.map(Assignment::getAssignerUserName);
+    }
+public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
+        Optional<String>  username = getAssignerUsernameForUserAssignment(userId, resourceId);
+        if (username.isPresent()) {
+            return getDisplaynameFromUsername(username.get());
+        }
+        return Optional.empty();
+    }
+    public Optional<Long> getAssignmentRefForRoleAssignment(Long roleId, Long resourceId) {
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+        return assignment.map(Assignment::getId);
+    }
+    public Optional<String>  getAssignerUsernameForRoleAssignment(Long roleId, Long resourceId) {
+        Optional<Assignment> roleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+        return roleAssignment.map(Assignment::getAssignerUserName);
+    }
+    public Optional<String> getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
+        Optional<String>  username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
+        if (username.isPresent()) {
+          return getDisplaynameFromUsername(username.get());
+        }
+        return Optional.empty();
+    }
+    private Optional<String> getDisplaynameFromUsername (String username) {
+            Optional<User> user = userRepository.getUserByUserName(username);
+            return user.map(u -> u.getDisplayname());
+    }
 }
 

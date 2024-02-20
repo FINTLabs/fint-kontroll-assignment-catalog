@@ -1,45 +1,32 @@
 package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.role.AssignmentRole;
-import no.fintlabs.role.Role;
+import no.fintlabs.assignment.AssignmentService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
 public class AssignmentRoleService {
     private final RoleRepository roleRepository;
-    private final AssignmentRepository assignmentRepository;
+    private final AssignmentService assignmentService;
 
-    public AssignmentRoleService(RoleRepository roleRepository, AssignmentRepository assignmentRepository) {
+    public AssignmentRoleService(RoleRepository roleRepository, AssignmentService assignmentService) {
         this.roleRepository = roleRepository;
-        this.assignmentRepository = assignmentRepository;
+        this.assignmentService = assignmentService;
     }
     public Page<AssignmentRole> findBySearchCriteria(Long resourceId, Specification<Role> specification, Pageable page) {
         Page<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
                 .map(Role::toAssignmentRole)
                 .map(role ->  {
-                    role.setAssignmentRef(getAssignmentRef(role.getId(), resourceId));
+                    assignmentService.getAssignmentRefForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignmentRef);
+                    assignmentService.getAssignerUsernameForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignerUsername);
+                    assignmentService.getAssignerDisplaynameForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignerDisplayname);
                     return role;
                 });
         return assignmentRoles;
-    }
-    private Long getAssignmentRef(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
-
-        if (assignment.isPresent()) {
-            return assignment.get().getId();
-        }
-        return null;
     }
 }
 

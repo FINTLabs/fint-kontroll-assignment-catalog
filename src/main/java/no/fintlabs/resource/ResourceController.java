@@ -30,7 +30,7 @@ public class ResourceController {
                                                                      @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
     ){
-        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching resources for role with Id: " + roleId);
         return resourceResponseFactory.toResponseEntity(null,roleId,resourceType, orgUnits, orgUnitsInScope, search, page,size);
@@ -44,7 +44,7 @@ public class ResourceController {
                                                                          @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                          @RequestParam(value = "search", required = false) String search
     ){
-        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching resources for user with Id: " +userId);
         return resourceResponseFactory.toResponseEntity(userId,null,resourceType, orgUnits, orgUnitsInScope, search, page,size);
