@@ -8,6 +8,7 @@ import no.fintlabs.assignment.Assignment;
 
 import jakarta.persistence.*;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,10 +27,12 @@ public class User {
     private Long id;
     private Long userRef;
     private String userObjectId;
+    private String userName;
     private UUID identityProviderUserObjectId;
     private String firstName;
     private String lastName;
     private String userType;
+    //private String displayName;
     private String organisationUnitId;
     private String organisationUnitName;
     @OneToMany(mappedBy = "user",
@@ -57,6 +60,16 @@ public class User {
                 .filter(assignment -> assignment.getResourceRef().equals(resourceRef))
                 .map(assignment -> assignment.getId())
                 .toList().get(0);
+    }
+
+    public String getDisplayname() {
+        if (!stringIsNullOrEmpty(firstName) && !stringIsNullOrEmpty(lastName)) {
+            return  firstName + " " + lastName;
+        }
+        return null;
+    }
+    private boolean stringIsNullOrEmpty(String string) {
+        return string==null || string.isEmpty();
     }
 }
 

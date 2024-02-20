@@ -20,13 +20,15 @@ public class OpaService {
         this.authenticationUtil = authenticationUtil;
     }
 
-    public List<String> getOrgUnitsInScope() {
+    public List<String> getOrgUnitsInScope(
+            String objectType
+    ) {
 
         List<Scope> userScopes = authorizationClient.getUserScopesList();
         log.info("User scopes from api: {}", userScopes);
 
         return userScopes.stream()
-                .filter(scope -> scope.getObjectType().equals("role"))
+                .filter(scope -> scope.getObjectType().equals(objectType))
                 .map(Scope::getOrgUnits)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());

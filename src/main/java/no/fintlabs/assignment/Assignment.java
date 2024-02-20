@@ -46,7 +46,8 @@ public class Assignment {
     private String organizationUnitId;
     private Long assignerRef;
     private String assignerUserName;
-    private Long AssignerRoleRef;
+    private UUID assignerAzureAdUserId;
+    private Long assignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
     private Date validFrom;
@@ -117,5 +118,4 @@ public class Assignment {
                 .validTo(validTo)
                 .build();
     }
-
 }

@@ -16,4 +16,6 @@ public class AssignmentResource {
     private String resourceName;
     private String resourceType;
     private Long assignmentRef;
+    private String assignerUsername;
+    private String assignerDisplayname;
 }

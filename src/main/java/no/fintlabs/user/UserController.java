@@ -30,7 +30,7 @@ public class UserController {
                                                                      @RequestParam(value= "orgUnits", required = false) List<String> orgUnits,
                                                                      @RequestParam(value = "search", required = false) String search
     ){
-        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope();
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching users for resource with Id: " +id);
         return userResponseFactory.toResponseEntity(id, userType, orgUnits, orgUnitsInScope,search, page,size);
