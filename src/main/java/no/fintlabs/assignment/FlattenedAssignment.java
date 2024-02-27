@@ -7,6 +7,7 @@ import org.hibernate.annotations.NaturalId;
 
 import jakarta.persistence.*;
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -22,9 +23,16 @@ public class FlattenedAssignment {
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
     @NonNull
-    private String userObjectId;
-    @NonNull
-    private String groupObjectId;
-    @NonNull
     private Long assignmentId;
+    private Long assignerRef;
+    private Long userRef;
+    private UUID identityProviderUserObjectId;
+    private Long resourceRef;
+    private UUID identityProviderGroupObjectId;
+    private boolean identityProviderGroupMembershipConfirmed;
+    private boolean identityProviderGroupMembershipDeletionConfirmed;
+    private Long assignmentViaRoleRef;
+    private Date assignmentCreationDate;
+    private Date assignmentTerminationDate;
+    private String assignmentTerminationReason;
 }
