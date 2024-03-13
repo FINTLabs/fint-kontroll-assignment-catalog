@@ -1,0 +1,13 @@
+alter table flattened_assignments DROP group_object_id;
+alter table flattened_assignments DROP user_object_id;
+alter table flattened_assignments ADD assigner_ref int8;
+alter table flattened_assignments ADD user_ref int8;
+alter table flattened_assignments ADD identity_provider_user_object_id uuid;
+alter table flattened_assignments ADD resource_ref int8;
+alter table flattened_assignments ADD identity_provider_group_object_id uuid;
+alter table flattened_assignments ADD identity_provider_group_membership_confirmed boolean;
+alter table flattened_assignments ADD identity_provider_group_membership_deletion_confirmed boolean;
+alter table flattened_assignments ADD assignment_via_role_ref int8;
+alter table flattened_assignments ADD assignment_creation_date timestamp;
+alter table flattened_assignments ADD assignment_termination_date timestamp;
+alter table flattened_assignments ADD assignment_termination_reason VARCHAR(255);
