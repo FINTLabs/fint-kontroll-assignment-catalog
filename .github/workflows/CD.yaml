@@ -58,12 +58,12 @@ jobs:
         include:
           - org: fintlabs-no
             cluster: aks-beta-fint-2021-11-23
-          - org: afk-no
-            cluster: aks-api-fint-2022-02-08
-          - org: bfk-no
-            cluster: aks-api-fint-2022-02-08
-          - org: ofk-no
-            cluster: aks-api-fint-2022-02-08
+#          - org: afk-no
+#            cluster: aks-api-fint-2022-02-08
+#          - org: bfk-no
+#            cluster: aks-api-fint-2022-02-08
+#          - org: ofk-no
+#            cluster: aks-api-fint-2022-02-08
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.3.0
