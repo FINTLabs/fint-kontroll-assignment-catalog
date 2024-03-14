@@ -11,7 +11,8 @@ fint:
       pagesize: 50
       publishing:
           initial-delay: 20000
-          fixed-delay: 900000
+          fixed-delay: 43200000
+
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
