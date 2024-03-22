@@ -13,18 +13,21 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
+
 import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/assignments")
 public class AssignmentController {
+
     private final AssignmentService assignmentService;
     private final OpaService opaService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentResponseFactory assignmentResponseFactory;
 
-    public AssignmentController(AssignmentService assignmentService, OpaService opaService, AssignmentRepository assignmentRepository, AssignmentResponseFactory assignmentResponseFactory) {
+    public AssignmentController(AssignmentService assignmentService, OpaService opaService, AssignmentRepository assignmentRepository,
+                                AssignmentResponseFactory assignmentResponseFactory) {
 
         this.assignmentService = assignmentService;
         this.opaService = opaService;
@@ -33,23 +36,26 @@ public class AssignmentController {
     }
 
     @GetMapping()
-    public ResponseEntity<Map<String,Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
-                                                                   @RequestParam(defaultValue = "0") int page,
-                                                                   @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
-                                                                   @RequestParam(defaultValue = "ALLTYPES", required = false) String userType
+    public ResponseEntity<Map<String, Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
+                                                                    @RequestParam(defaultValue = "0") int page,
+                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
+                                                                                                 ".pagesize:20}")
+                                                                    int size,
+                                                                    @RequestParam(defaultValue = "ALLTYPES", required = false)
+                                                                    String userType
     ) {
 
-        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt),page, size, userType);
+        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt), page, size, userType);
     }
 
     @GetMapping("{id}")
-    public DetailedAssignment getAssignmentById(@PathVariable Long id){
-        log.info("Fetching assignment info for : "+ id.toString());
-        return  assignmentService.findAssignmentById(id);
+    public DetailedAssignment getAssignmentById(@PathVariable Long id) {
+        log.info("Fetching assignment info for : " + id.toString());
+        return assignmentService.findAssignmentById(id);
     }
+
     @PostMapping()
-    public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request,
-                                                       @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         Assignment assignment = Assignment.builder()
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(request.resourceRef)
@@ -72,11 +78,9 @@ public class AssignmentController {
         try {
             Assignment newAssignment = assignmentService.createNewAssignment(assignment);
             return new ResponseEntity<>(newAssignment, HttpStatus.CREATED);
-        }
-        catch (AssignmentAlreadyExistsException exception)
-        {
+        } catch (AssignmentAlreadyExistsException exception) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, exception.getMessage(),exception
+                    HttpStatus.CONFLICT, exception.getMessage(), exception
             );
         }
     }

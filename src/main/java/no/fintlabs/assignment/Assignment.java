@@ -79,7 +79,7 @@ public class Assignment {
 
     public SimpleAssignment toSimpleAssignment() {
         String displayname;
-        
+
         if (userRef!=null) {
             displayname = userFirstName + ' ' + userLastName;
         }
@@ -117,5 +117,9 @@ public class Assignment {
                 .validFrom(validFrom)
                 .validTo(validTo)
                 .build();
+    }
+
+    public String assignmentIdSuffix() {
+        return userRef != null ? userRef + "_user": roleRef + "_role";
     }
 }
