@@ -46,3 +46,8 @@ logging:
     no.fintlabs.assignment: WARN
     org.hibernate.SQL: DEBUG
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
