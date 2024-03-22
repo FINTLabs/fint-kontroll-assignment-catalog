@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @ToString
 @RequiredArgsConstructor
 @Slf4j
