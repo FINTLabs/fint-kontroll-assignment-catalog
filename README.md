@@ -1,19 +1,16 @@
-# FINT Kontroll Assignment Catalog
+# FINT Kontroll assignment catalog
 
-## Setting up a new project based on the template
-### Clone
-```shell
-git clone https://github.com/FINTLabs/fint-spring-boot-template-project.git <your project name>
-cd <your project name>
-rm -Rf .git
-git init
-```
+Catalog with API's for managing assignments for users.
 
-Or press **Use this template** and setup your new repository
+## Documentation
+Confluence: https://fintlabs.atlassian.net/wiki/spaces/FINTKB/pages/470712331/Assignment+module
 
-### Update deployment files
-Update the following files to reflect your project
-* Dockerfile
-* k8s.yaml
-* Jenkins
+### Swagger
+Locally: http://localhost:8097/swagger-ui/index.html#
 
+Beta w/portforward (update port with your own): http://localhost:53212/beta/fintlabs-no/swagger-ui/index.html
+
+### OpenAPI
+Lokalt: http://localhost:8097/v3/api-docs
+
+Beta w/portforward (update port with your own): http://localhost:53212/beta/fintlabs-no/v3/api-docs
