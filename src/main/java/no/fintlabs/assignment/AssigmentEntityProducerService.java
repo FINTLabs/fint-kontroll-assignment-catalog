@@ -1,7 +1,6 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import net.minidev.json.JSONObject;
 import no.fintlabs.azureAdGroupMembership.AzureAdGroupMembership;
 import no.fintlabs.kafka.entity.EntityProducer;
 import no.fintlabs.kafka.entity.EntityProducerFactory;
@@ -11,10 +10,7 @@ import no.fintlabs.kafka.entity.topic.EntityTopicService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipService;
 import org.springframework.stereotype.Service;
-import org.springframework.data.jpa.domain.Specification;
 
-import javax.json.Json;
-import javax.json.JsonObject;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,7 +74,7 @@ public class AssigmentEntityProducerService {
         if (assignment.getRoleRef() != null) {
             log.info("Publiserer gruppetildeling " + assignment.getAssignmentId());
 
-            List<Membership> memberships = membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()));
+            List<Membership> memberships = membershipService.getMembersAssignedToRole(MembershipSpecificationBuilder.hasRoleId(assignment.getRoleRef()));
 
             if (memberships.isEmpty()) {
                 log.info("Rolle {} mangler medlemmer", assignment.getRoleRef());
@@ -105,7 +101,7 @@ public class AssigmentEntityProducerService {
             publishDeletion(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
         }
         if (assignment.getRoleRef() != null) {
-            membershipService.getMembersAssignedToRole(roleEquals(assignment.getRoleRef()))
+            membershipService.getMembersAssignedToRole(MembershipSpecificationBuilder.hasRoleId(assignment.getRoleRef()))
                     .stream()
                     .map(Membership::getIdentityProviderUserObjectId)
                     .forEach(azureUserId -> publishDeletion(assignment.getAzureAdGroupId(),azureUserId ));
@@ -132,8 +128,5 @@ public class AssigmentEntityProducerService {
                         .value(azureAdGroupMembership)
                         .build()
         );
-    }
-    private  Specification<Membership> roleEquals(Long roleId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("roleId"), roleId);
     }
 }
