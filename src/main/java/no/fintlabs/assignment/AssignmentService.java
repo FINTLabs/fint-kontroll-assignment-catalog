@@ -1,8 +1,9 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.membership.Membership;
-import no.fintlabs.membership.MembershipRepository;
+import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleNotFoundException;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
-import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
 
 @Service
 @Slf4j
@@ -28,23 +28,19 @@ public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
     private final ResourceRepository resourceRepository;
-
-    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
-    private MembershipRepository membershipRepository;
+    final FlattenedAssignmentService flattenedAssignmentService;
 
     public AssignmentService(AssignmentRepository assignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService,
                              ResourceRepository resourceRepository,
                              UserRepository userRepository,
                              RoleRepository roleRepository,
-                             FlattenedAssignmentRepository flattenedAssignmentRepository,
-                             MembershipRepository membershipRepository) {
+                             FlattenedAssignmentService flattenedAssignmentService) {
         this.assignmentRepository = assignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-        this.membershipRepository = membershipRepository;
+        this.flattenedAssignmentService = flattenedAssignmentService;
     }
 
     public Assignment createNewAssignment(Assignment assignment) {
@@ -56,14 +52,13 @@ public class AssignmentService {
         assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
         assignment = handleResourceAssignment(assignment, resourceRef);
 
-        log.info("Saving assignment {}", assignment.getAssignmentId());
+        log.info("Saving assignment with id {}", assignment.getId());
         Assignment newAssignment = assignmentRepository.save(assignment);
 
-        log.info("Creating flattened assignments for assignment with id {}", newAssignment.getAssignmentId());
-        createFlattenedAssignments(newAssignment);
+        flattenedAssignmentService.createFlattenedAssignments(newAssignment);
 
         //TODO: remove
-        assigmentEntityProducerService.publish(newAssignment);
+//        assigmentEntityProducerService.publish(newAssignment);
 
         return newAssignment;
     }
@@ -188,22 +183,6 @@ public class AssignmentService {
         }
 
         return assignment;
-    }
-
-    private void createFlattenedAssignments(Assignment assignment) {
-        if (assignment.getUserRef() != null) {
-            flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
-        } else if (assignment.getRoleRef() != null) {
-            List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
-
-            if (memberships.isEmpty()) {
-                log.info("Role (group) has no members. Saving flattened assignment without members. Roleref: {}", assignment.getRoleRef());
-                flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
-            } else {
-                log.info("Saving flattened assignments for roleref {}", assignment.getRoleRef());
-                memberships.forEach(membership -> flattenedAssignmentRepository.save(toFlattenedAssignment(assignment)));
-            }
-        }
     }
 
     private boolean existingRoleAssignment(Assignment assignment) {

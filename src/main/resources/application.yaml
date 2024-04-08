@@ -12,6 +12,9 @@ fint:
       publishing:
           initial-delay: 20000
           fixed-delay: 43200000
+      flattenedpublishing:
+          initial-delay: 1
+          fixed-delay: 15
 
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement

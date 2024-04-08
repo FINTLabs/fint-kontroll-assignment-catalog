@@ -1,4 +1,4 @@
-package no.fintlabs.assignment;
+package no.fintlabs.assignment.flattened;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

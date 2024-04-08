@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

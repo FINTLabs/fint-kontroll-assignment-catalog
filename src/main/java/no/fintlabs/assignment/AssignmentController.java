@@ -1,9 +1,8 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.opa.OpaApiClient;
+import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.opa.OpaService;
-import no.fintlabs.opa.OpaUtils;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

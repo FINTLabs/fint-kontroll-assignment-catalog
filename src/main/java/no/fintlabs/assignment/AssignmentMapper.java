@@ -1,7 +1,6 @@
 package no.fintlabs.assignment;
 
-import java.util.Date;
-import java.util.UUID;
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
 public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
