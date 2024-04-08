@@ -11,6 +11,10 @@ fint:
   kontroll:
     opa:
       url: http://localhost:8181/v1/data/accessmanagement
+    assignment-catalog:
+      flattenedpublishing:
+        initial-delay: 1
+        fixed-delay: 3
 spring:
   kafka:
     bootstrap-servers: localhost:9092
@@ -43,7 +47,7 @@ logging:
   level:
     root: INFO
     org.apache.kafka: WARN
-    no.fintlabs.assignment: WARN
+    no.fintlabs.assignment: INFO
     org.hibernate.SQL: DEBUG
 
 springdoc:

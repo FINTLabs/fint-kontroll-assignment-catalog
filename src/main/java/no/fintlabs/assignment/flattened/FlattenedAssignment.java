@@ -1,4 +1,4 @@
-package no.fintlabs.assignment;
+package no.fintlabs.assignment.flattened;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +30,8 @@ public class FlattenedAssignment {
     private UUID identityProviderUserObjectId;
     private Long resourceRef;
     private UUID identityProviderGroupObjectId;
-    private boolean identityProviderGroupMembershipConfirmed;
-    private boolean identityProviderGroupMembershipDeletionConfirmed;
+    private boolean identityProviderGroupMembershipConfirmed = false;
+    private boolean identityProviderGroupMembershipDeletionConfirmed = false;
     private Long assignmentViaRoleRef;
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
