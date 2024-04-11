@@ -29,11 +29,11 @@ public class AssignmentPublishingComponentTest {
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(false);
 
-        when(flattenedAssignmentService.getAllFlattenedAssignments()).thenReturn(List.of(flattenedAssignment));
+        when(flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()).thenReturn(List.of(flattenedAssignment));
 
         assignmentPublishingComponent.publishFlattenedAssignmentsUnConfirmed();
 
-        verify(flattenedAssignmentService, times(1)).getAllFlattenedAssignments();
+        verify(flattenedAssignmentService, times(1)).getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed();
         verify(assigmentEntityProducerService, times(1)).publish(flattenedAssignment);
     }
 
@@ -42,11 +42,11 @@ public class AssignmentPublishingComponentTest {
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(true);
 
-        when(flattenedAssignmentService.getAllFlattenedAssignments()).thenReturn(List.of(flattenedAssignment));
+        when(flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()).thenReturn(List.of());
 
         assignmentPublishingComponent.publishFlattenedAssignmentsUnConfirmed();
 
-        verify(flattenedAssignmentService, times(1)).getAllFlattenedAssignments();
+        verify(flattenedAssignmentService, times(1)).getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed();
         verify(assigmentEntityProducerService, times(0)).publish(flattenedAssignment);
     }
 }
