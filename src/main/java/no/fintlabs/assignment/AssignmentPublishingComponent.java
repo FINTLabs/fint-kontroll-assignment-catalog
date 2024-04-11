@@ -26,8 +26,7 @@ public class AssignmentPublishingComponent {
     public void publishFlattenedAssignmentsUnConfirmed() {
         log.info("Publishing unconfirmed flattened assignments");
 
-        flattenedAssignmentService.getAllFlattenedAssignments()
-                .stream().filter(flattenedAssignment -> !flattenedAssignment.isIdentityProviderGroupMembershipConfirmed())
+        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()
                 .forEach(assigmentEntityProducerService::publish);
     }
 }
