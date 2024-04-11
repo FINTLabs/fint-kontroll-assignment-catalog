@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentMissingAzureGroupIdException;
 import no.fintlabs.assignment.exception.AssignmentMissingAzureUserIdException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.azureAdGroupMembership.AzureAdGroupMembership;
+import no.fintlabs.azureadgroupmembership.AzureAdGroupMembership;
 import no.fintlabs.kafka.entity.EntityProducer;
 import no.fintlabs.kafka.entity.EntityProducerFactory;
 import no.fintlabs.kafka.entity.EntityProducerRecord;
@@ -65,16 +65,17 @@ public class AssigmentEntityProducerService {
             log.warn("Publishing flattened assignment {}. ResourceRef is null", flattenedAssignment.getId());
         }
 
-        if (flattenedAssignment.getIdentityProviderGroupObjectId() == null) {
-            log.warn("Publishing flattened assignment {}. ResourceRef {}. Missing azureadgroupid (identityProviderGroupObjectId=null)",
-                      flattenedAssignment.getId(),
-                      flattenedAssignment.getResourceRef());
-        }
-
-        if (flattenedAssignment.getIdentityProviderUserObjectId() == null) {
-            log.warn("Publishing flattened assignment {}. ResourceRef {}. Missing azureaduserid",
-                      flattenedAssignment.getId(),
-                      flattenedAssignment.getResourceRef());
+        if (flattenedAssignment.getIdentityProviderGroupObjectId() == null ||
+            flattenedAssignment.getIdentityProviderUserObjectId() == null) {
+            log.warn(
+                    "Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing azuread group id ({}) or user " +
+                    "id ({})",
+                    flattenedAssignment.getId(),
+                    flattenedAssignment.getResourceRef(),
+                    flattenedAssignment.getIdentityProviderGroupObjectId(),
+                    flattenedAssignment.getIdentityProviderUserObjectId()
+            );
+            return;
         }
 
         log.info("Publishing flattened assignment with id {}. Azuread groupId {}, azuread userId {}, resourceRef {}",
@@ -83,7 +84,7 @@ public class AssigmentEntityProducerService {
                  flattenedAssignment.getIdentityProviderUserObjectId(),
                  flattenedAssignment.getResourceRef());
 
-         publish(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
+        publish(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
     }
 
     public void publish(Assignment assignment) {

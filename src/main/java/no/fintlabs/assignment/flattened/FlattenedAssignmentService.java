@@ -46,4 +46,8 @@ public class FlattenedAssignmentService {
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
         return flattenedAssignmentRepository.findAll();
     }
+
+    public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
+        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmed(false);
+    }
 }
