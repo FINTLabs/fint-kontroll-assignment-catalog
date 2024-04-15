@@ -12,7 +12,7 @@ fint:
     opa:
       url: http://localhost:8181/v1/data/accessmanagement
     assignment-catalog:
-      flattenedpublishing:
+      publishing:
         initial-delay: 1
         fixed-delay: 3
 spring:
