@@ -19,8 +19,8 @@ public class AssignmentPublishingComponent {
     }
 
     @Scheduled(
-            initialDelayString = "${fint.kontroll.assignment-catalog.flattenedpublishing.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.flattenedpublishing.fixed-delay}",
+            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
             timeUnit = TimeUnit.MINUTES
     )
     public void publishFlattenedAssignmentsUnConfirmed() {

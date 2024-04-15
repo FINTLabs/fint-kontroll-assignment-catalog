@@ -2,7 +2,6 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
@@ -16,8 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-
-import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
 @Service
 @Slf4j
@@ -57,9 +54,6 @@ public class AssignmentService {
 
         flattenedAssignmentService.createFlattenedAssignments(newAssignment);
 
-        //TODO: remove
-//        assigmentEntityProducerService.publish(newAssignment);
-
         return newAssignment;
     }
 
@@ -88,10 +82,6 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignmentRepository.deleteById(id);
         assigmentEntityProducerService.publishDeletion(assignment);
-    }
-
-    public List<Assignment> getAllAssignments() {
-        return assignmentRepository.findAll();
     }
 
     public Optional<Long> getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
@@ -132,7 +122,7 @@ public class AssignmentService {
 
     private Optional<String> getDisplaynameFromUsername(String username) {
         Optional<User> user = userRepository.getUserByUserName(username);
-        return user.map(u -> u.getDisplayname());
+        return user.map(User::getDisplayname);
     }
 
     private Assignment handleUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {

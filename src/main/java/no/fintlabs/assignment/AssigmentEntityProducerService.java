@@ -39,26 +39,6 @@ public class AssigmentEntityProducerService {
         entityTopicService.ensureTopic(entityTopicNameParameters, 0);
     }
 
-    public void rePublish(List<Assignment> assignments) {
-        if (!assignments.isEmpty()) {
-            assignments
-                    .stream()
-                    .peek(assignment -> {
-                        log.info("Republisering av assignment {} startet", assignment.getAssignmentId());
-                    })
-                    .forEach(assignment -> {
-                        try {
-                            publish(assignment);
-                        } catch (Exception exception) {
-                            log.error("Republisering av assignment {} feilet: {}"
-                                    , assignment.getAssignmentId()
-                                    , exception.getMessage()
-                            );
-                        }
-                    });
-        }
-    }
-
     public void publish(FlattenedAssignment flattenedAssignment) {
 
         if (flattenedAssignment.getResourceRef() == null) {
@@ -115,15 +95,11 @@ public class AssigmentEntityProducerService {
             } else {
                 memberships
                         .stream()
-                        .peek(membership -> {
-                            log.info("Publisering av medlemskap {}", membership.getId())
-                            ;
-                        })
+                        .peek(membership -> log.info("Publisering av medlemskap {}", membership.getId()))
                         .peek(membership -> {
                             if (membership.getIdentityProviderUserObjectId() == null) {
                                 log.info("Medlemskap {} mangler azure user object id", membership.getId());
                             }
-                            ;
                         })
                         .map(Membership::getIdentityProviderUserObjectId)
                         .filter(azureUserId -> !(azureUserId == null))

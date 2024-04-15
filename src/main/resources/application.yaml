@@ -10,9 +10,6 @@ fint:
     assignment-catalog:
       pagesize: 50
       publishing:
-          initial-delay: 20000
-          fixed-delay: 43200000
-      flattenedpublishing:
           initial-delay: 1
           fixed-delay: 15
 
