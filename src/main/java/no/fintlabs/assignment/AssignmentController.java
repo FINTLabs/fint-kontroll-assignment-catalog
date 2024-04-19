@@ -6,6 +6,7 @@ import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.user.UserNotFoundException;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,7 @@ import java.util.Map;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+
     private final OpaService opaService;
     private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
@@ -60,12 +62,6 @@ public class AssignmentController {
         return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt), page, size, userType);
     }
 
-    @GetMapping("{id}")
-    public DetailedAssignment getAssignmentById(@PathVariable Long id) {
-        log.info("Fetching assignment info for : " + id.toString());
-        return assignmentService.findAssignmentById(id);
-    }
-
     @PostMapping()
     public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         Assignment assignment = Assignment.builder()
@@ -73,7 +69,6 @@ public class AssignmentController {
                 .resourceRef(request.resourceRef)
                 .organizationUnitId(request.organizationUnitId)
                 .build();
-
 
         if (request.userRef != null) {
             assignment.setUserRef(request.userRef);
@@ -97,6 +92,7 @@ public class AssignmentController {
         }
     }
 
+    //TODO, push to separate topic full-resource-group-membership
     @PostMapping("/republish")
     public ResponseEntity<HttpStatus> republishAllAssignments() {
         log.info("Republishing all assignments");
@@ -111,8 +107,16 @@ public class AssignmentController {
 
     @DeleteMapping("{id}")
     public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable Long id) {
-        //log.info("Creating new assignment for resource {} and user {}", assignment.getResourceRef(), assignment.getUserRef());
-        assignmentService.deleteAssignment(id);
+        log.info("Deleting assignment with id {}", id);
+        try {
+            assignmentService.deleteAssignment(id);
+        } catch (UserNotFoundException userNotFoundException) {
+            log.error("Logged in user not found in the users table", userNotFoundException);
+
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, userNotFoundException.getMessage(), userNotFoundException
+            );
+        }
         return new ResponseEntity<>(HttpStatus.GONE);
     }
 

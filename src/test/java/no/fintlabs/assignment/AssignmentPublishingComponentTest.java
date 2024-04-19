@@ -8,8 +8,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Date;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,5 +50,28 @@ public class AssignmentPublishingComponentTest {
 
         verify(flattenedAssignmentService, times(1)).getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed();
         verify(assigmentEntityProducerService, times(0)).publish(flattenedAssignment);
+    }
+
+    @Test
+    public void shouldPublishDeletedAssignments_whenExist() {
+        FlattenedAssignment deletedAssignment = new FlattenedAssignment();
+        deletedAssignment.setAssignmentTerminationDate(new Date());
+
+        when(flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()).thenReturn(List.of(deletedAssignment));
+
+        assignmentPublishingComponent.publishDeletedFlattenedAssignments();
+
+        verify(flattenedAssignmentService, times(1)).getFlattenedAssignmentsDeletedNotConfirmed();
+        verify(assigmentEntityProducerService, times(1)).publishDeletion(deletedAssignment);
+    }
+
+    @Test
+    public void shouldNotPublishDeletedAssignments_whenNoneExist() {
+        when(flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()).thenReturn(List.of());
+
+        assignmentPublishingComponent.publishDeletedFlattenedAssignments();
+
+        verify(flattenedAssignmentService, times(1)).getFlattenedAssignmentsDeletedNotConfirmed();
+        verify(assigmentEntityProducerService, times(0)).publishDeletion(any());
     }
 }

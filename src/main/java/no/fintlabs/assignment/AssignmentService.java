@@ -3,6 +3,7 @@ package no.fintlabs.assignment;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleNotFoundException;
@@ -13,6 +14,7 @@ import no.fintlabs.user.UserRepository;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,21 +25,24 @@ public class AssignmentService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
-    private final AssigmentEntityProducerService assigmentEntityProducerService;
-    private final ResourceRepository resourceRepository;
-    final FlattenedAssignmentService flattenedAssignmentService;
 
-    public AssignmentService(AssignmentRepository assignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService,
+    private final ResourceRepository resourceRepository;
+    private final FlattenedAssignmentService flattenedAssignmentService;
+
+    private final OpaService opaService;
+
+    public AssignmentService(AssignmentRepository assignmentRepository,
                              ResourceRepository resourceRepository,
                              UserRepository userRepository,
                              RoleRepository roleRepository,
-                             FlattenedAssignmentService flattenedAssignmentService) {
+                             FlattenedAssignmentService flattenedAssignmentService,
+                             OpaService opaService) {
         this.assignmentRepository = assignmentRepository;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.flattenedAssignmentService = flattenedAssignmentService;
+        this.opaService = opaService;
     }
 
     public Assignment createNewAssignment(Assignment assignment) {
@@ -57,14 +62,6 @@ public class AssignmentService {
         return newAssignment;
     }
 
-    public DetailedAssignment findAssignmentById(Long id) {
-
-        return assignmentRepository
-                .findById(id)
-                .map(Assignment::toDetailedAssignment)
-                .orElse(new DetailedAssignment());
-    }
-
     public List<SimpleAssignment> getSimpleAssignments(
             FintJwtEndUserPrincipal principal
             //,List<String> orgUnits,
@@ -78,10 +75,20 @@ public class AssignmentService {
                 .toList();
     }
 
-    public void deleteAssignment(Long id) {
+    public Assignment deleteAssignment(Long id) {
+        String userName = opaService.getUserNameAuthenticatedUser();
+
+        User user = userRepository.getUserByUserName(userName)
+                .orElseThrow(() -> new UserNotFoundException(userName));
+
         Assignment assignment = assignmentRepository.getReferenceById(id);
-        assignmentRepository.deleteById(id);
-        assigmentEntityProducerService.publishDeletion(assignment);
+        assignment.setAssignmentRemovedDate(new Date());
+        assignment.setAssignerRemoveRef(user.getId());
+        Assignment assignmentForDeletion = assignmentRepository.save(assignment);
+
+        flattenedAssignmentService.updateFlattenedAssignment(assignment);
+
+        return assignmentForDeletion;
     }
 
     public Optional<Long> getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
@@ -137,7 +144,7 @@ public class AssignmentService {
                 assignment.setUserLastName(user.getLastName());
                 assignment.setUserUserType(user.getUserType());
             }, () -> {
-                throw new UserNotFoundException(userRef.toString());
+                throw new UserNotFoundException(userRef);
             });
         }
 

@@ -29,4 +29,16 @@ public class AssignmentPublishingComponent {
         flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()
                 .forEach(assigmentEntityProducerService::publish);
     }
+
+    @Scheduled(
+            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
+            timeUnit = TimeUnit.MINUTES
+    )
+    public void publishDeletedFlattenedAssignments() {
+        log.info("Publishing deleted flattened assignments");
+
+        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
+                .forEach(assigmentEntityProducerService::publishDeletion);
+    }
 }

@@ -1,8 +1,6 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.exception.AssignmentMissingAzureGroupIdException;
-import no.fintlabs.assignment.exception.AssignmentMissingAzureUserIdException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.azureadgroupmembership.AzureAdGroupMembership;
 import no.fintlabs.kafka.entity.EntityProducer;
@@ -10,11 +8,8 @@ import no.fintlabs.kafka.entity.EntityProducerFactory;
 import no.fintlabs.kafka.entity.EntityProducerRecord;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import no.fintlabs.kafka.entity.topic.EntityTopicService;
-import no.fintlabs.membership.Membership;
-import no.fintlabs.membership.MembershipService;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -23,15 +18,12 @@ public class AssigmentEntityProducerService {
 
     private final EntityProducer<AzureAdGroupMembership> entityProducer;
     private final EntityTopicNameParameters entityTopicNameParameters;
-    private final MembershipService membershipService;
 
     public AssigmentEntityProducerService(
             EntityProducerFactory entityProducerFactory,
-            EntityTopicService entityTopicService,
-            MembershipService membershipService
+            EntityTopicService entityTopicService
     ) {
         entityProducer = entityProducerFactory.createProducer(AzureAdGroupMembership.class);
-        this.membershipService = membershipService;
         entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
                 .resource("resource-group-membership")
@@ -39,89 +31,52 @@ public class AssigmentEntityProducerService {
         entityTopicService.ensureTopic(entityTopicNameParameters, 0);
     }
 
-    public void publish(FlattenedAssignment flattenedAssignment) {
+    public void publish(FlattenedAssignment assignment) {
+        if(isValidAssignment(assignment)) {
+            logAssignment(assignment, "Publishing flattened assignment");
+            publish(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
+        }
+    }
 
-        if (flattenedAssignment.getResourceRef() == null) {
-            log.warn("Publishing flattened assignment {}. ResourceRef is null", flattenedAssignment.getId());
+    public void publishDeletion(FlattenedAssignment flattenedAssignment) {
+        if(isValidAssignment(flattenedAssignment)) {
+            logAssignment(flattenedAssignment, "Publishing deletion of flattened assignment");
+            publishDeletion(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
+        }
+    }
+
+    private void logAssignment(FlattenedAssignment assignment, String message) {
+        if (assignment.getResourceRef() == null) {
+            log.warn("Publishing flattened assignment {}. ResourceRef is null", assignment.getId());
         }
 
-        if (flattenedAssignment.getIdentityProviderGroupObjectId() == null ||
-            flattenedAssignment.getIdentityProviderUserObjectId() == null) {
+        log.info("{} with id {}. Azuread groupId {}, azuread userId {}, resourceRef {}",
+                 message,
+                 assignment.getId(),
+                 assignment.getIdentityProviderGroupObjectId(),
+                 assignment.getIdentityProviderUserObjectId(),
+                 assignment.getResourceRef());
+    }
+
+    private boolean isValidAssignment(FlattenedAssignment assignment) {
+        if (assignment.getIdentityProviderGroupObjectId() == null || assignment.getIdentityProviderUserObjectId() == null) {
             log.warn(
                     "Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing azuread group id ({}) or user " +
                     "id ({})",
-                    flattenedAssignment.getId(),
-                    flattenedAssignment.getResourceRef(),
-                    flattenedAssignment.getIdentityProviderGroupObjectId(),
-                    flattenedAssignment.getIdentityProviderUserObjectId()
+                    assignment.getId(),
+                    assignment.getResourceRef(),
+                    assignment.getIdentityProviderGroupObjectId(),
+                    assignment.getIdentityProviderUserObjectId()
             );
-            return;
+
+            return false;
         }
 
-        log.info("Publishing flattened assignment with id {}. Azuread groupId {}, azuread userId {}, resourceRef {}",
-                 flattenedAssignment.getId(),
-                 flattenedAssignment.getIdentityProviderGroupObjectId(),
-                 flattenedAssignment.getIdentityProviderUserObjectId(),
-                 flattenedAssignment.getResourceRef());
-
-        publish(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
+        return true;
     }
-
-    public void publish(Assignment assignment) {
-
-        if (assignment.getAzureAdGroupId() == null) {
-            throw new AssignmentMissingAzureGroupIdException(assignment.getId(), assignment.getResourceRef());
-        }
-        log.info("Publisering: Azure groupId {} tilknyttet ressurs {} er funnet"
-                , assignment.getAzureAdGroupId()
-                , assignment.getResourceRef());
-
-        if (assignment.getUserRef() != null) {
-            if (assignment.getAzureAdUserId() == null) {
-                throw new AssignmentMissingAzureUserIdException(assignment.getId(), assignment.getUserRef());
-            }
-            log.info("Publiserer brukertildeling " + assignment.getAssignmentId());
-
-            publish(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
-        }
-        if (assignment.getRoleRef() != null) {
-            log.info("Publiserer gruppetildeling " + assignment.getAssignmentId());
-
-            List<Membership> memberships =
-                    membershipService.getMembersAssignedToRole(MembershipSpecificationBuilder.hasRoleId(assignment.getRoleRef()));
-
-            if (memberships.isEmpty()) {
-                log.info("Rolle {} mangler medlemmer", assignment.getRoleRef());
-            } else {
-                memberships
-                        .stream()
-                        .peek(membership -> log.info("Publisering av medlemskap {}", membership.getId()))
-                        .peek(membership -> {
-                            if (membership.getIdentityProviderUserObjectId() == null) {
-                                log.info("Medlemskap {} mangler azure user object id", membership.getId());
-                            }
-                        })
-                        .map(Membership::getIdentityProviderUserObjectId)
-                        .filter(azureUserId -> !(azureUserId == null))
-                        .forEach(azureUserId -> publish(assignment.getAzureAdGroupId(), azureUserId));
-            }
-        }
-    }
-
-    public void publishDeletion(Assignment assignment) {
-        if (assignment.getUserRef() != null) {
-            publishDeletion(assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
-        }
-        if (assignment.getRoleRef() != null) {
-            membershipService.getMembersAssignedToRole(MembershipSpecificationBuilder.hasRoleId(assignment.getRoleRef()))
-                    .stream()
-                    .map(Membership::getIdentityProviderUserObjectId)
-                    .forEach(azureUserId -> publishDeletion(assignment.getAzureAdGroupId(), azureUserId));
-        }
-    }
-
     private void publishDeletion(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
+
         entityProducer.send(
                 EntityProducerRecord.<AzureAdGroupMembership>builder()
                         .topicNameParameters(entityTopicNameParameters)

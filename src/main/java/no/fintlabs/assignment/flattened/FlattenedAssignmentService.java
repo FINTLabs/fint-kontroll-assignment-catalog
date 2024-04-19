@@ -27,7 +27,15 @@ public class FlattenedAssignmentService {
 
     public void createFlattenedAssignments(Assignment assignment) {
         log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
+        createOrUpdateFlattenedAssignment(assignment);
+    }
 
+    public void updateFlattenedAssignment(Assignment assignment) {
+        log.info("Updating flattened assignment with id {}", assignment.getId());
+        createOrUpdateFlattenedAssignment(assignment);
+    }
+
+    private void createOrUpdateFlattenedAssignment(Assignment assignment) {
         if (assignment.getUserRef() != null) {
             flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
         } else if (assignment.getRoleRef() != null) {
@@ -49,5 +57,9 @@ public class FlattenedAssignmentService {
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
         return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmed(false);
+    }
+
+    public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
+        return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
     }
 }
