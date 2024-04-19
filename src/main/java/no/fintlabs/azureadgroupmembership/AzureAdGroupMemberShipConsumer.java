@@ -22,24 +22,36 @@ public class AzureAdGroupMemberShipConsumer {
 
         return entityConsumerFactoryService.createFactory(
                         AzureAdGroupMembership.class,
-                        consumerRecord -> processRecord(consumerRecord, flattenedAssignmentRepository))
+                        consumerRecord -> processGroupMembership(consumerRecord, flattenedAssignmentRepository))
                 .createContainer(EntityTopicNameParameters
                                          .builder()
                                          .resource("azuread-resource-group-membership")
                                          .build());
     }
 
-    private void processRecord(ConsumerRecord<String, AzureAdGroupMembership> consumerRecord,
-                               FlattenedAssignmentRepository flattenedAssignmentRepository) {
-        log.info("Received azureadmembership update from topic: azuread-resource-group-membership. Groupref: {}",
-                 consumerRecord.value().getAzureGroupRef());
+    private void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> azureAdGroupMembershipConsumerRecord,
+                                        FlattenedAssignmentRepository flattenedAssignmentRepository) {
 
-        UUID identityProviderGroupID = UUID.fromString(consumerRecord.value().getAzureGroupRef().toString());
+        AzureAdGroupMembership azureAdGroupMembership = azureAdGroupMembershipConsumerRecord.value();
+
+        log.info("Received azureadmembership update from topic: azuread-resource-group-membership. Value: {}",
+                 azureAdGroupMembership);
+
+        //TODO, sjekk om body er tom
+        // flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+        if(azureAdGroupMembership == null) {
+            log.info("AzureAdGroupMemberShipConsumer: Received empty body, handling as deletion. Key: {}",
+                     azureAdGroupMembershipConsumerRecord.key());
+
+            return;
+        }
+
+        UUID identityProviderGroupID = UUID.fromString(azureAdGroupMembership.getAzureGroupRef().toString());
 
         flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderGroupMembershipConfirmed(
                         identityProviderGroupID, false)
                 .ifPresent(flattenedAssignment -> {
-                    log.info("AzureAdGroupMemberShipConsumer: Found assignment: " + flattenedAssignment.getAssignmentId());
+                    log.info("AzureAdGroupMemberShipConsumer: Found assignment mathing: " + flattenedAssignment.getAssignmentId());
 
                     flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(true);
                     flattenedAssignmentRepository.save(flattenedAssignment);

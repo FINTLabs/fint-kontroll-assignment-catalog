@@ -15,7 +15,7 @@ public class AssignmentMapper {
                 .identityProviderGroupMembershipDeletionConfirmed(false)
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
-                .assignmentTerminationDate(assignment.getValidTo())
+                .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
                 .assignmentTerminationReason(null)
                 .build();
     }
@@ -32,7 +32,7 @@ public class AssignmentMapper {
                 .identityProviderGroupMembershipDeletionConfirmed(false)
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
-                .assignmentTerminationDate(assignment.getValidTo())
+                .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
                 .assignmentTerminationReason(null)
                 .build();
     }
@@ -49,7 +49,7 @@ public class AssignmentMapper {
                 .identityProviderGroupMembershipDeletionConfirmed(identityProviderGroupMembershipDeletionConfirmed)
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
-                .assignmentTerminationDate(assignment.getValidTo())
+                .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
                 .assignmentTerminationReason(null)
                 .build();
     }

@@ -1,13 +1,27 @@
 package no.fintlabs.assignment;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import lombok.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
-
-import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
@@ -20,31 +34,34 @@ import java.util.UUID;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="Assignments")
+@Table(name = "Assignments")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 public class Assignment {
+
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String assignmentId;
-    @Column(name="role_ref")
+    @Column(name = "role_ref")
     private Long roleRef;
     private String roleName;
     private String roleType;
-    @Column(name="user_ref")
+    @Column(name = "user_ref")
     private Long userRef;
     private UUID azureAdUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
-    @Column(name="resource_ref")
+    @Column(name = "resource_ref")
     private Long resourceRef;
     private String resourceName;
     private UUID azureAdGroupId;
     private String organizationUnitId;
     private Long assignerRef;
+    private Long assignerRemoveRef;
+    private Date assignmentRemovedDate;
     private String assignerUserName;
     private UUID assignerAzureAdUserId;
     private Long assignerRoleRef;
@@ -55,35 +72,34 @@ public class Assignment {
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(
-            name="user_ref",
+            name = "user_ref",
             insertable = false,
             updatable = false)//, nullable = false
-    @JsonBackReference(value="user-assignment")
+    @JsonBackReference(value = "user-assignment")
     private User user;
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(
-            name="role_ref",
+            name = "role_ref",
             insertable = false,
             updatable = false)//, nullable = false
-    @JsonBackReference(value="role-assignment")
+    @JsonBackReference(value = "role-assignment")
     private Role role;
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(
-            name="resource_ref",
+            name = "resource_ref",
             insertable = false,
             updatable = false)//, nullable = false
-    @JsonBackReference(value="resource-assignment")
+    @JsonBackReference(value = "resource-assignment")
     private Resource resource;
 
     public SimpleAssignment toSimpleAssignment() {
         String displayname;
 
-        if (userRef!=null) {
+        if (userRef != null) {
             displayname = userFirstName + ' ' + userLastName;
-        }
-        else {
+        } else {
             displayname = roleName;
         }
         return SimpleAssignment
@@ -100,26 +116,8 @@ public class Assignment {
                 .organizationUnitId(organizationUnitId)
                 .build();
     }
-    public DetailedAssignment toDetailedAssignment() {
-        return DetailedAssignment
-                .builder()
-                .id(id)
-                .resourceRef(resourceRef)
-                .resourceName(resourceName)
-                .userRef(userRef)
-                .userFirstName(userFirstName)
-                .userLastName(userLastName)
-                .userType(userUserType)
-                .roleRef(roleRef)
-                .organizationUnitId(organizationUnitId)
-                .AssignerRoleRef(assignerRef)
-                .assignmentDate(assignmentDate)
-                .validFrom(validFrom)
-                .validTo(validTo)
-                .build();
-    }
 
     public String assignmentIdSuffix() {
-        return userRef != null ? userRef + "_user": roleRef + "_role";
+        return userRef != null ? userRef + "_user" : roleRef + "_role";
     }
 }
