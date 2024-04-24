@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.opa.AuthManager;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.user.UserNotFoundException;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
@@ -31,22 +32,25 @@ import java.util.Map;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
-
     private final OpaService opaService;
+    private final AuthManager authManager;
     private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
+
     public AssignmentController(AssignmentService assignmentService, OpaService opaService,
                                 AssignmentResponseFactory assignmentResponseFactory,
                                 FlattenedAssignmentService flattenedAssignmentService,
-                                AssigmentEntityProducerService assigmentEntityProducerService) {
+                                AssigmentEntityProducerService assigmentEntityProducerService,
+                                AuthManager authManager) {
 
         this.assignmentService = assignmentService;
         this.opaService = opaService;
         this.assignmentResponseFactory = assignmentResponseFactory;
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
+        this.authManager = authManager;
     }
 
     @GetMapping()
@@ -92,15 +96,34 @@ public class AssignmentController {
         }
     }
 
-    //TODO, push to separate topic full-resource-group-membership
     @PostMapping("/republish")
-    public ResponseEntity<HttpStatus> republishAllAssignments() {
+    public ResponseEntity<HttpStatus> republishAllAssignments(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to republish all assignments");
+        }
+
         log.info("Republishing all assignments");
 
         List<FlattenedAssignment> allAssignments = flattenedAssignmentService.getAllFlattenedAssignments();
-        allAssignments.forEach(assigmentEntityProducerService::publish);
+        allAssignments.forEach(assigmentEntityProducerService::rePublish);
 
         log.info("Republishing all assignments done");
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncflattenedassignments")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to sync flattened assignments");
+        }
+
+        log.info("Syncing all assignments");
+
+        List<Assignment> allAssignments = assignmentService.getAssignments();
+        allAssignments.forEach(flattenedAssignmentService::createFlattenedAssignments);
+
+        log.info("Syncing all assignments done");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -118,6 +141,17 @@ public class AssignmentController {
             );
         }
         return new ResponseEntity<>(HttpStatus.GONE);
+    }
+
+    private boolean validateIsAdmin(Jwt jwt) {
+        boolean hasAdminAdminAccess = authManager.hasAdminAdminAccess(jwt);
+
+        if (!hasAdminAdminAccess) {
+            log.error("User does not have admin acccess");
+            return false;
+        }
+
+        return true;
     }
 
 }
