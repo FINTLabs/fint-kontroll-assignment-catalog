@@ -47,15 +47,20 @@ public class AzureAdGroupMemberShipConsumer {
         log.info("Received azureadmembership update from topic: azuread-resource-group-membership. AzureAdGroupMembership groupref {} - userref {}",
                  azureAdGroupMembership.getAzureGroupRef(), azureAdGroupMembership.getAzureUserRef());
 
-        UUID identityProviderGroupID = UUID.fromString(azureAdGroupMembership.getAzureGroupRef().toString());
+        try {
+            UUID identityProviderGroupID = UUID.fromString(azureAdGroupMembership.getAzureGroupRef().toString());
+            UUID identityProviderUserObjectId = UUID.fromString(azureAdGroupMembership.getAzureUserRef().toString());
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderGroupMembershipConfirmed(
-                        identityProviderGroupID, false)
-                .ifPresent(flattenedAssignment -> {
-                    log.info("AzureAdGroupMemberShipConsumer: Found assignment mathing: " + flattenedAssignment.getAssignmentId());
+            flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmed(
+                            identityProviderGroupID, identityProviderUserObjectId, false)
+                    .ifPresent(flattenedAssignment -> {
+                        log.info("AzureAdGroupMemberShipConsumer: Found assignment mathing: " + flattenedAssignment.getAssignmentId());
 
-                    flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(true);
-                    flattenedAssignmentRepository.save(flattenedAssignment);
-                });
+                        flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(true);
+                        flattenedAssignmentRepository.save(flattenedAssignment);
+                    });
+        } catch (Exception e) {
+            log.error("Failed to find matching assignment. {}", azureAdGroupMembership.getId(), e);
+        }
     }
 }
