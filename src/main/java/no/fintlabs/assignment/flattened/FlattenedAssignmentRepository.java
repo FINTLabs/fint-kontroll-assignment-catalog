@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAssignment, Long>, JpaSpecificationExecutor<FlattenedAssignment> {
-    Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderGroupMembershipConfirmed(UUID identityProviderGroupObjectId, boolean identityProviderGroupMembershipConfirmed);
+    Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmed(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, boolean identityProviderGroupMembershipConfirmed);
 
     List<FlattenedAssignment> findByIdentityProviderGroupMembershipConfirmed(boolean identityProviderGroupMembershipConfirmed);
 
