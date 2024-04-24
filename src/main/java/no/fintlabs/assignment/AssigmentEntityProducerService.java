@@ -17,24 +17,39 @@ import java.util.UUID;
 public class AssigmentEntityProducerService {
 
     private final EntityProducer<AzureAdGroupMembership> entityProducer;
-    private final EntityTopicNameParameters entityTopicNameParameters;
+    private final EntityTopicNameParameters resourceGroupMembershipTopicNameParameters;
+    private final EntityTopicNameParameters fullResourceGroupMembershipTopicNameParameters;
 
     public AssigmentEntityProducerService(
             EntityProducerFactory entityProducerFactory,
             EntityTopicService entityTopicService
     ) {
         entityProducer = entityProducerFactory.createProducer(AzureAdGroupMembership.class);
-        entityTopicNameParameters = EntityTopicNameParameters
+
+        resourceGroupMembershipTopicNameParameters = EntityTopicNameParameters
                 .builder()
                 .resource("resource-group-membership")
                 .build();
-        entityTopicService.ensureTopic(entityTopicNameParameters, 0);
+        entityTopicService.ensureTopic(resourceGroupMembershipTopicNameParameters, 0);
+
+        fullResourceGroupMembershipTopicNameParameters = EntityTopicNameParameters
+                .builder()
+                .resource("full-resource-group-membership")
+                .build();
+        entityTopicService.ensureTopic(fullResourceGroupMembershipTopicNameParameters, 0);
     }
 
     public void publish(FlattenedAssignment assignment) {
         if(isValidAssignment(assignment)) {
             logAssignment(assignment, "Publishing flattened assignment");
             publish(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
+        }
+    }
+
+    public void rePublish(FlattenedAssignment assignment) {
+        if(isValidAssignment(assignment)) {
+            logAssignment(assignment, "Republishing flattened assignment");
+            rePublish(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
         }
     }
 
@@ -79,7 +94,7 @@ public class AssigmentEntityProducerService {
 
         entityProducer.send(
                 EntityProducerRecord.<AzureAdGroupMembership>builder()
-                        .topicNameParameters(entityTopicNameParameters)
+                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
                         .value(null)
                         .build()
@@ -94,7 +109,22 @@ public class AssigmentEntityProducerService {
 
         entityProducer.send(
                 EntityProducerRecord.<AzureAdGroupMembership>builder()
-                        .topicNameParameters(entityTopicNameParameters)
+                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
+                        .key(key)
+                        .value(azureAdGroupMembership)
+                        .build()
+        );
+    }
+
+    private void rePublish(UUID azureAdGroupId, UUID azureUserId) {
+        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
+        AzureAdGroupMembership azureAdGroupMembership = new AzureAdGroupMembership(key, azureAdGroupId, azureUserId);
+
+        log.info("Republishing resource {} assigned to user {}", azureAdGroupId, azureUserId);
+
+        entityProducer.send(
+                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                        .topicNameParameters(fullResourceGroupMembershipTopicNameParameters)
                         .key(key)
                         .value(azureAdGroupMembership)
                         .build()

@@ -37,18 +37,36 @@ public class FlattenedAssignmentService {
 
     private void createOrUpdateFlattenedAssignment(Assignment assignment) {
         if (assignment.getUserRef() != null) {
-            flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
+            saveFlattenedAssignment(assignment);
         } else if (assignment.getRoleRef() != null) {
             List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
 
             if (memberships.isEmpty()) {
                 log.info("Role (group) has no members. Saving flattened assignment without members. Roleref: {}", assignment.getRoleRef());
-                flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
+                saveFlattenedAssignment(assignment);
             } else {
                 log.info("Saving flattened assignments for roleref {}", assignment.getRoleRef());
-                memberships.forEach(membership -> flattenedAssignmentRepository.save(toFlattenedAssignment(assignment)));
+                memberships.forEach(membership -> saveFlattenedAssignment(assignment));
             }
         }
+    }
+
+    private void saveFlattenedAssignment(Assignment assignment) {
+        flattenedAssignmentRepository.findByAssignmentId(assignment.getId())
+                .ifPresentOrElse(
+                        flattenedAssignment -> {
+                            log.info("Flattened assignment already exists. Updating assignment with id {}", assignment.getId());
+                            FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
+                            mappedAssignment.setId(flattenedAssignment.getId());
+                            mappedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+                            mappedAssignment.setIdentityProviderGroupMembershipConfirmed(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
+                            flattenedAssignmentRepository.save(mappedAssignment);
+                        },
+                        () -> {
+                            log.info("Flattened assignment does not exist. Saving assignment with id {}", assignment.getId());
+                            flattenedAssignmentRepository.save(toFlattenedAssignment(assignment));
+                        }
+                );
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {

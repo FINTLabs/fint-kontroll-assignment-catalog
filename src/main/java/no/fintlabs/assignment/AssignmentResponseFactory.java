@@ -1,13 +1,14 @@
 package no.fintlabs.assignment;
 
-import no.fint.antlr.FintFilterService;
-import no.fintlabs.user.AssignmentUser;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ public class AssignmentResponseFactory {
                                                                 int page,
                                                                 int size
     ){
-        List<SimpleAssignment> simpleAssignments = assignmentService.getSimpleAssignments(principal);//,search,orgUnits
+        List<SimpleAssignment> simpleAssignments = assignmentService.getSimpleAssignments();//,search,orgUnits
         ResponseEntity<Map<String,Object>> entity = toResponseEntity(toPage(simpleAssignments,PageRequest.of(page,size)));
 
         return entity;

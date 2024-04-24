@@ -11,7 +11,6 @@ import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
-import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -62,17 +61,17 @@ public class AssignmentService {
         return newAssignment;
     }
 
-    public List<SimpleAssignment> getSimpleAssignments(
-            FintJwtEndUserPrincipal principal
-            //,List<String> orgUnits,
-            //,String search
-    ) {
+    public List<SimpleAssignment> getSimpleAssignments() {
         List<Assignment> assignments = assignmentRepository.findAll();
 
         return assignments
                 .stream()
                 .map(Assignment::toSimpleAssignment)
                 .toList();
+    }
+
+    public List<Assignment> getAssignments() {
+        return assignmentRepository.findAll();
     }
 
     public Assignment deleteAssignment(Long id) {

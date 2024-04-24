@@ -34,8 +34,6 @@ public class AzureAdGroupMemberShipConsumer {
 
         AzureAdGroupMembership azureAdGroupMembership = azureAdGroupMembershipConsumerRecord.value();
 
-        log.info("Received azureadmembership update from topic: azuread-resource-group-membership. Value: {}",
-                 azureAdGroupMembership);
 
         //TODO, sjekk om body er tom
         // flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
@@ -45,6 +43,9 @@ public class AzureAdGroupMemberShipConsumer {
 
             return;
         }
+
+        log.info("Received azureadmembership update from topic: azuread-resource-group-membership. AzureAdGroupMembership groupref {} - userref {}",
+                 azureAdGroupMembership.getAzureGroupRef(), azureAdGroupMembership.getAzureUserRef());
 
         UUID identityProviderGroupID = UUID.fromString(azureAdGroupMembership.getAzureGroupRef().toString());
 
