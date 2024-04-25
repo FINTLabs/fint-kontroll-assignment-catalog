@@ -97,10 +97,12 @@ public class AssignmentController {
     }
 
     @PostMapping("/republish")
-    public ResponseEntity<HttpStatus> republishAllAssignments(@AuthenticationPrincipal Jwt jwt) {
-        if (!validateIsAdmin(jwt)) {
+    public ResponseEntity<HttpStatus> republishAllAssignments() { //@AuthenticationPrincipal Jwt jwt) {
+
+        //TODO: implement when agreed on security solution
+        /*if (!validateIsAdmin(jwt)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to republish all assignments");
-        }
+        }*/
 
         log.info("Republishing all assignments");
 

@@ -37,6 +37,7 @@ import java.util.UUID;
 @Table(name = "Assignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
+//@Where(clause = "disabled = 'false'")
 public class Assignment {
 
     @Id
