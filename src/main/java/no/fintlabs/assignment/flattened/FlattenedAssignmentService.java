@@ -46,13 +46,17 @@ public class FlattenedAssignmentService {
                 saveFlattenedAssignment(assignment);
             } else {
                 log.info("Saving flattened assignments for roleref {}", assignment.getRoleRef());
-                memberships.forEach(membership -> saveFlattenedAssignment(assignment));
+                memberships.forEach(membership -> {
+                    assignment.setAzureAdUserId(membership.getIdentityProviderUserObjectId());
+                    saveFlattenedAssignment(assignment);
+                });
             }
         }
     }
 
     private void saveFlattenedAssignment(Assignment assignment) {
-        flattenedAssignmentRepository.findByAssignmentId(assignment.getId())
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(assignment.getAzureAdGroupId(),
+                                                                                                         assignment.getAzureAdUserId())
                 .ifPresentOrElse(
                         flattenedAssignment -> {
                             log.info("Flattened assignment already exists. Updating assignment with id {}", assignment.getId());
