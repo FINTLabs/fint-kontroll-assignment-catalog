@@ -2,7 +2,7 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.azureadgroupmembership.AzureAdGroupMembership;
+import no.fintlabs.groupmembership.ResourceGroupMembership;
 import no.fintlabs.kafka.entity.EntityProducer;
 import no.fintlabs.kafka.entity.EntityProducerFactory;
 import no.fintlabs.kafka.entity.EntityProducerRecord;
@@ -16,7 +16,7 @@ import java.util.UUID;
 @Service
 public class AssigmentEntityProducerService {
 
-    private final EntityProducer<AzureAdGroupMembership> entityProducer;
+    private final EntityProducer<ResourceGroupMembership> entityProducer;
     private final EntityTopicNameParameters resourceGroupMembershipTopicNameParameters;
     private final EntityTopicNameParameters fullResourceGroupMembershipTopicNameParameters;
 
@@ -24,7 +24,7 @@ public class AssigmentEntityProducerService {
             EntityProducerFactory entityProducerFactory,
             EntityTopicService entityTopicService
     ) {
-        entityProducer = entityProducerFactory.createProducer(AzureAdGroupMembership.class);
+        entityProducer = entityProducerFactory.createProducer(ResourceGroupMembership.class);
 
         resourceGroupMembershipTopicNameParameters = EntityTopicNameParameters
                 .builder()
@@ -96,7 +96,7 @@ public class AssigmentEntityProducerService {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
 
         entityProducer.send(
-                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                EntityProducerRecord.<ResourceGroupMembership>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
                         .value(null)
@@ -106,12 +106,12 @@ public class AssigmentEntityProducerService {
 
     private void publish(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
-        AzureAdGroupMembership azureAdGroupMembership = new AzureAdGroupMembership(key, azureAdGroupId, azureUserId);
+        ResourceGroupMembership azureAdGroupMembership = new ResourceGroupMembership(key, azureAdGroupId, azureUserId);
 
         log.info("Publiserer ressurs " + azureAdGroupId + " tildelt bruker " + azureUserId);
 
         entityProducer.send(
-                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                EntityProducerRecord.<ResourceGroupMembership>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
                         .value(azureAdGroupMembership)
@@ -121,12 +121,12 @@ public class AssigmentEntityProducerService {
 
     private void rePublish(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
-        AzureAdGroupMembership azureAdGroupMembership = new AzureAdGroupMembership(key, azureAdGroupId, azureUserId);
+        ResourceGroupMembership azureAdGroupMembership = new ResourceGroupMembership(key, azureAdGroupId, azureUserId);
 
         log.info("Republishing resource {} assigned to user {}", azureAdGroupId, azureUserId);
 
         entityProducer.send(
-                EntityProducerRecord.<AzureAdGroupMembership>builder()
+                EntityProducerRecord.<ResourceGroupMembership>builder()
                         .topicNameParameters(fullResourceGroupMembershipTopicNameParameters)
                         .key(key)
                         .value(azureAdGroupMembership)

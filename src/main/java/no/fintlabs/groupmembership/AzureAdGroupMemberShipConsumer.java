@@ -1,4 +1,4 @@
-package no.fintlabs.azureadgroupmembership;
+package no.fintlabs.groupmembership;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
