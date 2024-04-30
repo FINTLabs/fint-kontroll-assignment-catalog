@@ -14,53 +14,73 @@ import java.util.UUID;
 @Slf4j
 @Configuration
 public class AzureAdGroupMemberShipConsumer {
+
+    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+
+    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository) {
+        this.flattenedAssignmentRepository = flattenedAssignmentRepository;
+    }
+
     @Bean
     public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
-            FlattenedAssignmentRepository flattenedAssignmentRepository,
             EntityConsumerFactoryService entityConsumerFactoryService
     ) {
 
         return entityConsumerFactoryService.createFactory(
                         AzureAdGroupMembership.class,
-                        consumerRecord -> processGroupMembership(consumerRecord, flattenedAssignmentRepository))
+                        this::processGroupMembership)
                 .createContainer(EntityTopicNameParameters
                                          .builder()
                                          .resource("azuread-resource-group-membership")
                                          .build());
     }
 
-    private void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> azureAdGroupMembershipConsumerRecord,
-                                        FlattenedAssignmentRepository flattenedAssignmentRepository) {
+    void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
+        AzureAdGroupMembership membership = record.value();
 
-        AzureAdGroupMembership azureAdGroupMembership = azureAdGroupMembershipConsumerRecord.value();
-
-
-        //TODO, sjekk om body er tom
-        // flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-        if(azureAdGroupMembership == null) {
-            log.info("AzureAdGroupMemberShipConsumer: Received empty body, handling as deletion. Key: {}",
-                     azureAdGroupMembershipConsumerRecord.key());
-
-            return;
+        if (membership == null) {
+            handleDeletion(record);
+        } else {
+            handleUpdate(membership);
         }
+    }
 
-        log.info("Received azureadmembership update from topic: azuread-resource-group-membership. AzureAdGroupMembership groupref {} - userref {}",
-                 azureAdGroupMembership.getAzureGroupRef(), azureAdGroupMembership.getAzureUserRef());
+    private void handleDeletion(ConsumerRecord<String, AzureAdGroupMembership> record) {
+        log.info("Handling deletion for empty body with key: {}", record.key());
 
+        String[] ids = record.key().split("_");
+        UUID groupId = parseUUID(ids[0]);
+        UUID userId = parseUUID(ids[1]);
+
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId)
+                .ifPresent(assignment -> {
+                    log.info("Found assignment for deletion: {}", assignment.getAssignmentId());
+                    assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+                    flattenedAssignmentRepository.save(assignment);
+                });
+    }
+
+    private void handleUpdate(AzureAdGroupMembership membership) {
+        log.info("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
+
+        UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
+        UUID userId = parseUUID(membership.getAzureUserRef().toString());
+
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmed(
+                        groupId, userId, false)
+                .ifPresent(assignment -> {
+                    log.info("Found matching assignment: {}", assignment.getAssignmentId());
+                    assignment.setIdentityProviderGroupMembershipConfirmed(true);
+                    flattenedAssignmentRepository.save(assignment);
+                });
+    }
+
+    private UUID parseUUID(String uuidString) {
         try {
-            UUID identityProviderGroupID = UUID.fromString(azureAdGroupMembership.getAzureGroupRef().toString());
-            UUID identityProviderUserObjectId = UUID.fromString(azureAdGroupMembership.getAzureUserRef().toString());
-
-            flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmed(
-                            identityProviderGroupID, identityProviderUserObjectId, false)
-                    .ifPresent(flattenedAssignment -> {
-                        log.info("AzureAdGroupMemberShipConsumer: Found assignment mathing: " + flattenedAssignment.getAssignmentId());
-
-                        flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(true);
-                        flattenedAssignmentRepository.save(flattenedAssignment);
-                    });
-        } catch (Exception e) {
-            log.error("Failed to find matching assignment. {}", azureAdGroupMembership.getId(), e);
+            return UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format: {}", uuidString, e);
+            return null;
         }
     }
 }
