@@ -112,6 +112,8 @@ public class Assignment {
                 .userRef(userRef)
                 .azureUserRef(azureAdUserId)
                 .userDisplayname(displayname)
+                .assignerUsername(assignerUserName)
+                .assignerRef(assignerRef)
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
