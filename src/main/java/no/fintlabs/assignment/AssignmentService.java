@@ -11,6 +11,7 @@ import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -62,7 +63,8 @@ public class AssignmentService {
     }
 
     public List<SimpleAssignment> getSimpleAssignments() {
-        List<Assignment> assignments = assignmentRepository.findAll();
+        Specification<Assignment> spec = AssignmentSpecificationBuilder.notDeleted();
+        List<Assignment> assignments = assignmentRepository.findAll(spec);
 
         return assignments
                 .stream()

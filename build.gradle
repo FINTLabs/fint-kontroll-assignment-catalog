@@ -61,7 +61,12 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-//    testImplementation 'cglib:cglib-nodep:3.3.0'
+
+    testImplementation 'com.h2database:h2'
+    implementation platform('org.testcontainers:testcontainers-bom:1.19.0')
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:junit-jupiter'
 }
 
 test {
