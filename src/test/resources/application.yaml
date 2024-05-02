@@ -20,8 +20,6 @@ spring:
       schema: assignments
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: postgres
 
   flyway:
     locations: classpath:db/migration/
