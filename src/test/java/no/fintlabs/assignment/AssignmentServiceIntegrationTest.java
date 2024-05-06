@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -14,11 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
@@ -33,7 +30,7 @@ import static org.mockito.Mockito.when;
 @Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
         RestTemplate.class, AuthenticationUtil.class})
 @Testcontainers
-public class AssignmentServiceIntegrationTest {
+public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
     private AssignmentRepository assignmentRepository;
@@ -67,23 +64,6 @@ public class AssignmentServiceIntegrationTest {
 
     @Autowired
     private AssignmentService assignmentService;
-
-    @Container
-    public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("test")
-            .withUsername("user")
-            .withPassword("password");
-
-    @DynamicPropertySource
-    static void registerPgProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
-        registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
-        registry.add("spring.flyway.url", postgreSQLContainer::getJdbcUrl);
-        registry.add("spring.flyway.user", postgreSQLContainer::getUsername);
-        registry.add("spring.flyway.password", postgreSQLContainer::getPassword);
-        registry.add("spring.flyway.enabled", () -> "true");
-    }
 
     @Test
     public void shouldGetAssignmentsNotDeleted() {
