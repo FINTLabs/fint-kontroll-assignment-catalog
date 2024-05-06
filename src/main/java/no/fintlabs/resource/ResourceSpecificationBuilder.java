@@ -33,12 +33,18 @@ public class ResourceSpecificationBuilder {
     }
 
     public Specification<Resource> build() {
-        Specification<Resource> spec = userId != null ? userEquals(userId) : roleEquals(roleId);
-
         //        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
         //        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
         //            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
         //        }
+        Specification<Resource> spec = (root, query, criteriaBuilder) -> {
+            Join<Resource, Assignment> join = assignmentJoin(root);
+            return criteriaBuilder.and(
+                    criteriaBuilder.isNull(join.get("assignmentRemovedDate")),
+                    userId != null ? criteriaBuilder.equal(join.get("userRef"), userId) : criteriaBuilder.equal(join.get("roleRef"), roleId)
+            );
+        };
+
         if (!resourceType.equals("ALLTYPES")) {
             spec = spec.and(resourceTypeEquals(resourceType.toLowerCase()));
         }
@@ -46,17 +52,7 @@ public class ResourceSpecificationBuilder {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
 
-        spec = spec.and((root, query, criteriaBuilder) -> criteriaBuilder.isNull(assignmentJoin(root).get("assignmentRemovedDate")));
-
         return spec;
-    }
-
-    private Specification<Resource> userEquals(Long userId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(assignmentJoin(root).get("userRef"), userId);
-    }
-
-    private Specification<Resource> roleEquals(Long roleId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(assignmentJoin(root).get("roleRef"), roleId);
     }
 
     private Specification<Resource> resourceTypeEquals(String resourceType) {
