@@ -1,14 +1,13 @@
 package no.fintlabs.user;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
-import no.fintlabs.opa.OpaUtils;
 import org.springframework.data.jpa.domain.Specification;
 
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Root;
 import java.util.List;
 
 @Slf4j
@@ -18,6 +17,7 @@ public class UserSpecificationBuilder {
     private final List<String> orgUnits;
     private final List<String> orgUnitsInScope;
     private final String searchString;
+
     public UserSpecificationBuilder(
             Long resourceId,
             String userType,
@@ -45,11 +45,14 @@ public class UserSpecificationBuilder {
         if (!OpaUtils.isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
+
+        spec = spec.and((root, query, criteriaBuilder) -> criteriaBuilder.isNull(assignmentJoin(root).get("assignmentRemovedDate")));
+
         return spec;
     }
 
     private Specification<User> resourceEquals(Long resourceId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(resourceJoin(root).get("resourceRef"), resourceId);
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(assignmentJoin(root).get("resourceRef"), resourceId);
     }
     private  Specification<User> userTypeEquals(String userType) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(criteriaBuilder.lower(root.get("userType")), userType);
@@ -65,7 +68,7 @@ public class UserSpecificationBuilder {
 
     }
 
-    private Join<User, Assignment> resourceJoin(Root<User> root){
+    private Join<User, Assignment> assignmentJoin(Root<User> root){
         return root.join("assignments");
     }
 
