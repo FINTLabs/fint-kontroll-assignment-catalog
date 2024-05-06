@@ -32,9 +32,15 @@ public class UserSpecificationBuilder {
         this.searchString = searchString;
     }
     public Specification<User> build() {
-        Specification<User> spec = resourceEquals(resourceId);
-
         List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+
+        Specification<User> spec = (root, query, criteriaBuilder) -> {
+            Join<User, Assignment> join = assignmentJoin(root);
+            return criteriaBuilder.and(
+                    criteriaBuilder.isNull(join.get("assignmentRemovedDate")),
+                    criteriaBuilder.equal(join.get("resourceRef"), resourceId)
+            );
+        };
 
         if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
             spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
@@ -46,14 +52,9 @@ public class UserSpecificationBuilder {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
 
-        spec = spec.and((root, query, criteriaBuilder) -> criteriaBuilder.isNull(assignmentJoin(root).get("assignmentRemovedDate")));
-
         return spec;
     }
 
-    private Specification<User> resourceEquals(Long resourceId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(assignmentJoin(root).get("resourceRef"), resourceId);
-    }
     private  Specification<User> userTypeEquals(String userType) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(criteriaBuilder.lower(root.get("userType")), userType);
     }

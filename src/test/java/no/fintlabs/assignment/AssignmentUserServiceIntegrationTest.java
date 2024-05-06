@@ -62,6 +62,15 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         resourceRepository.save(resource);
 
+        Resource resource2 = Resource.builder()
+                .id(3L)
+                .resourceId("3")
+                .resourceType("ALLTYPES")
+                .resourceName("Test resource 2")
+                .build();
+
+        resourceRepository.save(resource2);
+
         User user = User.builder()
                 .id(123L)
                 .firstName("Test")
@@ -80,7 +89,18 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(123L)
                 .resourceRef(2L)
                 .build();
+
         assignmentRepository.save(assignment);
+
+        Assignment assignment2 = Assignment.builder()
+                .assignmentId("456")
+                .assignerUserName("not deleted")
+                .assignmentRemovedDate(null)
+                .userRef(123L)
+                .resourceRef(3L)
+                .build();
+
+        assignmentRepository.save(assignment2);
 
 
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null).build();
