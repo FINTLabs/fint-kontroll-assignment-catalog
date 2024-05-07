@@ -93,6 +93,9 @@ public class AssignmentController {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, exception.getMessage(), exception
             );
+        } catch (Exception e) {
+            log.error("Error creating assignment", e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something went wrong when creating assignment");
         }
     }
 
