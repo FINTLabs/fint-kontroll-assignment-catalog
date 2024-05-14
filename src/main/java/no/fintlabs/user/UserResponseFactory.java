@@ -1,43 +1,13 @@
 package no.fintlabs.user;
 
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
-@Component
 public class UserResponseFactory {
-    private final AssigmentUserService assigmentUserService;
-    private final UserService userService;
-    public UserResponseFactory(AssigmentUserService assigmentUserService,
-                               UserService userService
-    ) {
-        this.assigmentUserService = assigmentUserService;
-        this.userService = userService;
-    }
-    public ResponseEntity<Map<String ,Object>> toResponseEntity(
-            Long resourceId,
-            String userType,
-            List<String> orgUnits,
-            List<String> orgUnitsInScope,
-            String searchString,
-            int pageNumber,
-            int pageSize
-    ){
-        UserSpecificationBuilder builder = new UserSpecificationBuilder(resourceId, userType, orgUnits, orgUnitsInScope,searchString);
-
-        Pageable page = PageRequest.of(pageNumber,
-                pageSize,
-                Sort.by("firstName").ascending()
-                        .and(Sort.by("lastName")).ascending());
-
-        Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(resourceId, builder.build(), page);
-        return toResponseEntity(usersPage);
-    }
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentUser> assignmentUserPage) {
+    public static ResponseEntity<Map<String, Object>> assignmentUsersToResponseEntity(Page<AssignmentUser> assignmentUserPage) {
 
         return new ResponseEntity<>(
                 Map.of( "users", assignmentUserPage.getContent(),
@@ -45,6 +15,19 @@ public class UserResponseFactory {
                         "totalPages", assignmentUserPage.getTotalPages(),
                         "size", assignmentUserPage.getSize(),
                         "totalItems", assignmentUserPage.getTotalElements()
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<ResourceAssignmentUser> resourceAssignmentUsersPagable) {
+
+        return new ResponseEntity<>(
+                Map.of( "users", resourceAssignmentUsersPagable.getContent(),
+                        "currentPage", resourceAssignmentUsersPagable.getNumber(),
+                        "totalPages", resourceAssignmentUsersPagable.getTotalPages(),
+                        "size", resourceAssignmentUsersPagable.getSize(),
+                        "totalItems", resourceAssignmentUsersPagable.getTotalElements()
                 ),
                 HttpStatus.OK
         );

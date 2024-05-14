@@ -1,12 +1,12 @@
 package no.fintlabs.role;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Root;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
 import org.springframework.data.jpa.domain.Specification;
 
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Root;
 import java.util.List;
 
 public class RoleSpecificationBuilder {
@@ -25,9 +25,15 @@ public class RoleSpecificationBuilder {
         this.searchString = searchString;
     }
     public Specification<Role> build() {
-        Specification<Role> spec = resourceEquals(resourceId);
-
         List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+
+        Specification<Role> spec = (root, query, criteriaBuilder) -> {
+            Join<Role, Assignment> join = assignmentsJoin(root);
+            return criteriaBuilder.and(
+                    criteriaBuilder.isNull(join.get("assignmentRemovedDate")),
+                    criteriaBuilder.equal(join.get("resourceRef"), resourceId)
+            );
+        };
 
         if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
             spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
@@ -38,11 +44,12 @@ public class RoleSpecificationBuilder {
         if (!isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
+
         return spec;
     }
 
     private Specification<Role> resourceEquals(Long resourceId) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(resourceJoin(root).get("resourceRef"), resourceId);
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(assignmentsJoin(root).get("resourceRef"), resourceId);
     }
     private  Specification<Role> roleTypeEquals(String roleType) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(criteriaBuilder.lower(root.get("roleType")), roleType);
@@ -56,11 +63,11 @@ public class RoleSpecificationBuilder {
 
     }
 
-    private Join<Role, Assignment> resourceJoin(Root<Role> root){
+    private Join<Role, Assignment> assignmentsJoin(Root<Role> root){
         return root.join("assignments");
 
     }
     private boolean isEmptyString(String string) {
-        return string == null || string.length() == 0;
+        return string == null || string.isEmpty();
     }
 }

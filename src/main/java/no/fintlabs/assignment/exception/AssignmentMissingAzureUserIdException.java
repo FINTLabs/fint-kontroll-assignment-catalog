@@ -1,4 +1,4 @@
-package no.fintlabs.assignment;
+package no.fintlabs.assignment.exception;
 
 public class AssignmentMissingAzureUserIdException extends RuntimeException{
     public AssignmentMissingAzureUserIdException(Long assignmentId, Long userId) {

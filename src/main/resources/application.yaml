@@ -10,8 +10,8 @@ fint:
     assignment-catalog:
       pagesize: 50
       publishing:
-          initial-delay: 20000
-          fixed-delay: 43200000
+          initial-delay: 1
+          fixed-delay: 5
 
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement

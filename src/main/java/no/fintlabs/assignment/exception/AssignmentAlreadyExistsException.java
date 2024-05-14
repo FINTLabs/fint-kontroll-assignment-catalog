@@ -1,4 +1,4 @@
-package no.fintlabs.assignment;
+package no.fintlabs.assignment.exception;
 
 public class AssignmentAlreadyExistsException extends RuntimeException{
     public AssignmentAlreadyExistsException(String assigneeId, String resourceId) {

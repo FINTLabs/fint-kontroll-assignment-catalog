@@ -14,7 +14,7 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @Configuration
 public class MembershipConsumerConfiguration {
     @Bean
-    public ConcurrentMessageListenerContainer<String, Role> membershipConsumer(
+    public ConcurrentMessageListenerContainer<String, Membership> membershipConsumer(
             MembershipService membershipService,
             EntityConsumerFactoryService entityConsumerFactoryService
     ){
@@ -23,12 +23,10 @@ public class MembershipConsumerConfiguration {
                 .resource("role-catalog-membership")
                 .build();
 
-        ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createFactory(
                         Membership.class,
                         (ConsumerRecord<String,Membership> consumerRecord)
                                 -> membershipService.save(consumerRecord.value()))
                 .createContainer(entityTopicNameParameters);
-
-        return container;
     }
 }
