@@ -204,8 +204,6 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         testEntityManager.flush();
         testEntityManager.clear();
 
-        User user1 = testEntityManager.find(User.class, 123L);
-
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
                 assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
 

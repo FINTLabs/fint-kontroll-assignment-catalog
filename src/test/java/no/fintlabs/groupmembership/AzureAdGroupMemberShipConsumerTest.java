@@ -44,12 +44,12 @@ public class AzureAdGroupMemberShipConsumerTest {
 
         FlattenedAssignment flattenedAssignmentForDeletion = new FlattenedAssignment();
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid)).thenReturn(Optional.of(flattenedAssignmentForDeletion));
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false)).thenReturn(Optional.of(flattenedAssignmentForDeletion));
         when(repo.save(flattenedAssignmentForDeletion)).thenReturn(flattenedAssignmentForDeletion);
 
         consumer.processGroupMembership(record);
 
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid);
+        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false);
         verify(repo, times(1)).save(flattenedAssignmentForDeletion);
     }
 

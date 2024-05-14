@@ -59,7 +59,7 @@ public class FlattenedAssignmentServiceTest {
     }
 
     @Test
-    public void shouldCreateFlattenedAssignmentsWhenRoleRefIsNotNullAndMembershipsEmpty() {
+    public void shouldNotCreateFlattenedAssignmentsWhenRoleRefIsNotNullAndMembershipsEmpty() {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
@@ -69,7 +69,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.createFlattenedAssignments(assignment);
 
-        verify(flattenedAssignmentRepository, times(1)).save(any());
+        verify(flattenedAssignmentRepository, times(0)).save(any());
     }
 
     @Test
