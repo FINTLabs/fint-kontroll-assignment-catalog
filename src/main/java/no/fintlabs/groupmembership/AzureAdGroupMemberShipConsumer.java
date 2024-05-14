@@ -66,7 +66,7 @@ public class AzureAdGroupMemberShipConsumer {
         UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
         UUID userId = parseUUID(membership.getAzureUserRef().toString());
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmed(
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
                         groupId, userId, false)
                 .ifPresent(assignment -> {
                     log.info("Found matching assignment: {}", assignment.getAssignmentId());
