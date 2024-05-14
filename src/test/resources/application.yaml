@@ -1,0 +1,33 @@
+logging:
+  level:
+    org.flywaydb.core.internal.command.DbMigrate: DEBUG
+    org.springframework.security: DEBUG
+    org.testcontainers: DEBUG
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          lob:
+            non_contextual_creation: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        enable_lazy_load_no_trans: true
+
+  datasource:
+    hikari:
+      schema: assignments
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres
+
+  flyway:
+    locations: classpath:db/migration/
+    lock-retry-count: 300
+    enabled: false
+
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: testGroup
+      bootstrap-servers: localhost:9092
