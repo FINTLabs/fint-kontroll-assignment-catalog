@@ -78,6 +78,7 @@ public class Assignment {
             updatable = false)//, nullable = false
     @JsonBackReference(value = "user-assignment")
     private User user;
+
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(

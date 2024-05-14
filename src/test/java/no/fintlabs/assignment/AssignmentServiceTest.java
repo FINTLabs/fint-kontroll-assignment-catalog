@@ -103,7 +103,7 @@ class AssignmentServiceTest {
     @Test
     void getAssignerUsernameForUserAssignmentWithAssigner() {
 
-        given(assignmentRepository.findAssignmentByUserRefAndResourceRef(1L, 2L))
+        given(assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(1L, 2L))
                 .willReturn(Optional.of(userAssignmentWithAssigner));
 
         Optional<String> returnedUsername = assignmentService.getAssignerUsernameForUserAssignment(1L, 2L);
@@ -113,7 +113,7 @@ class AssignmentServiceTest {
     @DisplayName("Test for getAssignerDisplaynameForUserAssignment - with assigner displayname")
     @Test
     void getAssignerDisplaynameForUserAssignmenWithDisplayname() {
-        given(assignmentRepository.findAssignmentByUserRefAndResourceRef(1L, 2L))
+        given(assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(1L, 2L))
                 .willReturn(Optional.of(userAssignmentWithAssigner));
         given(userRepository.getUserByUserName("berntj@viken.no")).willReturn(Optional.of(userWithDisplayName));
         Optional<String> returnedisplayname = assignmentService.getAssignerDisplaynameForUserAssignment(1L, 2L);
@@ -130,7 +130,7 @@ class AssignmentServiceTest {
                 .userRef(2L)
                 .build();
 
-        given(assignmentRepository.findAssignmentByUserRefAndResourceRef(2L, 2L))
+        given(assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(2L, 2L))
                 .willReturn(Optional.of(assignment));
 
         Optional<String> returnedUsername = assignmentService.getAssignerUsernameForUserAssignment(2L, 2L);
@@ -141,7 +141,7 @@ class AssignmentServiceTest {
     @Test
     void getAssignerDisplaynameForUserAssignmenWithoutDisplayname() {
 
-        given(assignmentRepository.findAssignmentByUserRefAndResourceRef(3L, 2L)).willReturn(
+        given(assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(3L, 2L)).willReturn(
                 Optional.of(userAssignmentWithUnknownAssigner));
         given(userRepository.getUserByUserName("ukjent@viken.no")).willReturn(Optional.of(userWithOutDisplayName));
 
@@ -153,7 +153,7 @@ class AssignmentServiceTest {
     @Test
     void getAssignerUsernameForRoleAssignmentWithAssigner() {
 
-        given(assignmentRepository.findAssignmentByRoleRefAndResourceRef(1L, 2L))
+        given(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(1L, 2L))
                 .willReturn(Optional.of(roleAssignmentWithAssigner));
 
         Optional<String> returnedUsername = assignmentService.getAssignerUsernameForRoleAssignment(1L, 2L);
@@ -163,7 +163,7 @@ class AssignmentServiceTest {
     @DisplayName("Test for getAssignerDisplaynameForRoleAssignment - with assigner displayname")
     @Test
     void getAssignerDisplaynameForRoleAssignmenWithDisplayname() {
-        given(assignmentRepository.findAssignmentByRoleRefAndResourceRef(1L, 2L))
+        given(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(1L, 2L))
                 .willReturn(Optional.of(roleAssignmentWithAssigner));
         given(userRepository.getUserByUserName("berntj@viken.no")).willReturn(Optional.of(userWithDisplayName));
         Optional<String> returnedisplayname = assignmentService.getAssignerDisplaynameForRoleAssignment(1L, 2L);
@@ -180,7 +180,7 @@ class AssignmentServiceTest {
                 .roleRef(2L)
                 .build();
 
-        given(assignmentRepository.findAssignmentByRoleRefAndResourceRef(2L, 2L))
+        given(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(2L, 2L))
                 .willReturn(Optional.of(assignment));
 
         Optional<String> returnedUsername = assignmentService.getAssignerUsernameForRoleAssignment(2L, 2L);
@@ -191,7 +191,7 @@ class AssignmentServiceTest {
     @Test
     void getAssignerDisplaynameForRoleAssignmenWithoutDisplayname() {
 
-        given(assignmentRepository.findAssignmentByRoleRefAndResourceRef(3L, 2L)).willReturn(
+        given(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(3L, 2L)).willReturn(
                 Optional.of(userAssignmentWithUnknownAssigner));
         given(userRepository.getUserByUserName("ukjent@viken.no")).willReturn(Optional.of(userWithOutDisplayName));
 

@@ -1,14 +1,25 @@
 package no.fintlabs.user;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import lombok.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
-import jakarta.persistence.*;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -18,11 +29,12 @@ import java.util.UUID;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="Users")
+@Table(name = "Users")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
 public class User {
+
     @Id
     private Long id;
     private Long userRef;
@@ -35,13 +47,22 @@ public class User {
     //private String displayName;
     private String organisationUnitId;
     private String organisationUnitName;
+
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value="user-assignment")
+    @JsonManagedReference(value = "user-assignment")
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
+
+    @OneToMany(mappedBy = "user",
+            fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JsonManagedReference(value = "user-flattenedassignment")
+    @JsonIgnore
+    @ToString.Exclude
+    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
 
     public AssignmentUser toAssignmentUser() {
         return AssignmentUser
@@ -56,20 +77,21 @@ public class User {
     }
 
     private Long getAssignmentId(Long resourceRef) {
-        return  assignments.stream()
+        return assignments.stream()
                 .filter(assignment -> assignment.getResourceRef().equals(resourceRef))
-                .map(assignment -> assignment.getId())
+                .map(Assignment::getId)
                 .toList().get(0);
     }
 
     public String getDisplayname() {
         if (!stringIsNullOrEmpty(firstName) && !stringIsNullOrEmpty(lastName)) {
-            return  firstName + " " + lastName;
+            return firstName + " " + lastName;
         }
         return null;
     }
+
     private boolean stringIsNullOrEmpty(String string) {
-        return string==null || string.isEmpty();
+        return string == null || string.isEmpty();
     }
 }
 

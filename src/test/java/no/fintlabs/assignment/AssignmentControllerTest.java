@@ -113,7 +113,7 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void deleteAssignment_ValidId_DeletesAssignment() throws Exception {
+    public void shouldDeleteAssignment_validId_deletesAssignment() throws Exception {
         Long validId = 1L;
 
         mockMvc.perform(delete("/api/assignments/" + validId)
@@ -124,7 +124,7 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void deleteAssignment_InvalidId_ThrowsUserNotFoundException() throws Exception {
+    public void shouldDeleteAssignment_invalidId_throwsUserNotFoundException() throws Exception {
         Long invalidId = 2L;
 
         doThrow(UserNotFoundException.class).when(assignmentServiceMock).deleteAssignment(invalidId);

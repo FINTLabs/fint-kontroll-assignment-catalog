@@ -7,6 +7,7 @@ import no.fintlabs.membership.MembershipRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
@@ -55,7 +56,7 @@ public class FlattenedAssignmentService {
     }
 
     private void saveFlattenedAssignment(Assignment assignment) {
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(assignment.getAzureAdGroupId(),
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(assignment.getAzureAdGroupId(),
                                                                                                          assignment.getAzureAdUserId())
                 .ifPresentOrElse(
                         flattenedAssignment -> {
@@ -83,5 +84,9 @@ public class FlattenedAssignmentService {
 
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
         return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
+    }
+
+    public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
+        return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
     }
 }
