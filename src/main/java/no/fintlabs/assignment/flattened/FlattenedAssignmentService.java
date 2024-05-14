@@ -43,8 +43,7 @@ public class FlattenedAssignmentService {
             List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
 
             if (memberships.isEmpty()) {
-                log.info("Role (group) has no members. Saving flattened assignment without members. Roleref: {}", assignment.getRoleRef());
-                saveFlattenedAssignment(assignment);
+                log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
             } else {
                 log.info("Saving flattened assignments for roleref {}", assignment.getRoleRef());
                 memberships.forEach(membership -> {
