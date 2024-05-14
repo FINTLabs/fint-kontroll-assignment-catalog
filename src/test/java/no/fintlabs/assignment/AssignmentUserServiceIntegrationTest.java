@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
@@ -13,10 +14,10 @@ import no.fintlabs.user.ResourceAssignmentUser;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.fintlabs.user.UserSpecificationBuilder;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
@@ -57,6 +58,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
+
+    @Autowired
+    private TestEntityManager testEntityManager;
 
     @Test
     public void shouldNotFindUsersWithDeletedAssignments() {
@@ -158,7 +162,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assertThat(usersPage.getTotalElements()).isEqualTo(1);
     }
 
-    @Disabled
+    @Transactional
     @Test
     public void shouldFindResourceAssignmentUsers() {
         Resource resource = Resource.builder()
@@ -196,6 +200,11 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .resourceRef(savedResource.getId())
                 .build();
         FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        testEntityManager.flush();
+        testEntityManager.clear();
+
+        User user1 = testEntityManager.find(User.class, 123L);
 
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
                 assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);

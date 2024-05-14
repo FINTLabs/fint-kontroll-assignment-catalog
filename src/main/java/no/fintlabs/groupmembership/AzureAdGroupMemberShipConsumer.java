@@ -52,7 +52,7 @@ public class AzureAdGroupMemberShipConsumer {
         UUID groupId = parseUUID(ids[0]);
         UUID userId = parseUUID(ids[1]);
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(groupId, userId)
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupId, userId, false)
                 .ifPresent(assignment -> {
                     log.info("Found assignment for deletion: {}", assignment.getAssignmentId());
                     assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
