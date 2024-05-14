@@ -1,15 +1,19 @@
 package no.fintlabs.assignment;
 
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.AssigmentUserService;
 import no.fintlabs.user.AssignmentUser;
+import no.fintlabs.user.ResourceAssignmentUser;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.fintlabs.user.UserSpecificationBuilder;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -50,6 +54,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private ResourceRepository resourceRepository;
+
+    @Autowired
+    private FlattenedAssignmentRepository flattenedAssignmentRepository;
 
     @Test
     public void shouldNotFindUsersWithDeletedAssignments() {
@@ -103,7 +110,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assignmentRepository.save(assignment2);
 
 
-        Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null).build();
+        Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
+                .assignmentSearch();
+
         Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(0);
@@ -141,9 +150,57 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assignmentRepository.save(assignmentNotDeleted);
 
 
-        Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null).build();
+        Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
+                .assignmentSearch();
+
         Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(1);
+    }
+
+    @Disabled
+    @Test
+    public void shouldFindResourceAssignmentUsers() {
+        Resource resource = Resource.builder()
+                .id(1L)
+                .resourceId("1")
+                .resourceType("ALLTYPES")
+                .resourceName("Test resource")
+                .build();
+
+        Resource savedResource = resourceRepository.saveAndFlush(resource);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId("555")
+                .userType("ALLTYPES")
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignment = Assignment.builder()
+                .assignmentId("456")
+                .assignerUserName("test@test.no")
+                .assignmentRemovedDate(null)
+                .userRef(savedUser.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+        FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        Page<ResourceAssignmentUser> resourceAssignmentUsers =
+                assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+
     }
 }

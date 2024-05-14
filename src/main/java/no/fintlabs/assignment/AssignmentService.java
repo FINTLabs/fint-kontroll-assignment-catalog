@@ -14,6 +14,7 @@ import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -93,12 +94,12 @@ public class AssignmentService {
     }
 
     public Optional<Long> getAssignmentRefForUserAssignment(Long userId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(userId, resourceId);
         return assignment.map(Assignment::getId);
     }
 
     public Optional<String> getAssignerUsernameForUserAssignment(Long userId, Long resourceId) {
-        Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRef(userId, resourceId);
+        Optional<Assignment> userAssignment = assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(userId, resourceId);
         return userAssignment.map(Assignment::getAssignerUserName);
     }
 
@@ -111,12 +112,12 @@ public class AssignmentService {
     }
 
     public Optional<Long> getAssignmentRefForRoleAssignment(Long roleId, Long resourceId) {
-        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+        Optional<Assignment> assignment = assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(roleId, resourceId);
         return assignment.map(Assignment::getId);
     }
 
     public Optional<String> getAssignerUsernameForRoleAssignment(Long roleId, Long resourceId) {
-        Optional<Assignment> roleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRef(roleId, resourceId);
+        Optional<Assignment> roleAssignment = assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(roleId, resourceId);
         return roleAssignment.map(Assignment::getAssignerUserName);
     }
 
@@ -135,7 +136,8 @@ public class AssignmentService {
 
     private Assignment handleUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
         if (userRef != null) {
-            if (existingUserAssignment(assignment)) {
+            if (existingUserFlattenedAssignmentNotTerminated(assignment)) {
+                log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
                 throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
             }
 
@@ -173,7 +175,7 @@ public class AssignmentService {
         if (resourceRef != null) {
             resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
                 assignment.setResourceName(resource.getResourceName());
-                assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix());
+                assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
                 assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
             }, () -> {
                 throw new ResourceNotFoundException(resourceRef.toString());
@@ -183,12 +185,16 @@ public class AssignmentService {
         return assignment;
     }
 
+    private boolean existingUserFlattenedAssignmentNotTerminated(Assignment assignment) {
+        return flattenedAssignmentService.getFlattenedAssignmentByUserAndResourceNotTerminated(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
+    }
+
     private boolean existingRoleAssignment(Assignment assignment) {
-        return assignmentRepository.findAssignmentByRoleRefAndResourceRef(assignment.getRoleRef(), assignment.getResourceRef()).isPresent();
+        return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getRoleRef(), assignment.getResourceRef()).isPresent();
     }
 
     private boolean existingUserAssignment(Assignment assignment) {
-        return assignmentRepository.findAssignmentByUserRefAndResourceRef(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
+        return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
     }
 }
 

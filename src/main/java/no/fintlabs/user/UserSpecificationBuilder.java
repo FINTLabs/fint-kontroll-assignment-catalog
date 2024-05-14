@@ -1,6 +1,8 @@
 package no.fintlabs.user;
 
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
@@ -31,7 +33,7 @@ public class UserSpecificationBuilder {
         this.orgUnitsInScope = orgUnitsInScope;
         this.searchString = searchString;
     }
-    public Specification<User> build() {
+    public Specification<User> assignmentSearch() {
         List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
 
         Specification<User> spec = (root, query, criteriaBuilder) -> {
@@ -55,15 +57,47 @@ public class UserSpecificationBuilder {
         return spec;
     }
 
+    public Specification<User> flattenedAssignmentSearch() {
+        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
+
+        Specification<User> spec = (root, query, criteriaBuilder) -> {
+            root.join("flattenedAssignments")
+                    .join("role", JoinType.LEFT);
+
+            Predicate
+                    isNotDeleted = criteriaBuilder.isFalse(root.get("flattenedAssignments").get("identityProviderGroupMembershipDeletionConfirmed"));
+            Predicate userRefMatches = criteriaBuilder.equal(root.get("flattenedAssignments").get("userRef"), root.get("id"));
+            Predicate resourceRefMatches = criteriaBuilder.equal(root.get("flattenedAssignments").get("resourceRef"), resourceId);
+
+//            query.distinct(true);
+
+            return criteriaBuilder.and(isNotDeleted, userRefMatches, resourceRefMatches);
+        };
+
+        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
+        }
+        if (!userType.equals("ALLTYPES")) {
+            spec = spec.and(userTypeEquals(userType.toLowerCase()));
+        }
+        if (!OpaUtils.isEmptyString(searchString)) {
+            spec = spec.and(nameLike(searchString.toLowerCase()));
+        }
+
+        return spec;
+    }
+
     private  Specification<User> userTypeEquals(String userType) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(criteriaBuilder.lower(root.get("userType")), userType);
     }
+
     private Specification<User> nameLike(String searchString) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString + "%"),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString + "%"));
     }
+
     private Specification<User> belongsToOrgUnit(List<String> orgUnits) {
         return (root, query, criteriaBuilder)-> criteriaBuilder.in(root.get("organisationUnitId")).value(orgUnits);
 
