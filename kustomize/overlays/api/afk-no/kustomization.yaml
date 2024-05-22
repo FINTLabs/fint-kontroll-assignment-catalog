@@ -37,6 +37,15 @@ patches:
       - op: replace
         path: "/spec/url/basePath"
         value: "/afk-no"
+      - op: add
+        path: "/spec/resources"
+        value:
+          limits:
+            cpu: "1000m"
+            memory: "4000Mi"
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
