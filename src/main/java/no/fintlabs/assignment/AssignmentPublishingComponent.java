@@ -31,8 +31,8 @@ public class AssignmentPublishingComponent {
     }
 
     @Scheduled(
-            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
+            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
             timeUnit = TimeUnit.MINUTES
     )
     public void publishDeletedFlattenedAssignments() {

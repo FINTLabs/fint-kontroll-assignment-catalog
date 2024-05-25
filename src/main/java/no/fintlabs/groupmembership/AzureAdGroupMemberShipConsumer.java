@@ -1,5 +1,6 @@
 package no.fintlabs.groupmembership;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -35,6 +36,7 @@ public class AzureAdGroupMemberShipConsumer {
                                          .build());
     }
 
+    @Transactional
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 
@@ -61,7 +63,7 @@ public class AzureAdGroupMemberShipConsumer {
     }
 
     private void handleUpdate(AzureAdGroupMembership membership) {
-        log.info("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
+        log.debug("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
 
         UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
         UUID userId = parseUUID(membership.getAzureUserRef().toString());
@@ -69,7 +71,7 @@ public class AzureAdGroupMemberShipConsumer {
         flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
                         groupId, userId, false)
                 .ifPresent(assignment -> {
-                    log.info("Found matching assignment: {}", assignment.getAssignmentId());
+                    log.debug("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
                     assignment.setIdentityProviderGroupMembershipConfirmed(true);
                     flattenedAssignmentRepository.save(assignment);
                 });

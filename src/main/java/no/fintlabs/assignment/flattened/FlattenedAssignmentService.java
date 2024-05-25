@@ -1,5 +1,6 @@
 package no.fintlabs.assignment.flattened;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
@@ -26,11 +27,13 @@ public class FlattenedAssignmentService {
         this.membershipRepository = membershipRepository;
     }
 
+    @Transactional
     public void createFlattenedAssignments(Assignment assignment) {
         log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
         createOrUpdateFlattenedAssignment(assignment);
     }
 
+    @Transactional
     public void updateFlattenedAssignment(Assignment assignment) {
         log.info("Updating flattened assignment with id {}", assignment.getId());
         createOrUpdateFlattenedAssignment(assignment);
@@ -48,6 +51,7 @@ public class FlattenedAssignmentService {
                 log.info("Saving flattened assignments for roleref {}", assignment.getRoleRef());
                 memberships.forEach(membership -> {
                     assignment.setAzureAdUserId(membership.getIdentityProviderUserObjectId());
+                    assignment.setUserRef(membership.getMemberId());
                     saveFlattenedAssignment(assignment);
                 });
             }
@@ -78,7 +82,7 @@ public class FlattenedAssignmentService {
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
-        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmed(false);
+        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(false);
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
