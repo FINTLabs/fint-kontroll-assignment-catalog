@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,7 +45,8 @@ public class AzureAdGroupMemberShipConsumerTest {
 
         FlattenedAssignment flattenedAssignmentForDeletion = new FlattenedAssignment();
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false)).thenReturn(Optional.of(flattenedAssignmentForDeletion));
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false)).thenReturn(
+                List.of(flattenedAssignmentForDeletion));
         when(repo.save(flattenedAssignmentForDeletion)).thenReturn(flattenedAssignmentForDeletion);
 
         consumer.processGroupMembership(record);
