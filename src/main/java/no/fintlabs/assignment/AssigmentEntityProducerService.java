@@ -74,7 +74,6 @@ public class AssigmentEntityProducerService {
     }
 
     private boolean isValidAssignment(FlattenedAssignment assignment) {
-//        denne gjør det slik at det ikke publiseres sletting av gruppe
         if (assignment.getIdentityProviderGroupObjectId() == null || assignment.getIdentityProviderUserObjectId() == null ||
             assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
             assignment.getIdentityProviderUserObjectId().toString().startsWith("00000000")) {
