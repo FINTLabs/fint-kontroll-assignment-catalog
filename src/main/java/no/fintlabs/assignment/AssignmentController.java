@@ -74,6 +74,8 @@ public class AssignmentController {
                 .organizationUnitId(request.organizationUnitId)
                 .build();
 
+        log.debug("Requestbody: {}", request.toString());
+
         if (request.userRef != null) {
             assignment.setUserRef(request.userRef);
         }
