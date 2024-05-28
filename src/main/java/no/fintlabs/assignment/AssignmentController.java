@@ -74,7 +74,7 @@ public class AssignmentController {
                 .organizationUnitId(request.organizationUnitId)
                 .build();
 
-        log.info("Requestbody: {}", request.toString());
+        log.info("Request returned - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
 
 
         if (request.userRef != null && request.roleRef != null) {
