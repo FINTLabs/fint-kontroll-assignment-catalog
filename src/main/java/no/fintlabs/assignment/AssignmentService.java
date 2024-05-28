@@ -51,6 +51,8 @@ public class AssignmentService {
         Long roleRef = assignment.getRoleRef();
         Long resourceRef = assignment.getResourceRef();
 
+
+
         assignment = handleUserAssignment(assignment, userRef, resourceRef);
         assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
         assignment = handleResourceAssignment(assignment, resourceRef);
