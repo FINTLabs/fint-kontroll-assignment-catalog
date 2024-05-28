@@ -54,8 +54,11 @@ public class AssignmentService {
 
 
         assignment = handleUserAssignment(assignment, userRef, resourceRef);
+        log.info("Assignment after handling user assignment: {}", assignment);
         assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
+        log.info("Assignment after handling role assignment: {}", assignment);
         assignment = handleResourceAssignment(assignment, resourceRef);
+        log.info("Assignment after handling resource assignment: {}", assignment);
 
         log.info("Saving assignment with id {}", assignment.getId());
         Assignment newAssignment = assignmentRepository.save(assignment);
