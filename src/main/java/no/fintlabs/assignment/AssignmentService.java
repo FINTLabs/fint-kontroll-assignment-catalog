@@ -62,6 +62,7 @@ public class AssignmentService {
 
         log.info("Saving assignment with id {}", assignment.getId());
         Assignment newAssignment = assignmentRepository.save(assignment);
+        log.info("Saved assignment {}", newAssignment);
 
         flattenedAssignmentService.createFlattenedAssignments(newAssignment);
 
