@@ -76,6 +76,13 @@ public class AssignmentController {
 
         log.debug("Requestbody: {}", request.toString());
 
+
+        if (request.userRef != null && request.roleRef != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both"
+            );
+        }
+
         if (request.userRef != null) {
             assignment.setUserRef(request.userRef);
         }
