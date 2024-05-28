@@ -76,13 +76,16 @@ public class AssignmentController {
 
         log.info("Request returned - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
 
-
         if (request.userRef != null && request.roleRef != null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both"
             );
         }
-
+        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty"
+            );
+        }
         if (request.userRef != null) {
             assignment.setUserRef(request.userRef);
         }
