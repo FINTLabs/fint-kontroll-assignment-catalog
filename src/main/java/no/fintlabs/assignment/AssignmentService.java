@@ -65,6 +65,7 @@ public class AssignmentService {
         log.info("Saved assignment {}", newAssignment);
 
         flattenedAssignmentService.createFlattenedAssignments(newAssignment);
+        log.info("Created flattened assignments for assignment {}", newAssignment);
 
         return newAssignment;
     }
