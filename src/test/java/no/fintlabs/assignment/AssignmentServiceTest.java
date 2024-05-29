@@ -218,12 +218,12 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
-        given(assignmentRepository.save(any())).willReturn(assignment);
+        given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(assignment);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(assignmentRepository, times(1)).save(any());
+        verify(assignmentRepository, times(1)).saveAndFlush(any());
         verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
@@ -280,7 +280,7 @@ class AssignmentServiceTest {
         given(opaService.getUserNameAuthenticatedUser()).willReturn(userName);
         given(userRepository.getUserByUserName(userName)).willReturn(Optional.of(user));
         given(assignmentRepository.getReferenceById(validId)).willReturn(assignment);
-        given(assignmentRepository.save(any())).willAnswer(invocation -> {
+        given(assignmentRepository.saveAndFlush(any())).willAnswer(invocation -> {
             Assignment savedAssignment = invocation.getArgument(0);
             assertThat(savedAssignment.getAssignmentRemovedDate()).isNotNull();
             assertThat(savedAssignment.getAssignerRemoveRef()).isEqualTo(user.getId());
@@ -290,7 +290,7 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.deleteAssignment(validId);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(assignmentRepository, times(1)).save(assignment);
+        verify(assignmentRepository, times(1)).saveAndFlush(assignment);
         verify(flattenedAssignmentService, times(1)).updateFlattenedAssignment(any());
     }
 
