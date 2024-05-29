@@ -41,10 +41,16 @@ public class FlattenedAssignmentService {
     }
 
     private void createOrUpdateFlattenedAssignment(Assignment assignment) {
+        if(assignment.getId() == null) {
+            log.error("Assignment id is null. Cannot create or update flattened assignment");
+            return;
+        }
+
         List<FlattenedAssignment> flattenedAssignmentsForUpdate = new ArrayList<>();
+        FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
 
         if (assignment.getUserRef() != null) {
-            flattenedAssignmentsForUpdate.addAll(getFlattenedAssignmentToSave(assignment));
+            flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
         } else if (assignment.getRoleRef() != null) {
             List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
 
@@ -52,43 +58,46 @@ public class FlattenedAssignmentService {
                 log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
             } else {
                 log.info("Preparing all memberships to save as flattened assignments for roleref {}", assignment.getRoleRef());
+
                 memberships.forEach(membership -> {
-                    assignment.setAzureAdUserId(membership.getIdentityProviderUserObjectId());
-                    assignment.setUserRef(membership.getMemberId());
-                    flattenedAssignmentsForUpdate.addAll(getFlattenedAssignmentToSave(assignment));
+                    mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+                    mappedAssignment.setUserRef(membership.getMemberId());
+                    flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
                 });
 
                 log.info("Added: {} memberships/groups to save", flattenedAssignmentsForUpdate.size());
             }
         }
 
-        log.info("Saving and flushing {} flattened assignments", flattenedAssignmentsForUpdate.size());
-        flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
+        if (!flattenedAssignmentsForUpdate.isEmpty()) {
+            log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
+            flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
+        }
     }
 
-    private List<FlattenedAssignment> getFlattenedAssignmentToSave(Assignment assignment) {
-        List<FlattenedAssignment> forSave = new ArrayList<>();
+    private FlattenedAssignment mapForUpdateOrCreate(FlattenedAssignment flattenedAssignment) {
+        log.info("Finding flattened assignment by azureadgroupid: {} and azureaduserid: {}",
+                 flattenedAssignment.getIdentityProviderGroupObjectId(),
+                 flattenedAssignment.getIdentityProviderUserObjectId());
 
-        log.info("Finding flattened assignment by azureadgroupid: {} and azureaduserid: {}", assignment.getAzureAdGroupId(), assignment.getAzureAdUserId());
-
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(assignment.getAzureAdGroupId(),
-                                                                                                         assignment.getAzureAdUserId())
+        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(flattenedAssignment.getIdentityProviderGroupObjectId(),
+                                                                                                                                           flattenedAssignment.getIdentityProviderUserObjectId())
                 .ifPresentOrElse(
-                        flattenedAssignment -> {
-                            log.info("Flattened assignment already exist. Updating flattenedassignment with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}", assignment.getId(), assignment.getUserRef(), assignment.getRoleRef(), assignment.getAzureAdUserId(), assignment.getAzureAdGroupId());
-                            FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-                            mappedAssignment.setId(flattenedAssignment.getId());
-                            mappedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
-                            mappedAssignment.setIdentityProviderGroupMembershipConfirmed(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-                            forSave.add(mappedAssignment);
+                        foundFlattenedAssignment -> {
+                            log.info("Flattened assignment already exist. Updating flattenedassignment with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
+                                     flattenedAssignment.getId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
+                                     flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
+
+                            foundFlattenedAssignment.setId(foundFlattenedAssignment.getId());
+                            foundFlattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(foundFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+                            foundFlattenedAssignment.setIdentityProviderGroupMembershipConfirmed(foundFlattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
                         },
-                        () -> {
-                            log.info("Flattened assignment does not exist. Creating new with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}", assignment.getId(), assignment.getUserRef(), assignment.getRoleRef(), assignment.getAzureAdUserId(), assignment.getAzureAdGroupId());
-                            forSave.add(toFlattenedAssignment(assignment));
-                        }
+                        () -> log.info("Flattened assignment does not exist. Creating new with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
+                                       flattenedAssignment.getId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
+                                       flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId())
                 );
 
-        return forSave;
+        return flattenedAssignment;
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
