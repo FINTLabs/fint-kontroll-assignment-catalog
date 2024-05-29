@@ -61,7 +61,7 @@ public class AssignmentService {
         log.info("Assignment after handling resource assignment: {}", assignment);
 
         log.info("Saving assignment with id {}", assignment.getId());
-        Assignment newAssignment = assignmentRepository.save(assignment);
+        Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
         flattenedAssignmentService.createFlattenedAssignments(newAssignment);
@@ -93,7 +93,7 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
         assignment.setAssignerRemoveRef(user.getId());
-        Assignment assignmentForDeletion = assignmentRepository.save(assignment);
+        Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
         flattenedAssignmentService.updateFlattenedAssignment(assignment);
 
