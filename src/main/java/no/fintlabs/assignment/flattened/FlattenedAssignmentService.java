@@ -47,9 +47,9 @@ public class FlattenedAssignmentService {
         }
 
         List<FlattenedAssignment> flattenedAssignmentsForUpdate = new ArrayList<>();
-        FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
 
         if (assignment.getUserRef() != null) {
+            FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
             flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
         } else if (assignment.getRoleRef() != null) {
             List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
@@ -60,6 +60,7 @@ public class FlattenedAssignmentService {
                 log.info("Preparing all memberships to save as flattened assignments for roleref {}", assignment.getRoleRef());
 
                 memberships.forEach(membership -> {
+                    FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
                     mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                     mappedAssignment.setUserRef(membership.getMemberId());
                     flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
@@ -73,7 +74,8 @@ public class FlattenedAssignmentService {
             log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> savedFlattenedAssignments = flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
             log.info("Saved {} flattened assignments", savedFlattenedAssignments.size());
-            savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}", flattenedAssignment.getId()));
+            savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}, azureaduserid: {}, azureadgroupid: {}", flattenedAssignment.getId(),
+                                                                              flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId()));
         }
     }
 
