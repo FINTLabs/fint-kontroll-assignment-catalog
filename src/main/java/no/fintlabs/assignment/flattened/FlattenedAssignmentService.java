@@ -71,8 +71,21 @@ public class FlattenedAssignmentService {
 
         if (!flattenedAssignmentsForUpdate.isEmpty()) {
             log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
-            flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
+            List<FlattenedAssignment> savedFlattenedAssignments = flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
+            log.info("Saved {} flattened assignments", savedFlattenedAssignments.size());
+            savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}", flattenedAssignment.getId()));
         }
+    }
+
+    public void deleteFlattenedAssignments(Assignment assignment) {
+        log.info("Deleting flattened assignments for assignment with id {}", assignment.getId());
+
+        flattenedAssignmentRepository.findByAssignmentId(assignment.getId())
+                .forEach(flattenedAssignment -> {
+                    log.info("Deleting flattened assignment for with id: {}, for assignment id {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
+                    flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
+                    flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+                });
     }
 
     private FlattenedAssignment mapForUpdateOrCreate(FlattenedAssignment flattenedAssignment) {
@@ -84,8 +97,8 @@ public class FlattenedAssignmentService {
                                                                                                                                            flattenedAssignment.getIdentityProviderUserObjectId())
                 .ifPresentOrElse(
                         foundFlattenedAssignment -> {
-                            log.info("Flattened assignment already exist. Updating flattenedassignment with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                     flattenedAssignment.getId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
+                            log.info("Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
+                                     flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
                                      flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
 
                             foundFlattenedAssignment.setId(foundFlattenedAssignment.getId());
@@ -93,7 +106,7 @@ public class FlattenedAssignmentService {
                             foundFlattenedAssignment.setIdentityProviderGroupMembershipConfirmed(foundFlattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
                         },
                         () -> log.info("Flattened assignment does not exist. Creating new with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                       flattenedAssignment.getId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
+                                       flattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
                                        flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId())
                 );
 

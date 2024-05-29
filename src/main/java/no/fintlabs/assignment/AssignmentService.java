@@ -93,7 +93,7 @@ public class AssignmentService {
         assignment.setAssignerRemoveRef(user.getId());
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
-        flattenedAssignmentService.updateFlattenedAssignment(assignment);
+        flattenedAssignmentService.deleteFlattenedAssignments(assignment);
 
         return assignmentForDeletion;
     }

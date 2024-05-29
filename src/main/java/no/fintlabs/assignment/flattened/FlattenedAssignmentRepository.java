@@ -16,7 +16,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
 
-    Optional<FlattenedAssignment> findByAssignmentId(Long assignmentId);
+    List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
 
     Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 

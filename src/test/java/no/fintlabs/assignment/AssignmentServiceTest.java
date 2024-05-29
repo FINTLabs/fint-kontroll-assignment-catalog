@@ -291,7 +291,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(assignment);
-        verify(flattenedAssignmentService, times(1)).updateFlattenedAssignment(any());
+        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any());
     }
 
     @Test
