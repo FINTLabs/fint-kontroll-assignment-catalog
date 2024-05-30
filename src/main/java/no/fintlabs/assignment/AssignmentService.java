@@ -52,18 +52,15 @@ public class AssignmentService {
         Long resourceRef = assignment.getResourceRef();
 
         assignment = handleUserAssignment(assignment, userRef, resourceRef);
-        log.info("Assignment after handling user assignment: {}", assignment);
         assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
-        log.info("Assignment after handling role assignment: {}", assignment);
         assignment = handleResourceAssignment(assignment, resourceRef);
-        log.info("Assignment after handling resource assignment: {}", assignment);
 
-        log.info("Saving assignment with id {}", assignment.getId());
+        log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
         flattenedAssignmentService.createFlattenedAssignments(newAssignment);
-        log.info("Created flattened assignments for assignment {}", newAssignment);
+        log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
 
         return newAssignment;
     }
