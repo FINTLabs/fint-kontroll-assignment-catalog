@@ -59,7 +59,7 @@ public class AssignmentService {
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignments(newAssignment);
+        flattenedAssignmentService.createFlattenedAssignments(newAssignment, false);
         log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
 
         return newAssignment;

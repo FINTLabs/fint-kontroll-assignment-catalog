@@ -1,6 +1,8 @@
 package no.fintlabs.assignment;
 
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -28,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class})
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
