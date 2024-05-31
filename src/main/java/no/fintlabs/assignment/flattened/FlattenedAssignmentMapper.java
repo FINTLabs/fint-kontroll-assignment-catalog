@@ -21,8 +21,7 @@ public class FlattenedAssignmentMapper {
         flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(
                         flattenedAssignment.getIdentityProviderGroupObjectId(),
                         flattenedAssignment.getIdentityProviderUserObjectId(),
-                        flattenedAssignment.getAssignmentId())
-                .ifPresentOrElse(
+                        flattenedAssignment.getAssignmentId()).forEach(
                         foundFlattenedAssignment -> {
                             if (isSync) {
                                 log.info("Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
@@ -35,10 +34,8 @@ public class FlattenedAssignmentMapper {
                                     mapWithExisting(flattenedAssignment, foundFlattenedAssignment);
                                 }
                             }
-                        },
-                        () -> log.info("Flattened assignment does not exist. Creating new with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                       flattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
-                                       flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId())
+                        }
+
                 );
 
         return flattenedAssignment;
