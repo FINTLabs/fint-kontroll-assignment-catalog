@@ -19,7 +19,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
 
     Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentIdAndAssignmentTerminationDateIsNull(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, Long assignmentId);
-    Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, Long assignmentId);
+    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, Long assignmentId);
 
     Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 
