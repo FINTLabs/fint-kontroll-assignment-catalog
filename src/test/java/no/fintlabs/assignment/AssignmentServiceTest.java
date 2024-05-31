@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -211,12 +212,10 @@ class AssignmentServiceTest {
     void shouldCreateNewAssignment_ValidReferences_CreatesNewAssignment() {
         Assignment assignment = Assignment.builder()
                 .userRef(1L)
-                .roleRef(1L)
                 .resourceRef(1L)
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
@@ -224,7 +223,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
     }
 
     @Test

@@ -3,6 +3,8 @@ package no.fintlabs.assignment;
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
@@ -32,7 +34,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssigmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class})
+@Import({AssigmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class})
 public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired

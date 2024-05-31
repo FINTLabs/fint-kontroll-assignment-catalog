@@ -3,8 +3,6 @@ package no.fintlabs.assignment.flattened;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.membership.Membership;
-import no.fintlabs.membership.MembershipRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,71 +10,51 @@ import java.util.List;
 import java.util.Optional;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
-import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
 
 @Slf4j
 @Service
 public class FlattenedAssignmentService {
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
-
-    private final MembershipRepository membershipRepository;
+    private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
+    private final FlattenedAssignmentMapper flattenedAssignmentMapper;
 
     public FlattenedAssignmentService(FlattenedAssignmentRepository flattenedAssignmentRepository,
-                                      MembershipRepository membershipRepository) {
+                                      FlattenedAssignmentMapper flattenedAssignmentMapper,
+                                      FlattenedAssignmentMembershipService flattenedAssignmentMembershipService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-        this.membershipRepository = membershipRepository;
+        this.flattenedAssignmentMembershipService = flattenedAssignmentMembershipService;
+        this.flattenedAssignmentMapper = flattenedAssignmentMapper;
     }
 
     @Transactional
-    public void createFlattenedAssignments(Assignment assignment) {
-        log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
-        createOrUpdateFlattenedAssignment(assignment);
-    }
-
-    @Transactional
-    public void updateFlattenedAssignment(Assignment assignment) {
-        log.info("Updating flattened assignment with id {}", assignment.getId());
-        createOrUpdateFlattenedAssignment(assignment);
-    }
-
-    private void createOrUpdateFlattenedAssignment(Assignment assignment) {
-        if(assignment.getId() == null) {
+    public void createFlattenedAssignments(Assignment assignment, boolean isSync) {
+        if (assignment.getId() == null) {
             log.error("Assignment id is null. Cannot create or update flattened assignment");
             return;
         }
 
-        List<FlattenedAssignment> flattenedAssignmentsForUpdate = new ArrayList<>();
+        log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
+        List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
 
-        if (assignment.getUserRef() != null) {
+        if (assignment.isUserAssignment()) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-            flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
-        } else if (assignment.getRoleRef() != null) {
-            List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
-
-            if (memberships.isEmpty()) {
-                log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
-            } else {
-                log.info("Preparing all memberships to save as flattened assignments for roleref {}", assignment.getRoleRef());
-
-                memberships.forEach(membership -> {
-                    FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-                    mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
-                    mappedAssignment.setUserRef(membership.getMemberId());
-                    flattenedAssignmentsForUpdate.add(mapForUpdateOrCreate(mappedAssignment));
-                });
-
-                log.info("Added: {} memberships/groups to save", flattenedAssignmentsForUpdate.size());
-            }
+            flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
+        } else if (assignment.isGroupAssignment()) {
+            flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, isSync));
         }
 
-        if (!flattenedAssignmentsForUpdate.isEmpty()) {
-            log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
-            List<FlattenedAssignment> savedFlattenedAssignments = flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
-            log.info("Saved {} flattened assignments", savedFlattenedAssignments.size());
-            savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}, azureaduserid: {}, azureadgroupid: {}", flattenedAssignment.getId(),
-                                                                              flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId()));
+        if (!flattenedAssignments.isEmpty()) {
+            saveFlattenedAssignments(flattenedAssignments);
         }
+    }
+
+    private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
+        log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
+        List<FlattenedAssignment> savedFlattenedAssignments = flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
+        log.info("Saved {} flattened assignments", savedFlattenedAssignments.size());
+        savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}, azureaduserid: {}, azureadgroupid: {}", flattenedAssignment.getId(),
+                                                                          flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId()));
     }
 
     public void deleteFlattenedAssignments(Assignment assignment) {
@@ -88,31 +66,6 @@ public class FlattenedAssignmentService {
                     flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
                     flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
                 });
-    }
-
-    private FlattenedAssignment mapForUpdateOrCreate(FlattenedAssignment flattenedAssignment) {
-        log.info("Finding flattened assignment by azureadgroupid: {} and azureaduserid: {}",
-                 flattenedAssignment.getIdentityProviderGroupObjectId(),
-                 flattenedAssignment.getIdentityProviderUserObjectId());
-
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNull(flattenedAssignment.getIdentityProviderGroupObjectId(),
-                                                                                                                                           flattenedAssignment.getIdentityProviderUserObjectId())
-                .ifPresentOrElse(
-                        foundFlattenedAssignment -> {
-                            log.info("Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                     flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
-                                     flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
-
-                            foundFlattenedAssignment.setId(foundFlattenedAssignment.getId());
-                            foundFlattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(foundFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
-                            foundFlattenedAssignment.setIdentityProviderGroupMembershipConfirmed(foundFlattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-                        },
-                        () -> log.info("Flattened assignment does not exist. Creating new with assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                       flattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
-                                       flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId())
-                );
-
-        return flattenedAssignment;
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {

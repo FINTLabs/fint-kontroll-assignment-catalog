@@ -1,17 +1,17 @@
 package no.fintlabs.assignment;
 
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.membership.Membership;
-import no.fintlabs.membership.MembershipRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.jpa.domain.Specification;
 
-import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.isA;
@@ -27,56 +27,49 @@ public class FlattenedAssignmentServiceTest {
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
 
     @Mock
-    private MembershipRepository membershipRepository;
+    private FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
+
+    @Mock
+    private FlattenedAssignmentMapper flattenedAssignmentMapper;
 
     @InjectMocks
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @Test
-    public void shouldCreateFlattenedAssignmentsWhenUserRefIsNotNull() {
+    public void shouldCreateUserAssignment_manual() {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        when(flattenedAssignmentMapper.mapOriginWithExisting(isA(FlattenedAssignment.class), isA(Boolean.class))).thenReturn(new FlattenedAssignment());
+
+        flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
         verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
     }
 
     @Test
-    public void shouldCreateFlattenedAssignmentsWhenRoleRefIsNotNullAndMembershipsNotEmpty() {
+    public void shouldCreateGroupAssignment_manual() {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
 
-        when(membershipRepository.findAll(isA(Specification.class))).thenReturn(Collections.singletonList(new Membership()));
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        when(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, false)).thenReturn(List.of(flattenedAssignment));
+
+        flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
         verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
-    }
-
-    @Test
-    public void shouldNotCreateFlattenedAssignmentsWhenRoleRefIsNotNullAndMembershipsEmpty() {
-        Assignment assignment = new Assignment();
-        assignment.setId(1L);
-        assignment.setAssignmentId("assignmentId");
-        assignment.setRoleRef(456L);
-
-        when(membershipRepository.findAll(isA(Specification.class))).thenReturn(Collections.emptyList());
-
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
-
-        verify(flattenedAssignmentRepository, times(0)).save(any());
     }
 
     @Test
     public void shouldNotCreateFlattenedAssignmentsWhenBothUserRefAndRoleRefAreNull() {
         Assignment assignment = new Assignment();
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
         verify(flattenedAssignmentRepository, never()).save(any());
     }
