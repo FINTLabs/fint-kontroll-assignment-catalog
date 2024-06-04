@@ -166,7 +166,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Transactional
     @Test
-    public void shouldFindResourceAssignmentUsers() {
+    public void shouldFindResourceAssignmentUser_user_direct() {
         Resource resource = Resource.builder()
                 .id(1L)
                 .resourceId("1")
@@ -182,16 +182,17 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .lastName("Testesen")
                 .userName("test")
                 .organisationUnitId("555")
+                .userName("test@test.no")
                 .userType("ALLTYPES")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignment = Assignment.builder()
-                .assignmentId("456")
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .userRef(savedUser.getId())
+                .roleRef(null)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -210,6 +211,23 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
+        assertThat(resourceAssignmentUser.getAssignmentRef()).isEqualTo(savedFlattenedAssignment.getAssignmentId());
+        assertThat(resourceAssignmentUser.getAssignerUsername()).isEqualTo(savedAssignment.getAssignerUserName());
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleRef()).isEqualTo(savedAssignment.getRoleRef());
+        assertThat(resourceAssignmentUser.isDirectAssignment()).isTrue();
 
+        assertThat(resourceAssignmentUser.getAssigneeUsername()).isEqualTo(savedUser.getUserName());
+        assertThat(resourceAssignmentUser.getAssigneeRef()).isEqualTo(savedUser.getId());
+        assertThat(resourceAssignmentUser.getAssigneeUserType()).isEqualTo(savedUser.getUserType());
+        assertThat(resourceAssignmentUser.getAssigneeOrganisationUnitId()).isEqualTo(savedUser.getOrganisationUnitId());
+        assertThat(resourceAssignmentUser.getAssigneeOrganisationUnitName()).isEqualTo(savedUser.getOrganisationUnitName());
+        assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo(savedUser.getFirstName());
+        assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo(savedUser.getLastName());
+
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isNull();
+        assertThat(resourceAssignmentUser.getAssignerDisplayname()).isEqualTo("Test Testesen");
+        assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo("Test");
+        assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo("Testesen");
     }
 }

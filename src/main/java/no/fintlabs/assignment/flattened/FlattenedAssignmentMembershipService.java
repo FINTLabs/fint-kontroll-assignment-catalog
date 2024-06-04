@@ -30,14 +30,26 @@ public class FlattenedAssignmentMembershipService {
         if (memberships.isEmpty()) {
             log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
         } else {
-            log.info("Preparing all memberships to save as flattened assignments for roleref {}", assignment.getRoleRef());
+            log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
 
-            memberships.forEach(membership -> {
+            for (int i = 0; i < memberships.size(); i++) {
+                long start = System.currentTimeMillis();
+                Membership membership = memberships.get(i);
                 FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
                 mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                 mappedAssignment.setUserRef(membership.getMemberId());
                 flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
-            });
+                log.info("Processing member index: " + i + " of " + memberships.size() + " for roleref: " + assignment.getRoleRef());
+                long end = System.currentTimeMillis();
+                log.info("Time taken to process member: " + (end - start) + " ms");
+            }
+
+            /*memberships.forEach(membership -> {
+                FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
+                mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+                mappedAssignment.setUserRef(membership.getMemberId());
+                flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
+            });*/
 
             log.info("Added: {} memberships/groups to save", flattenedAssignments.size());
         }

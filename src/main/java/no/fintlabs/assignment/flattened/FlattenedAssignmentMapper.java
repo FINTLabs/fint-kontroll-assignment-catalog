@@ -18,11 +18,14 @@ public class FlattenedAssignmentMapper {
                  flattenedAssignment.getIdentityProviderUserObjectId(),
                  flattenedAssignment.getAssignmentId());
 
+        long start = System.currentTimeMillis();
+
         flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(
                         flattenedAssignment.getIdentityProviderGroupObjectId(),
                         flattenedAssignment.getIdentityProviderUserObjectId(),
                         flattenedAssignment.getAssignmentId()).forEach(
                         foundFlattenedAssignment -> {
+                            long startMap = System.currentTimeMillis();
                             if (isSync) {
                                 log.info("Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
                                          flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
@@ -34,9 +37,14 @@ public class FlattenedAssignmentMapper {
                                     mapWithExisting(flattenedAssignment, foundFlattenedAssignment);
                                 }
                             }
+                            long endMap = System.currentTimeMillis();
+                            log.info("Time taken to map flattened assignment: " + (endMap - startMap) + " ms");
                         }
 
                 );
+
+        long endTime = System.currentTimeMillis();
+        log.info("Time taken to find flattened assignment: " + (endTime - start) + " ms");
 
         return flattenedAssignment;
     }
