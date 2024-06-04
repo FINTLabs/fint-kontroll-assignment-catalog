@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class FlattenedAssignmentMapper {
+
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
 
     public FlattenedAssignmentMapper(FlattenedAssignmentRepository flattenedAssignmentRepository) {
@@ -20,16 +21,19 @@ public class FlattenedAssignmentMapper {
 
         long start = System.currentTimeMillis();
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(
-                        flattenedAssignment.getIdentityProviderGroupObjectId(),
-                        flattenedAssignment.getIdentityProviderUserObjectId(),
-                        flattenedAssignment.getAssignmentId()).forEach(
+        flattenedAssignmentRepository.findByAssignmentId(flattenedAssignment.getAssignmentId())
+                .stream().filter(
+                        foundFlattenedAssignment -> foundFlattenedAssignment.getIdentityProviderGroupObjectId().equals(flattenedAssignment.getIdentityProviderGroupObjectId())
+                                                    && foundFlattenedAssignment.getIdentityProviderUserObjectId().equals(flattenedAssignment.getIdentityProviderUserObjectId()))
+                .forEach(
                         foundFlattenedAssignment -> {
                             long startMap = System.currentTimeMillis();
                             if (isSync) {
-                                log.info("Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid: {}",
-                                         flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
-                                         flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
+                                log.info(
+                                        "Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid:" +
+                                        " {}",
+                                        flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
+                                        flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
 
                                 mapWithExisting(flattenedAssignment, foundFlattenedAssignment);
                             } else {
