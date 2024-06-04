@@ -68,38 +68,33 @@ public class AssigmentUserService {
                     resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
                     resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
 
-                    resourceAssignmentUser.setAssigneeFirstName(flattenedAssignment.getAssignment().getUserFirstName());
-                    resourceAssignmentUser.setAssigneeLastName(flattenedAssignment.getAssignment().getUserLastName());
-
                     if (flattenedAssignment.getUser() != null) {
                         User user = flattenedAssignment.getUser();
                         resourceAssignmentUser.setAssigneeUsername(user.getUserName());
-
-                        Optional<User> assignerUser =
-                                userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
-                        Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
-
-                        resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
                         resourceAssignmentUser.setAssigneeRef(user.getId());
                         resourceAssignmentUser.setAssigneeUserType(user.getUserType());
                         resourceAssignmentUser.setAssigneeOrganisationUnitId(user.getOrganisationUnitId());
                         resourceAssignmentUser.setAssigneeOrganisationUnitName(user.getOrganisationUnitName());
+                        resourceAssignmentUser.setAssigneeFirstName(user.getFirstName());
+                        resourceAssignmentUser.setAssigneeLastName(user.getLastName());
                     }
 
                     if(flattenedAssignment.getRole() != null) {
                         Role role = flattenedAssignment.getRole();
-
                         resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
-
-                        Optional<User> assignerUser =
-                                userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
-                        Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
-                        resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
-                        resourceAssignmentUser.setAssigneeRef(role.getId());
-                        resourceAssignmentUser.setAssigneeOrganisationUnitId(role.getOrganisationUnitId());
-                        resourceAssignmentUser.setAssigneeOrganisationUnitName(role.getOrganisationUnitName());
                     }
 
+                    Optional<User> assignerUser =
+                            userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
+                    Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
+
+                    resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+
+                    if(resourceAssignmentUser.getAssigneeFirstName() == null && resourceAssignmentUser.getAssigneeLastName() == null) {
+                        resourceAssignmentUser.setAssigneeFirstName(flattenedAssignment.getAssignment().getUserFirstName());
+                        resourceAssignmentUser.setAssigneeLastName(flattenedAssignment.getAssignment().getUserLastName());
+
+                    }
                     return resourceAssignmentUser;
                 });
     }
