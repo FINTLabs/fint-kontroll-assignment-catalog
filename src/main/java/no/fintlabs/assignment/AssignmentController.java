@@ -130,12 +130,14 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        log.info("Syncing all assignments");
+        long start = System.currentTimeMillis();
+        log.info("Starting to sync all assignments");
 
         List<Assignment> allAssignments = assignmentService.getAssignments();
         allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
 
-        log.info("Syncing all assignments done");
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync all assignments: " + (end - start) + " ms");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
