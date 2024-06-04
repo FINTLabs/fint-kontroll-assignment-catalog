@@ -23,7 +23,9 @@ public class FlattenedAssignmentMapper {
 
         flattenedAssignmentRepository.findByAssignmentId(flattenedAssignment.getAssignmentId())
                 .stream().filter(
-                        foundFlattenedAssignment -> foundFlattenedAssignment.getIdentityProviderGroupObjectId().equals(flattenedAssignment.getIdentityProviderGroupObjectId())
+                        foundFlattenedAssignment -> foundFlattenedAssignment.getIdentityProviderGroupObjectId() != null
+                                                    && foundFlattenedAssignment.getIdentityProviderUserObjectId() != null
+                                                    && foundFlattenedAssignment.getIdentityProviderGroupObjectId().equals(flattenedAssignment.getIdentityProviderGroupObjectId())
                                                     && foundFlattenedAssignment.getIdentityProviderUserObjectId().equals(flattenedAssignment.getIdentityProviderUserObjectId()))
                 .forEach(
                         foundFlattenedAssignment -> {
