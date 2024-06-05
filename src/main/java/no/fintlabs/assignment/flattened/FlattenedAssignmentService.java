@@ -53,7 +53,7 @@ public class FlattenedAssignmentService {
 
     private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
-        int batchSize = 100; // Or any optimal batch size
+        int batchSize = 800;
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
