@@ -53,10 +53,14 @@ public class FlattenedAssignmentService {
 
     private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
-        List<FlattenedAssignment> savedFlattenedAssignments = flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignmentsForUpdate);
-        log.info("Saved {} flattened assignments", savedFlattenedAssignments.size());
-        savedFlattenedAssignments.forEach(flattenedAssignment -> log.info("Saved flattened assignment with id: {}, azureaduserid: {}, azureadgroupid: {}", flattenedAssignment.getId(),
-                                                                          flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId()));
+        int batchSize = 100; // Or any optimal batch size
+        for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
+            List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
+            flattenedAssignmentRepository.saveAll(batch);
+            flattenedAssignmentRepository.flush();
+        }
+        log.info("Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
 
     @Transactional
