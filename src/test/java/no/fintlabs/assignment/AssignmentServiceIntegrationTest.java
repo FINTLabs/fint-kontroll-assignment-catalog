@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
@@ -87,6 +88,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         assertTrue(simpleAssignments.stream().allMatch(simpleAssignment -> simpleAssignment.getAssignerUsername().equals("not-deleted")));
     }
 
+    @Transactional
     @Test
     public void shouldDeleteAssignment() {
         Assignment assignment = Assignment.builder()

@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -42,7 +43,10 @@ public class FlattenedAssignmentServiceTest {
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
 
-        when(flattenedAssignmentMapper.mapOriginWithExisting(isA(FlattenedAssignment.class), isA(Boolean.class))).thenReturn(new FlattenedAssignment());
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
+        when(flattenedAssignmentRepository.findByAssignmentId(assignment.getId())).thenReturn(existingAssignments);
+        when(flattenedAssignmentMapper.mapOriginWithExisting(isA(FlattenedAssignment.class), anyList(), isA(Boolean.class))).thenReturn(flattenedAssignment);
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
@@ -57,8 +61,10 @@ public class FlattenedAssignmentServiceTest {
         assignment.setRoleRef(123L);
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
 
-        when(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, false)).thenReturn(List.of(flattenedAssignment));
+        when(flattenedAssignmentRepository.findByAssignmentId(assignment.getId())).thenReturn(existingAssignments);
+        when(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, existingAssignments, false)).thenReturn(List.of(flattenedAssignment));
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 

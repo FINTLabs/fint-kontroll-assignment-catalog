@@ -3,6 +3,8 @@ package no.fintlabs.assignment.flattened;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class FlattenedAssignmentMapper {
@@ -13,7 +15,7 @@ public class FlattenedAssignmentMapper {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
     }
 
-    public FlattenedAssignment mapOriginWithExisting(FlattenedAssignment flattenedAssignment, boolean isSync) {
+    public FlattenedAssignment mapOriginWithExisting(FlattenedAssignment flattenedAssignment, List<FlattenedAssignment> existingAssignments, boolean isSync) {
         log.info("Finding flattened assignment by azureadgroupid: {}, azureaduserid: {} and assignmentId: {}",
                  flattenedAssignment.getIdentityProviderGroupObjectId(),
                  flattenedAssignment.getIdentityProviderUserObjectId(),
@@ -21,7 +23,7 @@ public class FlattenedAssignmentMapper {
 
         long start = System.currentTimeMillis();
 
-        flattenedAssignmentRepository.findByAssignmentId(flattenedAssignment.getAssignmentId())
+        existingAssignments
                 .stream().filter(
                         foundFlattenedAssignment -> foundFlattenedAssignment.getIdentityProviderGroupObjectId() != null
                                                     && foundFlattenedAssignment.getIdentityProviderUserObjectId() != null

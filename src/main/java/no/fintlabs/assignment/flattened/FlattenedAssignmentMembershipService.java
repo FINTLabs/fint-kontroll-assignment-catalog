@@ -23,7 +23,7 @@ public class FlattenedAssignmentMembershipService {
         this.flattenedAssignmentMapper = flattenedAssignmentMapper;
     }
 
-    public List<FlattenedAssignment> findMembershipsToCreateOrUpdate(Assignment assignment, boolean isSync) {
+    public List<FlattenedAssignment> findMembershipsToCreateOrUpdate(Assignment assignment, List<FlattenedAssignment> existingAssignments, boolean isSync) {
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
         List<Membership> memberships = membershipRepository.findAll(hasRoleId(assignment.getRoleRef()));
 
@@ -38,10 +38,9 @@ public class FlattenedAssignmentMembershipService {
                 FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
                 mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                 mappedAssignment.setUserRef(membership.getMemberId());
-                flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
-                log.info("Processing member index: " + i + " of " + memberships.size() + " for roleref: " + assignment.getRoleRef());
+                flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync));
                 long end = System.currentTimeMillis();
-                log.info("Time taken to process member: " + (end - start) + " ms");
+                log.info("Time taken {} to process member {} of {}: ", (end - start) + " ms", i, memberships.size());
             }
 
             /*memberships.forEach(membership -> {
