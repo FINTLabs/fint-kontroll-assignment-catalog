@@ -37,11 +37,13 @@ public class FlattenedAssignmentService {
         log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
 
+        List<FlattenedAssignment> existingAssignments = flattenedAssignmentRepository.findByAssignmentId(assignment.getId());
+
         if (assignment.isUserAssignment()) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-            flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
+            flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync));
         } else if (assignment.isGroupAssignment()) {
-            flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, isSync));
+            flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, existingAssignments, isSync));
         }
 
         if (!flattenedAssignments.isEmpty()) {
@@ -57,6 +59,7 @@ public class FlattenedAssignmentService {
                                                                           flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId()));
     }
 
+    @Transactional
     public void deleteFlattenedAssignments(Assignment assignment) {
         log.info("Deleting flattened assignments for assignment with id {}", assignment.getId());
 
