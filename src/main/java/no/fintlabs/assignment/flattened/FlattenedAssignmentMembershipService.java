@@ -31,26 +31,20 @@ public class FlattenedAssignmentMembershipService {
             log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
         } else {
             log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
+            long start = System.currentTimeMillis();
 
             for (int i = 0; i < memberships.size(); i++) {
-                long start = System.currentTimeMillis();
                 Membership membership = memberships.get(i);
                 FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
                 mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                 mappedAssignment.setUserRef(membership.getMemberId());
-                flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync));
-                long end = System.currentTimeMillis();
-                log.info("Time taken {} to process member {} of {}: ", (end - start) + " ms", i, memberships.size());
+
+                flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
+                        .ifPresent(flattenedAssignments::add);
             }
 
-            /*memberships.forEach(membership -> {
-                FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-                mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
-                mappedAssignment.setUserRef(membership.getMemberId());
-                flattenedAssignments.add(flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, isSync));
-            });*/
-
-            log.info("Added: {} memberships/groups to save", flattenedAssignments.size());
+            long end = System.currentTimeMillis();
+            log.info("Time taken {}ms to process {} memberships. Added {} to save", (end - start), memberships.size(), flattenedAssignments.size());
         }
 
         return flattenedAssignments;

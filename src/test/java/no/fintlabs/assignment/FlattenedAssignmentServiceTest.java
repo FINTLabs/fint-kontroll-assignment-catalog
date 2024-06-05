@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -46,11 +47,12 @@ public class FlattenedAssignmentServiceTest {
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
         when(flattenedAssignmentRepository.findByAssignmentId(assignment.getId())).thenReturn(existingAssignments);
-        when(flattenedAssignmentMapper.mapOriginWithExisting(isA(FlattenedAssignment.class), anyList(), isA(Boolean.class))).thenReturn(flattenedAssignment);
+        when(flattenedAssignmentMapper.mapOriginWithExisting(isA(FlattenedAssignment.class), anyList(), isA(Boolean.class))).thenReturn(Optional.of(flattenedAssignment));
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
-        verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
+        verify(flattenedAssignmentRepository, times(1)).saveAll(any());
+        verify(flattenedAssignmentRepository, times(1)).flush();
     }
 
     @Test
@@ -68,7 +70,8 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
-        verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
+        verify(flattenedAssignmentRepository, times(1)).saveAll(any());
+        verify(flattenedAssignmentRepository, times(1)).flush();
     }
 
     @Test
