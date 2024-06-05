@@ -4,57 +4,62 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class FlattenedAssignmentMapper {
 
-    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
 
-    public FlattenedAssignmentMapper(FlattenedAssignmentRepository flattenedAssignmentRepository) {
-        this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-    }
-
-    public FlattenedAssignment mapOriginWithExisting(FlattenedAssignment flattenedAssignment, List<FlattenedAssignment> existingAssignments, boolean isSync) {
-        log.info("Finding flattened assignment by azureadgroupid: {}, azureaduserid: {} and assignmentId: {}",
-                 flattenedAssignment.getIdentityProviderGroupObjectId(),
-                 flattenedAssignment.getIdentityProviderUserObjectId(),
-                 flattenedAssignment.getAssignmentId());
-
+    public Optional<FlattenedAssignment> mapOriginWithExisting(FlattenedAssignment originalAssignment, List<FlattenedAssignment> existingAssignments, boolean isSync) {
         long start = System.currentTimeMillis();
 
-        existingAssignments
-                .stream().filter(
-                        foundFlattenedAssignment -> foundFlattenedAssignment.getIdentityProviderGroupObjectId() != null
-                                                    && foundFlattenedAssignment.getIdentityProviderUserObjectId() != null
-                                                    && foundFlattenedAssignment.getIdentityProviderGroupObjectId().equals(flattenedAssignment.getIdentityProviderGroupObjectId())
-                                                    && foundFlattenedAssignment.getIdentityProviderUserObjectId().equals(flattenedAssignment.getIdentityProviderUserObjectId()))
-                .forEach(
-                        foundFlattenedAssignment -> {
-                            long startMap = System.currentTimeMillis();
-                            if (isSync) {
-                                log.info(
-                                        "Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, azureadgroupid:" +
-                                        " {}",
-                                        flattenedAssignment.getId(), foundFlattenedAssignment.getAssignmentId(), flattenedAssignment.getUserRef(), flattenedAssignment.getAssignmentViaRoleRef(),
-                                        flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
+        for (FlattenedAssignment existingAssignment : existingAssignments) {
+            if (existingAssignment.getIdentityProviderGroupObjectId() != null
+                && existingAssignment.getIdentityProviderUserObjectId() != null
+                && existingAssignment.getIdentityProviderGroupObjectId().equals(originalAssignment.getIdentityProviderGroupObjectId())
+                && existingAssignment.getIdentityProviderUserObjectId().equals(originalAssignment.getIdentityProviderUserObjectId())) {
 
-                                mapWithExisting(flattenedAssignment, foundFlattenedAssignment);
-                            } else {
-                                if (foundFlattenedAssignment.getAssignmentTerminationDate() == null) {
-                                    mapWithExisting(flattenedAssignment, foundFlattenedAssignment);
-                                }
-                            }
-                            long endMap = System.currentTimeMillis();
-                            log.info("Time taken to map flattened assignment: " + (endMap - startMap) + " ms");
-                        }
+                if (isSync) {
+                    if (hasNoChanges(originalAssignment, existingAssignment)) {
+                        return Optional.empty();
+                    }
 
-                );
+                    log.info(
+                            "Flattened assignment already exist. Updating flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, " +
+                            "azureadgroupid:" +
+                            " {}",
+                            originalAssignment.getId(), existingAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(),
+                            originalAssignment.getIdentityProviderUserObjectId(), originalAssignment.getIdentityProviderGroupObjectId());
+
+                    mapWithExisting(originalAssignment, existingAssignment);
+                    return Optional.of(originalAssignment);
+                } else {
+                    if (existingAssignment.getAssignmentTerminationDate() == null) {
+                        mapWithExisting(originalAssignment, existingAssignment);
+                        return Optional.of(originalAssignment);
+                    }
+
+                    return Optional.empty();
+                }
+            }
+        }
 
         long endTime = System.currentTimeMillis();
-        log.info("Time taken to find flattened assignment: " + (endTime - start) + " ms");
+        log.info("Time taken to map with existing flattened assignment: " + (endTime - start) + " ms");
 
-        return flattenedAssignment;
+        return Optional.of(originalAssignment);
+    }
+
+    private boolean hasNoChanges(FlattenedAssignment originalAssignment, FlattenedAssignment existingAssignment) {
+        return Objects.equals(originalAssignment.getAssignmentId(), existingAssignment.getAssignmentId()) &&
+               Objects.equals(originalAssignment.getUserRef(), existingAssignment.getUserRef()) &&
+               Objects.equals(originalAssignment.getAssignmentViaRoleRef(), existingAssignment.getAssignmentViaRoleRef()) &&
+               Objects.equals(originalAssignment.getResourceRef(), existingAssignment.getResourceRef()) &&
+               Objects.equals(originalAssignment.getAssignmentTerminationDate(), existingAssignment.getAssignmentTerminationDate()) &&
+               Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
+               Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId());
     }
 
     private void mapWithExisting(FlattenedAssignment origin, FlattenedAssignment existing) {
