@@ -13,15 +13,18 @@ public class FlattenedAssignmentMapper {
 
 
     public Optional<FlattenedAssignment> mapOriginWithExisting(FlattenedAssignment originalAssignment, List<FlattenedAssignment> existingAssignments, boolean isSync) {
-        long start = System.currentTimeMillis();
+        if (existingAssignments.isEmpty()) {
+            return Optional.of(originalAssignment);
+        }
 
         for (FlattenedAssignment existingAssignment : existingAssignments) {
-            if (existingAssignment.getIdentityProviderGroupObjectId() != null
-                && existingAssignment.getIdentityProviderUserObjectId() != null
-                && existingAssignment.getIdentityProviderGroupObjectId().equals(originalAssignment.getIdentityProviderGroupObjectId())
-                && existingAssignment.getIdentityProviderUserObjectId().equals(originalAssignment.getIdentityProviderUserObjectId())) {
+            //assignment finnes med samme assignmentid
+            if (Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
+                Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId())) {
 
+                //assignment finnes med samme identityProviderUserObjectId og identityProviderGroupObjectId
                 if (isSync) {
+                    // hvis sync, oppdater hvis det finnes endringer
                     if (hasNoChanges(originalAssignment, existingAssignment)) {
                         return Optional.empty();
                     }
@@ -36,6 +39,7 @@ public class FlattenedAssignmentMapper {
                     mapWithExisting(originalAssignment, existingAssignment);
                     return Optional.of(originalAssignment);
                 } else {
+                    // hvis post, oppdater hvis ikke sagt opp
                     if (existingAssignment.getAssignmentTerminationDate() == null) {
                         mapWithExisting(originalAssignment, existingAssignment);
                         return Optional.of(originalAssignment);
@@ -45,17 +49,17 @@ public class FlattenedAssignmentMapper {
                 }
             }
 
-            /*else {
-                log.error("Existing assignment does not have identityProviderGroupObjectId {} or identityProviderUserObjectId {}, flattenedassignmentId: {}. Cannot map assignment",
-                          originalAssignment.getIdentityProviderGroupObjectId(), originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getId());
-                return Optional.empty();
-            }*/
+            // kjør videre, sjekk neste flattened
         }
 
-        long endTime = System.currentTimeMillis();
-        log.info("Time taken to map with existing flattened assignment: " + (endTime - start) + " ms");
+        // hvis kommet hit finnes det flattened assignments med samme id, men ikke med samme identityProviderUserObjectId og identityProviderGroupObjectId, droppe?
+        log.info(
+                "Flattened assignment already exist. Skipping flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, " +
+                "azureadgroupid: {}",
+                originalAssignment.getId(), originalAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(),
+                originalAssignment.getIdentityProviderUserObjectId(), originalAssignment.getIdentityProviderGroupObjectId());
 
-        return Optional.of(originalAssignment);
+        return Optional.empty();
     }
 
     private boolean hasNoChanges(FlattenedAssignment originalAssignment, FlattenedAssignment existingAssignment) {
