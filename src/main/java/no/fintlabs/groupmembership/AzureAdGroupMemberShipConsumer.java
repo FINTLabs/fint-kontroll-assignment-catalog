@@ -50,31 +50,39 @@ public class AzureAdGroupMemberShipConsumer {
     private void handleDeletion(ConsumerRecord<String, AzureAdGroupMembership> record) {
         log.info("Handling deletion for empty body with key: {}", record.key());
 
-        String[] ids = record.key().split("_");
-        UUID groupId = parseUUID(ids[0]);
-        UUID userId = parseUUID(ids[1]);
+        try {
+            String[] ids = record.key().split("_");
+            UUID groupId = parseUUID(ids[0]);
+            UUID userId = parseUUID(ids[1]);
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupId, userId, false)
-                .forEach(assignment -> {
-                    log.info("Found assignment for deletion: {}", assignment.getAssignmentId());
-                    assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-                    flattenedAssignmentRepository.save(assignment);
-                });
+            flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupId, userId, false)
+                    .forEach(assignment -> {
+                        log.info("Found assignment for deletion: {}", assignment.getAssignmentId());
+                        assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+                        flattenedAssignmentRepository.save(assignment);
+                    });
+        } catch (Exception e) {
+            log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
+        }
     }
 
     private void handleUpdate(AzureAdGroupMembership membership) {
         log.debug("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
 
-        UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
-        UUID userId = parseUUID(membership.getAzureUserRef().toString());
+        try {
+            UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
+            UUID userId = parseUUID(membership.getAzureUserRef().toString());
 
-        flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
-                        groupId, userId, false)
-                .ifPresent(assignment -> {
-                    log.debug("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
-                    assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                    flattenedAssignmentRepository.save(assignment);
-                });
+            flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
+                            groupId, userId, false)
+                    .ifPresent(assignment -> {
+                        log.debug("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
+                        assignment.setIdentityProviderGroupMembershipConfirmed(true);
+                        flattenedAssignmentRepository.save(assignment);
+                    });
+        } catch (Exception e) {
+            log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), e.getMessage());
+        }
     }
 
     private UUID parseUUID(String uuidString) {
