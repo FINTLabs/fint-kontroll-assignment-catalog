@@ -43,6 +43,10 @@ public class FlattenedAssignmentMapper {
 
                     return Optional.empty();
                 }
+            } else {
+                log.error("Existing assignment does not have identityProviderGroupObjectId {} or identityProviderUserObjectId {}, flattenedassignmentId: {}. Cannot map assignment",
+                          originalAssignment.getIdentityProviderGroupObjectId(), originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getId());
+                return Optional.empty();
             }
         }
 
