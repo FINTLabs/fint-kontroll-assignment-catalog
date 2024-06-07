@@ -8,7 +8,9 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.listener.ContainerProperties;
 
 import java.util.UUID;
 
@@ -24,8 +26,12 @@ public class AzureAdGroupMemberShipConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            EntityConsumerFactoryService entityConsumerFactoryService,
+            ConcurrentKafkaListenerContainerFactory<String, AzureAdGroupMembership> factory
     ) {
+        factory.setConcurrency(4);
+        factory.getContainerProperties().setPollTimeout(3000);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
 
         return entityConsumerFactoryService.createFactory(
                         AzureAdGroupMembership.class,
