@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -123,5 +124,15 @@ public class Assignment {
 
     public String assignmentIdSuffix() {
         return userRef != null ? userRef + "_user" : roleRef + "_role";
+    }
+
+    @JsonIgnore
+    public boolean isUserAssignment() {
+        return userRef != null;
+    }
+
+    @JsonIgnore
+    public boolean isGroupAssignment() {
+        return roleRef != null;
     }
 }

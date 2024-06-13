@@ -1,6 +1,9 @@
 package no.fintlabs.assignment;
 
+import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -28,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class})
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -46,6 +49,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;
+
+    @MockBean
+    private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
@@ -85,6 +91,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         assertTrue(simpleAssignments.stream().allMatch(simpleAssignment -> simpleAssignment.getAssignerUsername().equals("not-deleted")));
     }
 
+    @Transactional
     @Test
     public void shouldDeleteAssignment() {
         Assignment assignment = Assignment.builder()

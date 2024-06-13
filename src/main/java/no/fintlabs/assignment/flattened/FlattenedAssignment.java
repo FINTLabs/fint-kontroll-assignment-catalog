@@ -21,6 +21,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
 
@@ -86,4 +87,13 @@ public class FlattenedAssignment {
             updatable = false)
     @JsonBackReference(value = "assignment-flattenedassignment")
     private Assignment assignment;
+
+    @ManyToOne(fetch = FetchType.LAZY,
+            cascade = {CascadeType.MERGE})
+    @JoinColumn(
+            name = "resourceRef",
+            insertable = false,
+            updatable = false)
+    @JsonBackReference(value = "resource-flattenedassignment")
+    private Resource resource;
 }

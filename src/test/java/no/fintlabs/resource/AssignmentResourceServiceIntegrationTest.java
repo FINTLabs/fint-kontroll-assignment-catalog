@@ -1,9 +1,12 @@
 package no.fintlabs.resource;
 
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.AssignmentService;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.user.User;
@@ -23,7 +26,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class})
+@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -42,10 +45,19 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private AssignmentRepository assignmentRepository;
 
     @MockBean
+    private AssigmentEntityProducerService assigmentEntityProducerService;
+
+    @MockBean
     private OpaService opaService;
 
     @Autowired
     private ResourceRepository resourceRepository;
+
+    @Autowired
+    private FlattenedAssignmentMapper flattenedAssignmentMapper;
+
+    @Autowired
+    private FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
 
     @Test
     public void shouldFindUserResourcesNotDeleted() {
