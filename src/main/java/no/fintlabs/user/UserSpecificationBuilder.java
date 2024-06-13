@@ -68,7 +68,7 @@ public class UserSpecificationBuilder {
             Join<FlattenedAssignment, User> userJoin = root.join("user", JoinType.LEFT);
             Join<FlattenedAssignment, Role> roleJoin = root.join("role", JoinType.LEFT);
 
-            Predicate isNotDeleted = criteriaBuilder.isFalse(root.get("identityProviderGroupMembershipDeletionConfirmed"));
+            Predicate isNotDeleted = criteriaBuilder.isNull(root.get("assignmentTerminationDate"));
             Predicate resourceRefMatches = criteriaBuilder.equal(root.get("resourceRef"), resourceId);
 
             if (!userType.equals("ALLTYPES")) {
@@ -82,8 +82,8 @@ public class UserSpecificationBuilder {
             if (!OpaUtils.isEmptyString(searchString)) {
                 criteriaBuilder.and(
                         criteriaBuilder.or(
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString.toLowerCase() + "%"),
-                                criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString.toLowerCase() + "%")));
+                                criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("firstName")), "%" + searchString.toLowerCase() + "%"),
+                                criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("lastName")), "%" + searchString.toLowerCase() + "%")));
             }
 
             return criteriaBuilder.and(isNotDeleted, resourceRefMatches);

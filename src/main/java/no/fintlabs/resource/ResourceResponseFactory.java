@@ -1,12 +1,13 @@
 package no.fintlabs.resource;
 
-import no.fintlabs.user.UserSpecificationBuilder;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +48,19 @@ public class ResourceResponseFactory {
                         "totalPages", resourcePage.getTotalPages(),
                         "size", resourcePage.getSize(),
                         "totalItems", resourcePage.getTotalElements()
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<UserAssignmentResource> resourceAssignmentUsersPagable) {
+
+        return new ResponseEntity<>(
+                Map.of( "users", resourceAssignmentUsersPagable.getContent(),
+                        "currentPage", resourceAssignmentUsersPagable.getNumber(),
+                        "totalPages", resourceAssignmentUsersPagable.getTotalPages(),
+                        "size", resourceAssignmentUsersPagable.getSize(),
+                        "totalItems", resourceAssignmentUsersPagable.getTotalElements()
                 ),
                 HttpStatus.OK
         );

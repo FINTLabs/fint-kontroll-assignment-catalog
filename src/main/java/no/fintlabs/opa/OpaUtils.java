@@ -26,6 +26,6 @@ public class OpaUtils {
         return filteredOrgUnits;
     }
     public static boolean isEmptyString(String string) {
-        return string == null || string.length() == 0;
+        return string == null || string.isEmpty();
     }
 }

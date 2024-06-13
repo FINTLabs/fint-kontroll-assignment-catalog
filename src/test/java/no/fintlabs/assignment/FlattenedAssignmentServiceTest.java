@@ -34,6 +34,9 @@ public class FlattenedAssignmentServiceTest {
     @Mock
     private FlattenedAssignmentMapper flattenedAssignmentMapper;
 
+    @Mock
+    private AssigmentEntityProducerService assigmentEntityProducerService;
+
     @InjectMocks
     private FlattenedAssignmentService flattenedAssignmentService;
 
