@@ -55,10 +55,12 @@ public class AssignmentService {
         assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
         assignment = handleResourceAssignment(assignment, resourceRef);
 
-        log.info("Saving assignment with id {}", assignment.getId());
-        Assignment newAssignment = assignmentRepository.save(assignment);
+        log.info("Saving assignment {}", assignment);
+        Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
+        log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignments(newAssignment);
+        flattenedAssignmentService.createFlattenedAssignments(newAssignment, false);
+        log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
 
         return newAssignment;
     }
@@ -86,9 +88,9 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
         assignment.setAssignerRemoveRef(user.getId());
-        Assignment assignmentForDeletion = assignmentRepository.save(assignment);
+        Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
-        flattenedAssignmentService.updateFlattenedAssignment(assignment);
+        flattenedAssignmentService.deleteFlattenedAssignments(assignment);
 
         return assignmentForDeletion;
     }

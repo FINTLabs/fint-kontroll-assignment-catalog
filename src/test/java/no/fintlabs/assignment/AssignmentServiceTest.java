@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -211,20 +212,18 @@ class AssignmentServiceTest {
     void shouldCreateNewAssignment_ValidReferences_CreatesNewAssignment() {
         Assignment assignment = Assignment.builder()
                 .userRef(1L)
-                .roleRef(1L)
                 .resourceRef(1L)
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
-        given(assignmentRepository.save(any())).willReturn(assignment);
+        given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(assignment);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(assignmentRepository, times(1)).save(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(assignmentRepository, times(1)).saveAndFlush(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
     }
 
     @Test
@@ -280,7 +279,7 @@ class AssignmentServiceTest {
         given(opaService.getUserNameAuthenticatedUser()).willReturn(userName);
         given(userRepository.getUserByUserName(userName)).willReturn(Optional.of(user));
         given(assignmentRepository.getReferenceById(validId)).willReturn(assignment);
-        given(assignmentRepository.save(any())).willAnswer(invocation -> {
+        given(assignmentRepository.saveAndFlush(any())).willAnswer(invocation -> {
             Assignment savedAssignment = invocation.getArgument(0);
             assertThat(savedAssignment.getAssignmentRemovedDate()).isNotNull();
             assertThat(savedAssignment.getAssignerRemoveRef()).isEqualTo(user.getId());
@@ -290,8 +289,8 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.deleteAssignment(validId);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(assignmentRepository, times(1)).save(assignment);
-        verify(flattenedAssignmentService, times(1)).updateFlattenedAssignment(any());
+        verify(assignmentRepository, times(1)).saveAndFlush(assignment);
+        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any());
     }
 
     @Test

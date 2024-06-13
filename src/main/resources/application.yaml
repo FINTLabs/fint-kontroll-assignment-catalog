@@ -11,7 +11,7 @@ fint:
       pagesize: 50
       publishing:
           initial-delay: 1
-          fixed-delay: 3600
+          fixed-delay: 30
       deletion:
           initial-delay: 1
           fixed-delay: 5

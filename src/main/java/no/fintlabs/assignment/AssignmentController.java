@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -67,12 +66,22 @@ public class AssignmentController {
     }
 
     @PostMapping()
-    public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
+    public ResponseEntity<?> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         Assignment assignment = Assignment.builder()
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(request.resourceRef)
                 .organizationUnitId(request.organizationUnitId)
                 .build();
+
+        log.info("Request returned - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
+
+        if (request.userRef != null && request.roleRef != null) {
+            return ResponseEntity.badRequest().body("Either userRef or roleRef must be set, not both");
+        }
+
+        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
+            return ResponseEntity.badRequest().body("OrganizationUnitId must be set and not empty");
+        }
 
         if (request.userRef != null) {
             assignment.setUserRef(request.userRef);
@@ -90,12 +99,10 @@ public class AssignmentController {
             Assignment newAssignment = assignmentService.createNewAssignment(assignment);
             return new ResponseEntity<>(newAssignment, HttpStatus.CREATED);
         } catch (AssignmentAlreadyExistsException exception) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, exception.getMessage(), exception
-            );
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         } catch (Exception e) {
             log.error("Error creating assignment", e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something went wrong when creating assignment");
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -120,15 +127,17 @@ public class AssignmentController {
     @PostMapping("/syncflattenedassignments")
     public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt) {
         if (!validateIsAdmin(jwt)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to sync flattened assignments");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        log.info("Syncing all assignments");
+        long start = System.currentTimeMillis();
+        log.info("Starting to sync all assignments");
 
         List<Assignment> allAssignments = assignmentService.getAssignments();
-        allAssignments.forEach(flattenedAssignmentService::createFlattenedAssignments);
+        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
 
-        log.info("Syncing all assignments done");
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync all assignments: " + (end - start) + " ms");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -141,9 +150,7 @@ public class AssignmentController {
         } catch (UserNotFoundException userNotFoundException) {
             log.error("Logged in user not found in the users table", userNotFoundException);
 
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, userNotFoundException.getMessage(), userNotFoundException
-            );
+            return ResponseEntity.notFound().build();
         }
         return new ResponseEntity<>(HttpStatus.GONE);
     }
