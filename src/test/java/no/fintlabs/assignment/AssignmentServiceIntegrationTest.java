@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class})
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -49,6 +49,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;
+
+    @MockBean
+    private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;

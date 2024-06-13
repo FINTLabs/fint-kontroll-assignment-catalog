@@ -34,7 +34,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssigmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class})
+@Import({AssigmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -48,6 +48,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;
+
+    @MockBean
+    private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;

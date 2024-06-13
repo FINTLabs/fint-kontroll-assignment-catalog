@@ -2,6 +2,7 @@ package no.fintlabs.assignment.flattened;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +20,16 @@ public class FlattenedAssignmentService {
     private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     private final FlattenedAssignmentMapper flattenedAssignmentMapper;
 
+    private final AssigmentEntityProducerService assigmentEntityProducerService;
+
     public FlattenedAssignmentService(FlattenedAssignmentRepository flattenedAssignmentRepository,
                                       FlattenedAssignmentMapper flattenedAssignmentMapper,
-                                      FlattenedAssignmentMembershipService flattenedAssignmentMembershipService) {
+                                      FlattenedAssignmentMembershipService flattenedAssignmentMembershipService,
+                                      AssigmentEntityProducerService assigmentEntityProducerService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.flattenedAssignmentMembershipService = flattenedAssignmentMembershipService;
         this.flattenedAssignmentMapper = flattenedAssignmentMapper;
+        this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
     @Transactional
@@ -48,18 +53,24 @@ public class FlattenedAssignmentService {
         }
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignments(flattenedAssignments);
+            saveFlattenedAssignments(flattenedAssignments, isSync);
         }
     }
 
-    private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
+    private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
+
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             flattenedAssignmentRepository.saveAll(batch);
             flattenedAssignmentRepository.flush();
+
+            if (!isSync) {
+                log.info("Publishing {} new flattened assignments to azure", batch.size());
+                batch.forEach(assigmentEntityProducerService::publish);
+            }
         }
         log.info("Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }

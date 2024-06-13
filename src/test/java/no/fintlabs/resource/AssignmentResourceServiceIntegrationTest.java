@@ -1,6 +1,7 @@
 package no.fintlabs.resource;
 
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.AssignmentService;
@@ -25,7 +26,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class})
+@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -42,6 +43,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
     @Autowired
     private AssignmentRepository assignmentRepository;
+
+    @MockBean
+    private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
