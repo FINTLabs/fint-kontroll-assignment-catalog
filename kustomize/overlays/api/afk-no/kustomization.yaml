@@ -42,15 +42,15 @@ patches:
         value:
           limits:
             cpu: "2000m"
-            memory: "16000Mi"
+            memory: "32000Mi"
           requests:
             cpu: "1000m"
-            memory: "2500Mi"
+            memory: "5000Mi"
       - op: add
         path: "/spec/env/3"
         value:
           name: "JAVA_TOOL_OPTIONS"
-          value: "-XX:+ExitOnOutOfMemoryError -Xmx15700m"
+          value: "-XX:+ExitOnOutOfMemoryError -Xmx31700m"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
