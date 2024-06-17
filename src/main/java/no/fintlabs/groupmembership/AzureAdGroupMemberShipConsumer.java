@@ -1,6 +1,5 @@
 package no.fintlabs.groupmembership;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -56,7 +55,6 @@ public class AzureAdGroupMemberShipConsumer {
     }
      */
 
-    @Transactional
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 
