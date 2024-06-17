@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @Slf4j
 public class UserService {
@@ -33,7 +35,18 @@ public class UserService {
                 .organisationUnitName(kontrollUser.getMainOrganisationUnitName())
                 .build();
 
+        Optional<User> existingUserOptional = userRepository.findById(convertedUser.getId());
 
-        return save(convertedUser);
+        if (existingUserOptional.isPresent()) {
+            User existingUser = existingUserOptional.get();
+            if (!existingUser.equals(convertedUser)) {
+                return save(convertedUser);
+            } else {
+                log.info("User {} already exists and is equal to the incoming user. Skipping.", convertedUser.getId());
+                return existingUser;
+            }
+        } else {
+            return save(convertedUser);
+        }
     }
 }
