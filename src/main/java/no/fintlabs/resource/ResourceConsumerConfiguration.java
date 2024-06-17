@@ -8,14 +8,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
+import java.util.Optional;
+
 @Slf4j
 @Configuration
 public class ResourceConsumerConfiguration {
 
-    private ResourceService resourceService;
+    private final ResourceRepository resourceRepository;
 
-    public ResourceConsumerConfiguration(ResourceService resourceService) {
-        this.resourceService = resourceService;
+    public ResourceConsumerConfiguration(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
     }
 
     @Bean
@@ -33,7 +35,20 @@ public class ResourceConsumerConfiguration {
     }
 
     void processResource(ConsumerRecord<String, Resource> record) {
-        log.info("Processing resource: {}", record.value());
-        resourceService.save(record.value());
+        Resource incomingResource = record.value();
+        log.info("Processing resource: {}", incomingResource.getId());
+
+        Optional<Resource> existingResourceOptional = resourceRepository.findById(incomingResource.getId());
+
+        if (existingResourceOptional.isPresent()) {
+            Resource existingResource = existingResourceOptional.get();
+            if (!existingResource.equals(incomingResource)) {
+                resourceRepository.save(incomingResource);
+            } else {
+                log.info("Resource {} already exists and is equal to the incoming resource. Skipping.", incomingResource.getId());
+            }
+        } else {
+            resourceRepository.save(incomingResource);
+        }
     }
 }

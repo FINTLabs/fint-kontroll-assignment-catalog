@@ -19,6 +19,7 @@ import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -65,5 +66,24 @@ public class Resource {
                 .resourceName(resourceName)
                 .resourceType(resourceType)
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final Resource resource = (Resource) o;
+        return Objects.equals(id, resource.id) && Objects.equals(resourceId, resource.resourceId) && Objects.equals(groupObjectId, resource.groupObjectId) &&
+               Objects.equals(identityProviderGroupObjectId, resource.identityProviderGroupObjectId) && Objects.equals(resourceName, resource.resourceName) &&
+               Objects.equals(resourceType, resource.resourceType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, resourceId, groupObjectId, identityProviderGroupObjectId, resourceName, resourceType);
     }
 }

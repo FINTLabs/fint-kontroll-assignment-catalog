@@ -19,6 +19,7 @@ import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -40,6 +41,7 @@ public class Role {
     private String roleType;
     private String organisationUnitId;
     private String organisationUnitName;
+
     @OneToMany(mappedBy = "role",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
@@ -66,4 +68,22 @@ public class Role {
                 .toList().get(0);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final Role role = (Role) o;
+        return Objects.equals(id, role.id) && Objects.equals(roleObjectId, role.roleObjectId) && Objects.equals(roleName, role.roleName) &&
+               Objects.equals(roleType, role.roleType) && Objects.equals(organisationUnitId, role.organisationUnitId) &&
+               Objects.equals(organisationUnitName, role.organisationUnitName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, roleObjectId, roleName, roleType, organisationUnitId, organisationUnitName);
+    }
 }
