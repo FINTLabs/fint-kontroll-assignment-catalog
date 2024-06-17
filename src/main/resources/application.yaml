@@ -35,7 +35,7 @@ spring:
       - kafka
 logging:
   level:
-    root: DEBUG
+    root: INFO
     org.apache.kafka: WARN
     no.fintlabs.assignment: INFO
     org.hibernate.SQL: DEBUG
