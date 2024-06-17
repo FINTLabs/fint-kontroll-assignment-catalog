@@ -38,7 +38,7 @@ logging:
     root: INFO
     org.apache.kafka: WARN
     no.fintlabs.assignment: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
 server:
   error:
     include-message: always

@@ -45,9 +45,9 @@ server:
   port: 8097
 logging:
   level:
-    root: DEBUG
+    root: INFO
     org.apache.kafka: WARN
-    no.fintlabs.assignment: DEBUG
+    no.fintlabs.assignment: INFO
     org.hibernate.SQL: DEBUG
 
 springdoc:
