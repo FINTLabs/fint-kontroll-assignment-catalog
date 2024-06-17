@@ -25,7 +25,7 @@ public class UserConsumerConfiguration {
         ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(
                         KontrollUser.class,
                         (ConsumerRecord<String, KontrollUser> consumerRecord) -> {
-                            log.info("Processing user: {}", consumerRecord.value());
+                            log.info("Processing user: {}", consumerRecord.value().getId());
                             userService.convertAndSaveAsUser(consumerRecord.value());
                         }
                 )
