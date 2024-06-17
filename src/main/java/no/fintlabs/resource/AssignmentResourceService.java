@@ -79,8 +79,8 @@ public class AssignmentResourceService {
                 .map(flattenedAssignment -> {
                     UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
                     resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
-                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
-                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
+//                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
+//                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
                     resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
                     resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
                     resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
@@ -120,8 +120,8 @@ public class AssignmentResourceService {
                 .map(flattenedAssignment -> {
                     UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
                     resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
-                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
-                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
+//                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
+//                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
                     resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
                     resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
                     resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());

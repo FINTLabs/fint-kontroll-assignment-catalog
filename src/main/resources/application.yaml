@@ -35,8 +35,10 @@ spring:
       - kafka
 logging:
   level:
-    root: INFO
-    org.apache.kafka: INFO
+    root: DEBUG
+    org.apache.kafka: WARN
+    no.fintlabs.assignment: INFO
+    org.hibernate.SQL: DEBUG
 server:
   error:
     include-message: always

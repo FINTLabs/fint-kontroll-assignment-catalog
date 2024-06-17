@@ -17,7 +17,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -41,6 +40,7 @@ public class Resource {
     private UUID identityProviderGroupObjectId;
     private String resourceName;
     private String resourceType;
+
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
@@ -49,13 +49,13 @@ public class Resource {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    @OneToMany(mappedBy = "resource",
-            fetch = FetchType.LAZY,
-            cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value = "resource-flattenedassignment")
-    @JsonIgnore
-    @ToString.Exclude
-    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
+//    @OneToMany(mappedBy = "resource",
+//            fetch = FetchType.LAZY,
+//            cascade = {CascadeType.MERGE})
+//    @JsonManagedReference(value = "resource-flattenedassignment")
+//    @JsonIgnore
+//    @ToString.Exclude
+//    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
 
     public AssignmentResource toSimpleResource() {
         return AssignmentResource
