@@ -50,14 +50,6 @@ public class Resource {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-//    @OneToMany(mappedBy = "resource",
-//            fetch = FetchType.LAZY,
-//            cascade = {CascadeType.MERGE})
-//    @JsonManagedReference(value = "resource-flattenedassignment")
-//    @JsonIgnore
-//    @ToString.Exclude
-//    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
-
     public AssignmentResource toSimpleResource() {
         return AssignmentResource
                 .builder()
