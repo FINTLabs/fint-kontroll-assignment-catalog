@@ -34,18 +34,21 @@ public class MembershipConsumerConfiguration {
                         (ConsumerRecord<String, Membership> consumerRecord) -> {
                             Membership incomingMembership = consumerRecord.value();
 
-                            log.info("Processing membership: {}", incomingMembership.getId());
 
                             Optional<Membership> existingMemberOptional = membershipRepository.findById(incomingMembership.getId());
 
                             if (existingMemberOptional.isPresent()) {
-                                Membership existingRole = existingMemberOptional.get();
-                                if (!existingRole.equals(incomingMembership)) {
+                                Membership existingMembership = existingMemberOptional.get();
+                                log.info("Processing incoming membership: {}, existing: {}", incomingMembership, existingMembership);
+
+                                if (!existingMembership.equals(incomingMembership)) {
+                                    log.info("Membership {} already exists but is different from the incoming membership. Saving it.", incomingMembership.getId());
                                     membershipRepository.save(incomingMembership);
                                 } else {
                                     log.info("Membership {} already exists and is equal to the incoming membership. Skipping.", incomingMembership.getId());
                                 }
                             } else {
+                                log.info("Incoming membership with id {} does not exist in the database. Saving it.", incomingMembership.getId());
                                 membershipRepository.save(incomingMembership);
                             }
                         }

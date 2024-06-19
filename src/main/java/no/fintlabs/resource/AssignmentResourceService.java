@@ -62,11 +62,6 @@ public class AssignmentResourceService {
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByRole(Long roleId, String resourceType, List<String> orgUnits,
                                                                           List<String> orgUnitsInScope, String search, int page, int size) {
-        ResourceSpecificationBuilder resourceSpecificationBuilder =
-                new ResourceSpecificationBuilder(null, roleId, resourceType, orgUnits, orgUnitsInScope, search);
-
-        Specification<FlattenedAssignment> spec = resourceSpecificationBuilder.flattenedAssignmentSearchByRole();
-
         Pageable pageable = PageRequest.of(page, size,
                                            Sort.by("user.firstName")
                                                    .ascending()
@@ -75,38 +70,43 @@ public class AssignmentResourceService {
 
         log.info("Fetching flattenedassignments for role with Id: " + roleId);
 
-        return flattenedAssignmentRepository.findAll(spec, pageable)
-                .map(flattenedAssignment -> {
-                    UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
-                    resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
-//                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
-//                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
-                    resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
-                    resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-                    resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
-                    resourceAssignmentUser.setAssignerUsername(flattenedAssignment.getAssignment().getAssignerUserName());
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByRoleAndResourceTypeAndSearch(roleId, resourceType, search, pageable);
 
-                    if (flattenedAssignment.getRole() != null) {
-                        Role role = flattenedAssignment.getRole();
-                        resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
-                    }
+        return results.map(result -> {
+            FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
+            Resource resource = (Resource) result[1];
 
-                    Optional<User> assignerUser =
-                            userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
-                    Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
+            UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
+            resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
+            resourceAssignmentUser.setResourceName(resource.getResourceName());
+            resourceAssignmentUser.setResourceType(resource.getResourceType());
+            resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
+            resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
+            resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
+            resourceAssignmentUser.setAssignerUsername(flattenedAssignment.getAssignment().getAssignerUserName());
 
-                    resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+            if (flattenedAssignment.getUser() != null) {
+                User user = flattenedAssignment.getUser();
+                resourceAssignmentUser.setAssigneeRef(user.getId());
+            }
 
-                    return resourceAssignmentUser;
-                });
+            if (flattenedAssignment.getRole() != null) {
+                Role role = flattenedAssignment.getRole();
+                resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
+            }
+
+            Optional<User> assignerUser =
+                    userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
+            Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
+
+            resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+
+            return resourceAssignmentUser;
+        });
     }
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByUser(Long userId, String resourceType, List<String> orgUnits,
                                                                           List<String> orgUnitsInScope, String search, int page, int size) {
-        ResourceSpecificationBuilder resourceSpecificationBuilder =
-                new ResourceSpecificationBuilder(userId, null, resourceType, orgUnits, orgUnitsInScope, search);
-
-        Specification<FlattenedAssignment> spec = resourceSpecificationBuilder.flattenedAssignmentSearchByUser();
 
         Pageable pageable = PageRequest.of(page, size,
                                            Sort.by("user.firstName")
@@ -116,30 +116,39 @@ public class AssignmentResourceService {
 
         log.info("Fetching flattenedassignments for user with Id: " + userId);
 
-        return flattenedAssignmentRepository.findAll(spec, pageable)
-                .map(flattenedAssignment -> {
-                    UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
-                    resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
-//                    resourceAssignmentUser.setResourceName(flattenedAssignment.getResource().getResourceName());
-//                    resourceAssignmentUser.setResourceType(flattenedAssignment.getResource().getResourceType());
-                    resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
-                    resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-                    resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
-                    resourceAssignmentUser.setAssignerUsername(flattenedAssignment.getAssignment().getAssignerUserName());
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, search, pageable);
 
-                    if (flattenedAssignment.getRole() != null) {
-                        Role role = flattenedAssignment.getRole();
-                        resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
-                    }
+        return results.map(result -> {
+            FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
+            Resource resource = (Resource) result[1];
 
-                    Optional<User> assignerUser =
-                            userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
-                    Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
+            UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
+            resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
+            resourceAssignmentUser.setResourceName(resource.getResourceName());
+            resourceAssignmentUser.setResourceType(resource.getResourceType());
+            resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
+            resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
+            resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
+            resourceAssignmentUser.setAssignerUsername(flattenedAssignment.getAssignment().getAssignerUserName());
 
-                    resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+            if (flattenedAssignment.getUser() != null) {
+                User user = flattenedAssignment.getUser();
+                resourceAssignmentUser.setAssigneeRef(user.getId());
+            }
 
-                    return resourceAssignmentUser;
-                });
+            if (flattenedAssignment.getRole() != null) {
+                Role role = flattenedAssignment.getRole();
+                resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
+            }
+
+            Optional<User> assignerUser =
+                    userRepository.getUserByUserName(flattenedAssignment.getAssignment().getAssignerUserName());
+            Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
+
+            resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+
+            return resourceAssignmentUser;
+        });
     }
 
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
