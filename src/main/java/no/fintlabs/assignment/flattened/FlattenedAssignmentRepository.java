@@ -1,7 +1,11 @@
 package no.fintlabs.assignment.flattened;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -27,4 +31,28 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(
             UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, boolean groupMembershipDeletionConfirmed);
+
+    @Query("SELECT fa, res, r, u, ass FROM FlattenedAssignment fa " +
+           "LEFT JOIN fa.user u " +
+           "LEFT JOIN fa.role r " +
+           "LEFT JOIN Resource res ON res.id = fa.resourceRef " +
+           "LEFT JOIN fa.assignment ass " +
+           "WHERE fa.assignmentViaRoleRef = :roleId " +
+           "AND (fa.assignmentTerminationDate IS NULL) " +
+           "AND (ass.assignmentRemovedDate IS NULL) " +
+           "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
+           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
+    Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
+
+    @Query("SELECT fa, res, r, u, ass FROM FlattenedAssignment fa " +
+           "LEFT JOIN fa.user u " +
+           "LEFT JOIN fa.role r " +
+           "LEFT JOIN Resource res ON res.id = fa.resourceRef " +
+           "LEFT JOIN fa.assignment ass " +
+           "WHERE fa.userRef = :userId " +
+           "AND (fa.assignmentTerminationDate IS NULL) " +
+           "AND (ass.assignmentRemovedDate IS NULL) " +
+           "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
+           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
+    Page<Object[]> findAssignmentsByUserAndResourceTypeAndSearch(@Param("userId") Long userId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
 }
