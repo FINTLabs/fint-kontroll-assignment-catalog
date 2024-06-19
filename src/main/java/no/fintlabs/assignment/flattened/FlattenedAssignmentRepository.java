@@ -32,26 +32,45 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(
             UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, boolean groupMembershipDeletionConfirmed);
 
-    @Query("SELECT fa, res, r, u, ass FROM FlattenedAssignment fa " +
-           "LEFT JOIN fa.user u " +
-           "LEFT JOIN fa.role r " +
+    @Query("SELECT fa, u, a, r " +
+           "FROM FlattenedAssignment fa " +
+           "LEFT JOIN User u ON u.id = fa.userRef " +
+           "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
+           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
+           "WHERE fa.resourceRef = :resourceId " +
+           "AND fa.assignmentTerminationDate IS NULL " +
+           "AND (:userType = 'ALLTYPES' OR LOWER(u.userType) = LOWER(:userType)) " +
+           "AND (:search IS NULL OR LOWER(u.firstName) LIKE %:search% OR LOWER(u.lastName) LIKE %:search%) " +
+           "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits)")
+    Page<Object[]> findAssignmentsByResourceAndUserTypeAndSearch(
+            @Param("resourceId") Long resourceId,
+            @Param("userType") String userType,
+            @Param("orgUnits") List<String> orgUnits,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
+           "LEFT JOIN User u ON u.id = fa.userRef " +
+           "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
+           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
            "LEFT JOIN Resource res ON res.id = fa.resourceRef " +
-           "LEFT JOIN fa.assignment ass " +
+           "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
            "WHERE fa.assignmentViaRoleRef = :roleId " +
            "AND (fa.assignmentTerminationDate IS NULL) " +
-           "AND (ass.assignmentRemovedDate IS NULL) " +
+           "AND (a.assignmentRemovedDate IS NULL) " +
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
            "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
     Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
 
-    @Query("SELECT fa, res, r, u, ass FROM FlattenedAssignment fa " +
-           "LEFT JOIN fa.user u " +
-           "LEFT JOIN fa.role r " +
+    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
+           "LEFT JOIN User u ON u.id = fa.userRef " +
+           "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
+           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
            "LEFT JOIN Resource res ON res.id = fa.resourceRef " +
-           "LEFT JOIN fa.assignment ass " +
+           "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
            "WHERE fa.userRef = :userId " +
            "AND (fa.assignmentTerminationDate IS NULL) " +
-           "AND (ass.assignmentRemovedDate IS NULL) " +
+           "AND (a.assignmentRemovedDate IS NULL) " +
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
            "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
     Page<Object[]> findAssignmentsByUserAndResourceTypeAndSearch(@Param("userId") Long userId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);

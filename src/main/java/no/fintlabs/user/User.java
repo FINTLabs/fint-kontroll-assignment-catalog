@@ -17,7 +17,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -56,14 +55,6 @@ public class User {
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
-
-    @OneToMany(mappedBy = "user",
-            fetch = FetchType.LAZY,
-            cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value = "user-flattenedassignment")
-    @JsonIgnore
-    @ToString.Exclude
-    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
 
     public AssignmentUser toAssignmentUser() {
         return AssignmentUser
