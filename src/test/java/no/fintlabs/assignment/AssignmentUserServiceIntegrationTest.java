@@ -10,6 +10,8 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.role.Role;
+import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.AssigmentUserService;
 import no.fintlabs.user.AssignmentUser;
 import no.fintlabs.user.ResourceAssignmentUser;
@@ -60,6 +62,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private ResourceRepository resourceRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
@@ -229,6 +234,79 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo(savedUser.getLastName());
 
         assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isNull();
+        assertThat(resourceAssignmentUser.getAssignerDisplayname()).isEqualTo("Test Testesen");
+        assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo("Test");
+        assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo("Testesen");
+    }
+
+    @Transactional
+    @Test
+    public void shouldFindResourceAssignmentUser_user_inDirect() {
+        Resource resource = Resource.builder()
+                .id(1L)
+                .resourceId("1")
+                .resourceType("ALLTYPES")
+                .resourceName("Test resource")
+                .build();
+
+        Resource savedResource = resourceRepository.saveAndFlush(resource);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId("555")
+                .userName("test@test.no")
+                .userType("ALLTYPES")
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Role role = Role.builder()
+                .id(123L)
+                .roleName("Test role")
+                .organisationUnitName("Test org unit")
+                .organisationUnitId("555")
+                .roleType("ALLTYPES")
+                .build();
+
+        Role savedRole = roleRepository.saveAndFlush(role);
+
+        Assignment assignment = Assignment.builder()
+                .assignerUserName("test@test.no")
+                .assignmentRemovedDate(null)
+                .roleRef(savedRole.getId())
+                .userRef(null)
+                .resourceRef(savedResource.getId())
+                .build();
+        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(savedRole.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+        FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        testEntityManager.flush();
+        testEntityManager.clear();
+
+        Page<ResourceAssignmentUser> resourceAssignmentUsers =
+                assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
+        assertThat(resourceAssignmentUser.getAssignmentRef()).isEqualTo(savedFlattenedAssignment.getAssignmentId());
+        assertThat(resourceAssignmentUser.getAssignerUsername()).isEqualTo(savedAssignment.getAssignerUserName());
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleRef()).isEqualTo(savedAssignment.getRoleRef());
+        assertThat(resourceAssignmentUser.isDirectAssignment()).isFalse();
+
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isNotEmpty();
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isEqualTo(savedRole.getRoleName());
+
+        assertThat(resourceAssignmentUser.getAssigneeRef()).isEqualTo(savedRole.getId());
         assertThat(resourceAssignmentUser.getAssignerDisplayname()).isEqualTo("Test Testesen");
         assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo("Test");
         assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo("Testesen");
