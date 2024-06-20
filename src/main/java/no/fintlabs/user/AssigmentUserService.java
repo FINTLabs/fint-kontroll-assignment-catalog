@@ -15,7 +15,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -68,6 +67,8 @@ public class AssigmentUserService {
             User user = (User) result[1];
             Assignment assignment = (Assignment) result[2];
             Role role = (Role) result[3];
+            String assignerFirstName = (String) result[4];
+            String assignerLastName = (String) result[5];
 
             ResourceAssignmentUser resourceAssignmentUser = new ResourceAssignmentUser();
             resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
@@ -89,11 +90,8 @@ public class AssigmentUserService {
                 resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
             }
 
-            Optional<User> assignerUser =
-                    userRepository.getUserByUserName(assignment.getAssignerUserName());
-            Optional<String> assignerDisplayName = assignerUser.map(User::getDisplayname);
-
-            resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName.orElse(null));
+            String assignerDisplayName = (assignerFirstName != null && assignerLastName != null) ? assignerFirstName + " " + assignerLastName : null;
+            resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
             if (resourceAssignmentUser.getAssigneeFirstName() == null && resourceAssignmentUser.getAssigneeLastName() == null) {
                 resourceAssignmentUser.setAssigneeFirstName(assignment.getUserFirstName());
