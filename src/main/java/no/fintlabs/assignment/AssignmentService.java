@@ -198,5 +198,9 @@ public class AssignmentService {
     private boolean existingUserAssignment(Assignment assignment) {
         return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
     }
+
+    public List<Assignment> getAssignmentsByRole(Long roleId) {
+        return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
+    }
 }
 
