@@ -39,11 +39,11 @@ public class RoleConsumerConfiguration {
                             if (existingRoleOptional.isPresent()) {
                                 Role existingRole = existingRoleOptional.get();
                                 if (!existingRole.equals(incomingRole)) {
+                                    log.info("Role {} already exists but has changes, updating", incomingRole.getId());
                                     roleRepository.save(incomingRole);
-                                } else {
-                                    log.info("Role {} already exists and is equal to the incoming role. Skipping.", incomingRole.getId());
                                 }
                             } else {
+                                log.info("Role is new. Saving {}", incomingRole.getId());
                                 roleRepository.save(incomingRole);
                             }
                         })
