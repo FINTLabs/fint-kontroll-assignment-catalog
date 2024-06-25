@@ -96,7 +96,7 @@ public class AzureAdGroupMemberShipConsumer {
                     .forEach(assignment -> {
                         log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
                         assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                        flattenedAssignmentRepository.save(assignment);
+                        flattenedAssignmentRepository.saveAndFlush(assignment);
                     });
         } catch (Exception e) {
             log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), e.getMessage());

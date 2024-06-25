@@ -75,7 +75,7 @@ public class AzureAdGroupMemberShipConsumerTest {
         consumer.processGroupMembership(record);
 
         verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false);
-        verify(repo, times(1)).save(flattenedAssignmentForUpdate);
+        verify(repo, times(1)).saveAndFlush(flattenedAssignmentForUpdate);
     }
 
 
