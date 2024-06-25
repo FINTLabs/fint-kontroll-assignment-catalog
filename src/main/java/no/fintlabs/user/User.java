@@ -17,9 +17,9 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,14 +56,6 @@ public class User {
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
 
-    @OneToMany(mappedBy = "user",
-            fetch = FetchType.LAZY,
-            cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value = "user-flattenedassignment")
-    @JsonIgnore
-    @ToString.Exclude
-    private Set<FlattenedAssignment> flattenedAssignments = new HashSet<>();
-
     public AssignmentUser toAssignmentUser() {
         return AssignmentUser
                 .builder()
@@ -92,6 +84,32 @@ public class User {
 
     private boolean stringIsNullOrEmpty(String string) {
         return string == null || string.isEmpty();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final User user = (User) o;
+        return Objects.equals(id, user.id) &&
+               Objects.equals(userRef, user.userRef) &&
+               Objects.equals(userObjectId, user.userObjectId) &&
+               Objects.equals(userName, user.userName) &&
+               Objects.equals(identityProviderUserObjectId, user.identityProviderUserObjectId) &&
+               Objects.equals(firstName, user.firstName) &&
+               Objects.equals(lastName, user.lastName) &&
+               Objects.equals(userType, user.userType) &&
+               Objects.equals(organisationUnitId, user.organisationUnitId) &&
+               Objects.equals(organisationUnitName, user.organisationUnitName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, userRef, userObjectId, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName);
     }
 }
 

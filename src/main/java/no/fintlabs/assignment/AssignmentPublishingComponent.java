@@ -21,7 +21,7 @@ public class AssignmentPublishingComponent {
     @Scheduled(
             initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
             fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
-            timeUnit = TimeUnit.MINUTES
+            timeUnit = TimeUnit.HOURS
     )
     public void publishFlattenedAssignmentsUnConfirmed() {
         log.info("Publishing unconfirmed flattened assignments");
@@ -33,7 +33,7 @@ public class AssignmentPublishingComponent {
     @Scheduled(
             initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
             fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
-            timeUnit = TimeUnit.MINUTES
+            timeUnit = TimeUnit.HOURS
     )
     public void publishDeletedFlattenedAssignments() {
         log.info("Publishing deleted flattened assignments");

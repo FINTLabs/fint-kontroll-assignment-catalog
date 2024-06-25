@@ -1,6 +1,5 @@
 package no.fintlabs.groupmembership;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -8,9 +7,7 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.kafka.listener.ContainerProperties;
 
 import java.util.UUID;
 
@@ -24,6 +21,21 @@ public class AzureAdGroupMemberShipConsumer {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
     }
 
+    @Bean
+    public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
+            EntityConsumerFactoryService entityConsumerFactoryService
+    ) {
+
+        return entityConsumerFactoryService.createFactory(
+                        AzureAdGroupMembership.class,
+                        this::processGroupMembership)
+                .createContainer(EntityTopicNameParameters
+                                         .builder()
+                                         .resource("azuread-resource-group-membership")
+                                         .build());
+    }
+
+    /*
     @Bean
     public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
             EntityConsumerFactoryService entityConsumerFactoryService,
@@ -41,8 +53,8 @@ public class AzureAdGroupMemberShipConsumer {
                                          .resource("azuread-resource-group-membership")
                                          .build());
     }
+     */
 
-    @Transactional
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 
@@ -81,10 +93,10 @@ public class AzureAdGroupMemberShipConsumer {
 
             flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
                             groupId, userId, false)
-                    .ifPresent(assignment -> {
-                        log.debug("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
+                    .forEach(assignment -> {
+                        log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), assignment.getAssignmentId());
                         assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                        flattenedAssignmentRepository.save(assignment);
+                        flattenedAssignmentRepository.saveAndFlush(assignment);
                     });
         } catch (Exception e) {
             log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), e.getMessage());

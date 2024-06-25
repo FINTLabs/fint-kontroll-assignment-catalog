@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.times;
@@ -70,13 +69,13 @@ public class AzureAdGroupMemberShipConsumerTest {
 
         FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false)).thenReturn(Optional.of(flattenedAssignmentForUpdate));
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false)).thenReturn(List.of(flattenedAssignmentForUpdate));
         when(repo.save(flattenedAssignmentForUpdate)).thenReturn(flattenedAssignmentForUpdate);
 
         consumer.processGroupMembership(record);
 
         verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false);
-        verify(repo, times(1)).save(flattenedAssignmentForUpdate);
+        verify(repo, times(1)).saveAndFlush(flattenedAssignmentForUpdate);
     }
 
 
