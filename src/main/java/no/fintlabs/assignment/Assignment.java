@@ -88,6 +88,7 @@ public class Assignment {
             updatable = false)//, nullable = false
     @JsonBackReference(value = "role-assignment")
     private Role role;
+
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(

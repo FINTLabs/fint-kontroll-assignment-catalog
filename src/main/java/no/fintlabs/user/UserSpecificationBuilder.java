@@ -1,15 +1,11 @@
 package no.fintlabs.user;
 
 import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
-import no.fintlabs.role.Role;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
@@ -57,37 +53,6 @@ public class UserSpecificationBuilder {
         if (!OpaUtils.isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
-
-        return spec;
-    }
-
-    public Specification<FlattenedAssignment> flattenedAssignmentSearch() {
-        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
-
-        Specification<FlattenedAssignment> spec = (root, query, criteriaBuilder) -> {
-            Join<FlattenedAssignment, User> userJoin = root.join("user", JoinType.LEFT);
-            Join<FlattenedAssignment, Role> roleJoin = root.join("role", JoinType.LEFT);
-
-            Predicate isNotDeleted = criteriaBuilder.isNull(root.get("assignmentTerminationDate"));
-            Predicate resourceRefMatches = criteriaBuilder.equal(root.get("resourceRef"), resourceId);
-
-            if (!userType.equals("ALLTYPES")) {
-                criteriaBuilder.and(criteriaBuilder.equal(userJoin.get("userType"), userType.toLowerCase()));
-            }
-
-            if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
-                criteriaBuilder.and(criteriaBuilder.in(userJoin.get("organisationUnitId")).value(orgUnits));
-            }
-
-            if (!OpaUtils.isEmptyString(searchString)) {
-                criteriaBuilder.and(
-                        criteriaBuilder.or(
-                                criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("firstName")), "%" + searchString.toLowerCase() + "%"),
-                                criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("lastName")), "%" + searchString.toLowerCase() + "%")));
-            }
-
-            return criteriaBuilder.and(isNotDeleted, resourceRefMatches);
-        };
 
         return spec;
     }
