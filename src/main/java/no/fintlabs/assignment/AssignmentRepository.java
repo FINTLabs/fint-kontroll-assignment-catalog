@@ -15,4 +15,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
     Optional<Assignment> findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(Long roleRef, Long resourceRef);
 
     List<Assignment> findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(Long roleId);
+
+    List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(Long userId);
 }

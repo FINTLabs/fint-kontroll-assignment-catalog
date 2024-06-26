@@ -202,5 +202,9 @@ public class AssignmentService {
     public List<Assignment> getAssignmentsByRole(Long roleId) {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
+
+    public List<Assignment> getAssignmentsByUser(Long userId) {
+        return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
+    }
 }
 

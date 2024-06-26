@@ -1,42 +1,43 @@
 package no.fintlabs.membership;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.cache.FintCache;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
-
-import java.util.List;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-@Configuration
-public class MembershipConsumerConfiguration {
+@Component
+public class MembershipConsumer {
 
     private final MembershipRepository membershipRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssignmentService assignmentService;
 
-    public MembershipConsumerConfiguration(MembershipRepository membershipRepository, AssignmentService assignmentService, FlattenedAssignmentService flattenedAssignmentService) {
+    private final FintCache<String, Membership> membershipCache;
+
+    public MembershipConsumer(MembershipRepository membershipRepository, AssignmentService assignmentService, FlattenedAssignmentService flattenedAssignmentService,
+                              FintCache<String, Membership> membershipCache) {
         this.membershipRepository = membershipRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentService = flattenedAssignmentService;
+        this.membershipCache = membershipCache;
     }
 
     @Bean
-    public ConcurrentMessageListenerContainer<String, Membership> membershipConsumer(
+    public ConcurrentMessageListenerContainer<String, Membership> membershipConsumerConfiguration(
             EntityConsumerFactoryService entityConsumerFactoryService
     ) {
         return entityConsumerFactoryService.createFactory(
                         Membership.class,
                         this::processMemberships)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
+                .createContainer(EntityTopicNameParameters.builder()
                                          .resource("role-catalog-membership")
                                          .build());
     }
@@ -44,6 +45,18 @@ public class MembershipConsumerConfiguration {
     private void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
         Membership incomingMembership = consumerRecord.value();
 
+        membershipCache.getOptional(incomingMembership.getId())
+                .ifPresentOrElse(
+                        cachedMembership -> {
+                            if (!cachedMembership.equals(incomingMembership)) {
+                                process(incomingMembership);
+                            }
+                        }
+                        , () -> process(incomingMembership));
+
+    }
+
+    private void process(Membership incomingMembership) {
         membershipRepository.findById(incomingMembership.getId())
                 .ifPresentOrElse(
                         existingMembership -> processExistingMembership(existingMembership, incomingMembership),
@@ -70,10 +83,11 @@ public class MembershipConsumerConfiguration {
 
     @Async("processAssignmentsForMembership")
     void processAssignmentsForMembership(Membership savedMembership) {
-        List<Assignment> allAssignments = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
-        allAssignments.forEach(assignment -> {
+        membershipCache.put(savedMembership.getId(), savedMembership);
+
+        assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
             try {
-                flattenedAssignmentService.createFlattenedAssignments(assignment, false);
+                flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership.getMemberId(), savedMembership.getRoleId());
             } catch (Exception e) {
                 log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
             }

@@ -57,6 +57,31 @@ public class FlattenedAssignmentService {
         }
     }
 
+    @Transactional
+    public void createFlattenedAssignmentsForMembership(Assignment assignment, Long userRef, Long roleRef) {
+        if (assignment.getId() == null) {
+            log.error("Assignment id is null. Cannot create or update flattened assignment");
+            return;
+        }
+
+        log.info("Creating flattened assignments for assignment with id {} found in group {}", assignment.getId(), roleRef);
+        List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
+        FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
+
+        flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef)
+                .ifPresentOrElse(flattenedAssignment -> {
+                                     log.info("Found flattened assignment for role {}, user {} and assignment {}. Updating it", roleRef, userRef, assignment.getId());
+                                     flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, List.of(flattenedAssignment), false)
+                                             .ifPresent(flattenedAssignments::add);
+                                 }, () -> flattenedAssignments.add(mappedAssignment)
+
+                );
+
+        if (!flattenedAssignments.isEmpty()) {
+            saveFlattenedAssignments(flattenedAssignments, false);
+        }
+    }
+
     private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
