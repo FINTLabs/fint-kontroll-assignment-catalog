@@ -1,5 +1,6 @@
 package no.fintlabs.groupmembership;
 
+import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,10 +28,13 @@ public class AzureAdGroupMemberShipConsumerTest {
 
     private AzureAdGroupMemberShipConsumer consumer;
 
+    @Mock
+    private AssigmentEntityProducerService assigmentEntityProducerService;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new AzureAdGroupMemberShipConsumer(repo);
+        consumer = new AzureAdGroupMemberShipConsumer(repo, assigmentEntityProducerService);
     }
 
     @Test
@@ -43,15 +48,16 @@ public class AzureAdGroupMemberShipConsumerTest {
         ConsumerRecord<String, AzureAdGroupMembership> record = new ConsumerRecord<>("topic", 1, 1, groupId + "_" + userId, null);
 
         FlattenedAssignment flattenedAssignmentForDeletion = new FlattenedAssignment();
+        flattenedAssignmentForDeletion.setAssignmentTerminationDate(new Date());
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false)).thenReturn(
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(
                 List.of(flattenedAssignmentForDeletion));
-        when(repo.save(flattenedAssignmentForDeletion)).thenReturn(flattenedAssignmentForDeletion);
+        when(repo.saveAndFlush(flattenedAssignmentForDeletion)).thenReturn(flattenedAssignmentForDeletion);
 
         consumer.processGroupMembership(record);
 
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(groupIdUuid, userIdUuid, false);
-        verify(repo, times(1)).save(flattenedAssignmentForDeletion);
+        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
+        verify(repo, times(1)).saveAndFlush(flattenedAssignmentForDeletion);
     }
 
     @Test
@@ -69,12 +75,12 @@ public class AzureAdGroupMemberShipConsumerTest {
 
         FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false)).thenReturn(List.of(flattenedAssignmentForUpdate));
-        when(repo.save(flattenedAssignmentForUpdate)).thenReturn(flattenedAssignmentForUpdate);
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(List.of(flattenedAssignmentForUpdate));
+        when(repo.saveAndFlush(flattenedAssignmentForUpdate)).thenReturn(flattenedAssignmentForUpdate);
 
         consumer.processGroupMembership(record);
 
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(groupIdUuid, userIdUuid, false);
+        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
         verify(repo, times(1)).saveAndFlush(flattenedAssignmentForUpdate);
     }
 
