@@ -19,7 +19,6 @@ public class MembershipConsumer {
     private final MembershipRepository membershipRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssignmentService assignmentService;
-
     private final FintCache<String, Membership> membershipCache;
 
     public MembershipConsumer(MembershipRepository membershipRepository, AssignmentService assignmentService, FlattenedAssignmentService flattenedAssignmentService,

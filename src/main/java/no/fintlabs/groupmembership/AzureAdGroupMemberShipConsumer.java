@@ -35,26 +35,6 @@ public class AzureAdGroupMemberShipConsumer {
                                          .build());
     }
 
-    /*
-    @Bean
-    public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService,
-            ConcurrentKafkaListenerContainerFactory<String, AzureAdGroupMembership> factory
-    ) {
-        factory.setConcurrency(4);
-        factory.getContainerProperties().setPollTimeout(3000);
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
-
-        return entityConsumerFactoryService.createFactory(
-                        AzureAdGroupMembership.class,
-                        this::processGroupMembership)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
-                                         .resource("azuread-resource-group-membership")
-                                         .build());
-    }
-     */
-
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 
