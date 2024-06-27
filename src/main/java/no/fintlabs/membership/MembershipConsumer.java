@@ -82,6 +82,11 @@ public class MembershipConsumer {
     void processAssignmentsForMembership(Membership savedMembership) {
         membershipCache.put(savedMembership.getId(), savedMembership);
 
+        if (savedMembership.getIdentityProviderUserObjectId() == null) {
+            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}", savedMembership.getRoleId(), savedMembership.getMemberId());
+            return;
+        }
+
         assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
             try {
                 flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership.getMemberId(), savedMembership.getRoleId());
