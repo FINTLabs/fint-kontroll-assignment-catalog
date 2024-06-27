@@ -64,7 +64,7 @@ public class FlattenedAssignmentService {
             return;
         }
 
-        log.info("Creating flattened assignments for assignment with id {} found in group {}", assignment.getId(), roleRef);
+        log.info("Creating flattened assignments for assignment with id {} found with roleRef: {}, userRef: {}", assignment.getId(), roleRef, userRef);
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
         FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
 
@@ -73,7 +73,12 @@ public class FlattenedAssignmentService {
                                      log.info("Found flattened assignment for role {}, user {} and assignment {}. Updating it", roleRef, userRef, assignment.getId());
                                      flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, List.of(flattenedAssignment), false)
                                              .ifPresent(flattenedAssignments::add);
-                                 }, () -> flattenedAssignments.add(mappedAssignment)
+                                 }, () -> {
+                                     log.info("No flattened assignment found for role {}, user {} and assignment {}. Creating new", roleRef, userRef, assignment.getId());
+                                     mappedAssignment.setUserRef(userRef);
+                                     mappedAssignment.setAssignmentViaRoleRef(roleRef);
+                                     flattenedAssignments.add(mappedAssignment);
+                                 }
 
                 );
 
