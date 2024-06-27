@@ -35,6 +35,12 @@ public class FlattenedAssignmentMembershipService {
 
             for (int i = 0; i < memberships.size(); i++) {
                 Membership membership = memberships.get(i);
+
+                if(membership.getIdentityProviderUserObjectId() == null) {
+                    log.warn("Membership with id {} has no identityProviderUserObjectId. Skipping", membership.getId());
+                    continue;
+                }
+
                 FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
                 mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                 mappedAssignment.setUserRef(membership.getMemberId());
