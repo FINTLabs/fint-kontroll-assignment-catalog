@@ -21,7 +21,7 @@ public class RoleConsumer {
     }
 
     @Bean
-    public ConcurrentMessageListenerContainer<String, Role> roleConsumer(
+    public ConcurrentMessageListenerContainer<String, Role> roleConsumerConfig(
             EntityConsumerFactoryService entityConsumerFactoryService
     ){
         return entityConsumerFactoryService.createFactory(
