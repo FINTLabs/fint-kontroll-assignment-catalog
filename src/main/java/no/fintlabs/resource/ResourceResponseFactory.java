@@ -56,7 +56,7 @@ public class ResourceResponseFactory {
     public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<UserAssignmentResource> resourceAssignmentUsersPagable) {
 
         return new ResponseEntity<>(
-                Map.of( "users", resourceAssignmentUsersPagable.getContent(),
+                Map.of( "resources", resourceAssignmentUsersPagable.getContent(),
                         "currentPage", resourceAssignmentUsersPagable.getNumber(),
                         "totalPages", resourceAssignmentUsersPagable.getTotalPages(),
                         "size", resourceAssignmentUsersPagable.getSize(),
