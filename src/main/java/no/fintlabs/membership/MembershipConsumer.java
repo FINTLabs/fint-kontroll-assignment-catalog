@@ -73,8 +73,6 @@ public class MembershipConsumer {
         if (!existingMembership.equals(incomingMembership)) {
             log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}", incomingMembership.getRoleId(), incomingMembership.getMemberId());
             membershipRepository.save(incomingMembership);
-        } else {
-            log.info("Membership already exist and is equal to incoming. Skipping, roleId {}, memberId {}", incomingMembership.getRoleId(), incomingMembership.getMemberId());
         }
 
         processAssignmentsForMembership(existingMembership);
