@@ -24,8 +24,8 @@ public class CacheConfiguration {
     }
 
     @Bean
-    FintCache<Integer, Role> roleCache() {
-        return createCacheIntKey(Role.class);
+    FintCache<Long, Role> roleCache() {
+        return createCacheLongKey(Role.class);
     }
 
     private <V> FintCache<String, V> createCacheStringKey(Class<V> resourceClass) {
@@ -36,10 +36,10 @@ public class CacheConfiguration {
         );
     }
 
-    private <V> FintCache<Integer, V> createCacheIntKey(Class<V> resourceClass) {
+    private <V> FintCache<Long, V> createCacheLongKey(Class<V> resourceClass) {
         return fintCacheManager.createCache(
                 resourceClass.getName().toLowerCase(Locale.ROOT),
-                Integer.class,
+                Long.class,
                 resourceClass
         );
     }
