@@ -63,19 +63,19 @@ public class MembershipConsumer {
     }
 
     private void processNewMembership(Membership incomingMembership) {
-        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}", incomingMembership.getRoleId(), incomingMembership.getMemberId());
+        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
         Membership savedMembership = membershipRepository.save(incomingMembership);
-
         processAssignmentsForMembership(savedMembership);
     }
 
     private void processExistingMembership(Membership existingMembership, Membership incomingMembership) {
         if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}", incomingMembership.getRoleId(), incomingMembership.getMemberId());
-            membershipRepository.save(incomingMembership);
+            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
+            Membership savedMembership = membershipRepository.save(incomingMembership);
+            processAssignmentsForMembership(savedMembership);
+        } else {
+            processAssignmentsForMembership(existingMembership);
         }
-
-        processAssignmentsForMembership(existingMembership);
     }
 
     @Async("processAssignmentsForMembership")
@@ -83,9 +83,11 @@ public class MembershipConsumer {
         membershipCache.put(savedMembership.getId(), savedMembership);
 
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
-            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}", savedMembership.getRoleId(), savedMembership.getMemberId());
+            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(), savedMembership.getId());
             return;
         }
+
+        log.info("Membership cache size is now {}", membershipCache.getAll().size());
 
         assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
             try {

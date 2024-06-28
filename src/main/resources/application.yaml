@@ -11,10 +11,10 @@ fint:
       pagesize: 50
       publishing:
           initial-delay: 2
-          fixed-delay: 6
+          fixed-delay: 48
       deletion:
           initial-delay: 2
-          fixed-delay: 6
+          fixed-delay: 48
 
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
