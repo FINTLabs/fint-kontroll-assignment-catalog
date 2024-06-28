@@ -114,6 +114,8 @@ public class FlattenedAssignmentService {
                     log.info("Deleting flattened assignment for with id: {}, for assignment id {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
                     flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
                     flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+
                 });
     }
 
