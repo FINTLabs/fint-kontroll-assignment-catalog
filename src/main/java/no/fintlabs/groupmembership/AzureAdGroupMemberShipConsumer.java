@@ -94,7 +94,7 @@ public class AzureAdGroupMemberShipConsumer {
 
             flattenedAssignments
                     .stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null)
+                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
                     .forEach(assignment -> {
                         log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
                                  assignment.getAssignmentId());
