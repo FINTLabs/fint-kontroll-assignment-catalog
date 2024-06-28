@@ -64,7 +64,6 @@ public class FlattenedAssignmentService {
             return;
         }
 
-        log.info("Creating flattened assignments for assignment with id {} found with roleRef: {}, userRef: {}", assignment.getId(), roleRef, userRef);
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
         FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
 
@@ -94,8 +93,7 @@ public class FlattenedAssignmentService {
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
-            flattenedAssignmentRepository.saveAll(batch);
-            flattenedAssignmentRepository.flush();
+            flattenedAssignmentRepository.saveAllAndFlush(batch);
 
             if (!isSync) {
                 log.info("Publishing {} new flattened assignments to azure", batch.size());
