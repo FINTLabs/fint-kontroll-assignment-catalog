@@ -54,7 +54,7 @@ public class Application {
     @Bean
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
+        executor.setCorePoolSize(6);
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(1500);
         executor.setThreadNamePrefix("assigcat-");
