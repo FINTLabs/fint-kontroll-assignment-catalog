@@ -142,6 +142,42 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/syncflattenedassignment/{id}")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Starting to sync assignment {}", id);
+
+        assignmentService.getAssignmentsById(id)
+                .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync assignment {}: " + (end - start) + " ms", id);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncflattenedassignment/user/{id}")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Starting to sync assignment by userid {}", id);
+
+        List<Assignment> allAssignments = assignmentService.getAssignmentsByUser(id);
+        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync assignments by userid {}: " + (end - start) + " ms", id);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @DeleteMapping("{id}")
     public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable Long id) {
         log.info("Deleting assignment with id {}", id);
