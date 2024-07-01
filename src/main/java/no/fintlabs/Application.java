@@ -55,9 +55,9 @@ public class Application {
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(4);
-        executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("AssignmentCatalog-");
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(1500);
+        executor.setThreadNamePrefix("assigcat-");
         executor.initialize();
         return executor;
     }

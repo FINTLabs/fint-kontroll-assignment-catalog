@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class FlattenedAssignmentService {
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
+    @Async
     @Transactional
     public void createFlattenedAssignments(Assignment assignment, boolean isSync) {
         if (assignment.getId() == null) {
