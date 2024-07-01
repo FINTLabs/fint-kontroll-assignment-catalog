@@ -1,15 +1,12 @@
 package no.fintlabs.membership;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -17,16 +14,15 @@ import org.springframework.stereotype.Component;
 public class MembershipConsumer {
 
     private final MembershipRepository membershipRepository;
-    private final FlattenedAssignmentService flattenedAssignmentService;
-    private final AssignmentService assignmentService;
+
+    private final MembershipService membershipService;
+
     private final FintCache<String, Membership> membershipCache;
 
-    public MembershipConsumer(MembershipRepository membershipRepository, AssignmentService assignmentService, FlattenedAssignmentService flattenedAssignmentService,
-                              FintCache<String, Membership> membershipCache) {
+    public MembershipConsumer(MembershipRepository membershipRepository, MembershipService membershipService, FintCache<String, Membership> membershipCache) {
         this.membershipRepository = membershipRepository;
-        this.assignmentService = assignmentService;
-        this.flattenedAssignmentService = flattenedAssignmentService;
         this.membershipCache = membershipCache;
+        this.membershipService = membershipService;
     }
 
     @Bean
@@ -58,43 +54,33 @@ public class MembershipConsumer {
     private void process(Membership incomingMembership) {
         membershipRepository.findById(incomingMembership.getId())
                 .ifPresentOrElse(
-                        existingMembership -> processExistingMembership(existingMembership, incomingMembership),
-                        () -> processNewMembership(incomingMembership));
+                        existingMembership -> {
+                            Membership savedMembership = processExistingMembership(existingMembership, incomingMembership);
+                            membershipCache.put(savedMembership.getId(), savedMembership);
+                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
+                            membershipService.processAssignmentsForMembership(savedMembership);
+                        },
+                        () -> {
+                            Membership savedMembership = processNewMembership(incomingMembership);
+                            membershipCache.put(savedMembership.getId(), savedMembership);
+                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
+                            membershipService.processAssignmentsForMembership(savedMembership);
+                        });
     }
 
-    private void processNewMembership(Membership incomingMembership) {
+    private Membership processNewMembership(Membership incomingMembership) {
         log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
-        Membership savedMembership = membershipRepository.save(incomingMembership);
-        processAssignmentsForMembership(savedMembership);
+        return membershipRepository.save(incomingMembership);
     }
 
-    private void processExistingMembership(Membership existingMembership, Membership incomingMembership) {
+    private Membership processExistingMembership(Membership existingMembership, Membership incomingMembership) {
         if (!existingMembership.equals(incomingMembership)) {
             log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
-            Membership savedMembership = membershipRepository.save(incomingMembership);
-            processAssignmentsForMembership(savedMembership);
+            return membershipRepository.save(incomingMembership);
         } else {
-            processAssignmentsForMembership(existingMembership);
+            return existingMembership;
         }
     }
 
-    @Async("processAssignmentsForMembership")
-    void processAssignmentsForMembership(Membership savedMembership) {
-        membershipCache.put(savedMembership.getId(), savedMembership);
 
-        if (savedMembership.getIdentityProviderUserObjectId() == null) {
-            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(), savedMembership.getId());
-            return;
-        }
-
-        log.info("Membership cache size is now {}", membershipCache.getAll().size());
-
-        assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
-            try {
-                flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership.getMemberId(), savedMembership.getRoleId());
-            } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
-            }
-        });
-    }
 }
