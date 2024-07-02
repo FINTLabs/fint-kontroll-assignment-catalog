@@ -23,30 +23,19 @@ public class UserService {
         return searchResult;
     }
 
-    public User convertAndSaveAsUser(KontrollUser kontrollUser) {
-        User convertedUser = User.builder()
-                .id(kontrollUser.getId())
-                .userName(kontrollUser.getUserName())
-                .identityProviderUserObjectId(kontrollUser.getIdentityProviderUserObjectId())
-                .firstName(kontrollUser.getFirstName())
-                .lastName(kontrollUser.getLastName())
-                .userType(kontrollUser.getUserType())
-                .organisationUnitId(kontrollUser.getMainOrganisationUnitId())
-                .organisationUnitName(kontrollUser.getMainOrganisationUnitName())
-                .build();
-
-        Optional<User> existingUserOptional = userRepository.findById(convertedUser.getId());
+    public User convertAndSaveAsUser(User userUpdate) {
+        Optional<User> existingUserOptional = userRepository.findById(userUpdate.getId());
 
         if (existingUserOptional.isPresent()) {
             User existingUser = existingUserOptional.get();
-            if (!existingUser.equals(convertedUser)) {
-                return save(convertedUser);
+            if (!existingUser.equals(userUpdate)) {
+                return save(userUpdate);
             } else {
-                log.info("User {} already exists and is equal to the incoming user. Skipping.", convertedUser.getId());
+                log.info("User {} already exists and is equal to the incoming user. Skipping.", userUpdate.getId());
                 return existingUser;
             }
         } else {
-            return save(convertedUser);
+            return save(userUpdate);
         }
     }
 }
