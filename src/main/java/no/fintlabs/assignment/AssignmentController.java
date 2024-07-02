@@ -191,6 +191,34 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.GONE);
     }
 
+    @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
+    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        log.info("Syncing unconfirmed flattened assignments for assignmentId {}", assignmentId);
+
+        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmedByAssignmentId(assignmentId)
+                .forEach(assigmentEntityProducerService::publish);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
+    public ResponseEntity<HttpStatus>  syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        log.info("Publishing deleted flattened assignments");
+
+        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(assignmentId)
+                .forEach(assigmentEntityProducerService::publishDeletion);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     private boolean validateIsAdmin(Jwt jwt) {
         boolean hasAdminAdminAccess = authManager.hasAdminAdminAccess(jwt);
 

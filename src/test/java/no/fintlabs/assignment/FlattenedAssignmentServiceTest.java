@@ -54,7 +54,8 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
-        verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
+        verify(flattenedAssignmentRepository, times(1)).saveAll(any());
+        verify(flattenedAssignmentRepository, times(1)).flush();
     }
 
     @Test
@@ -72,7 +73,8 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.createFlattenedAssignments(assignment, false);
 
-        verify(flattenedAssignmentRepository, times(1)).saveAllAndFlush(any());
+        verify(flattenedAssignmentRepository, times(1)).saveAll(any());
+        verify(flattenedAssignmentRepository, times(1)).flush();
     }
 
     @Test
