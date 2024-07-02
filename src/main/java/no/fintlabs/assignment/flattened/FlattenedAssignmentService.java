@@ -55,7 +55,7 @@ public class FlattenedAssignmentService {
         }
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignments(flattenedAssignments, isSync);
+            saveFlattenedAssignmentsBatch(flattenedAssignments, isSync);
         }
     }
 
@@ -84,24 +84,27 @@ public class FlattenedAssignmentService {
                 );
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignments(flattenedAssignments, false);
+            saveFlattenedAssignmentsBatch(flattenedAssignments, false);
         }
     }
 
-    private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
+    public void saveFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
 
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
-            flattenedAssignmentRepository.saveAllAndFlush(batch);
+            flattenedAssignmentRepository.saveAll(batch);
 
             if (!isSync) {
                 log.info("Publishing {} new flattened assignments to azure", batch.size());
                 batch.forEach(assigmentEntityProducerService::publish);
             }
         }
+
+        flattenedAssignmentRepository.flush();
+
         log.info("Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
 
@@ -127,8 +130,16 @@ public class FlattenedAssignmentService {
         return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(false);
     }
 
+    public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmedByAssignmentId(Long assignmentId) {
+        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNullAndAssignmentId(false, assignmentId);
+    }
+
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
         return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
+    }
+
+    public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(Long assignmentId) {
+        return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalseAndAssignmentId(assignmentId);
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {

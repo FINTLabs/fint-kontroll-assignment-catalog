@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -19,11 +20,13 @@ import java.util.UUID;
 public class AzureAdGroupMemberShipConsumer {
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
-    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService) {
+    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
+        this.flattenedAssignmentService = flattenedAssignmentService;
     }
 
     @Bean
@@ -77,7 +80,7 @@ public class AzureAdGroupMemberShipConsumer {
                         assigmentEntityProducerService.publish(assignment);
                     });
 
-            System.out.println("Finished handling deletion");
+            log.info("Finished handling deletion for azureref {}", record.key());
         } catch (Exception e) {
             log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
         }
@@ -92,22 +95,29 @@ public class AzureAdGroupMemberShipConsumer {
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
 
-            flattenedAssignments
-                    .stream()
+            List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
-                    .forEach(assignment -> {
+                    .peek(assignment -> {
                         log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
                                  assignment.getAssignmentId());
                         assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                        flattenedAssignmentRepository.saveAndFlush(assignment);
-                    });
+                    })
+                    .toList();
 
-            flattenedAssignments.stream()
+            List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                    .forEach(assignment -> {
+                    .peek(assignment -> {
                         log.info("Found inconsistent assignment on update, updating and publishing. {}", assignment.getAssignmentId());
-                        assigmentEntityProducerService.publishDeletion(assignment);
-                    });
+                    })
+                    .toList();
+
+            if (!assignmentsToUpdate.isEmpty()) {
+                flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToUpdate, false);
+            }
+
+            if (!assignmentsToDelete.isEmpty()) {
+                assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
+            }
 
 
         } catch (Exception e) {

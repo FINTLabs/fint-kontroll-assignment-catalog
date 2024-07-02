@@ -3,6 +3,7 @@ package no.fintlabs.groupmembership;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,9 @@ public class AzureAdGroupMemberShipConsumerTest {
     private FlattenedAssignmentRepository repo;
 
     @Mock
+    private FlattenedAssignmentService flattenedAssignmentService;
+
+    @Mock
     private EntityConsumerFactoryService factoryService;
 
     private AzureAdGroupMemberShipConsumer consumer;
@@ -34,7 +38,7 @@ public class AzureAdGroupMemberShipConsumerTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new AzureAdGroupMemberShipConsumer(repo, assigmentEntityProducerService);
+        consumer = new AzureAdGroupMemberShipConsumer(repo, assigmentEntityProducerService, flattenedAssignmentService);
     }
 
     @Test
@@ -76,12 +80,11 @@ public class AzureAdGroupMemberShipConsumerTest {
         FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
 
         when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(List.of(flattenedAssignmentForUpdate));
-        when(repo.saveAndFlush(flattenedAssignmentForUpdate)).thenReturn(flattenedAssignmentForUpdate);
 
         consumer.processGroupMembership(record);
 
         verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(repo, times(1)).saveAndFlush(flattenedAssignmentForUpdate);
+        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
     }
 
 
