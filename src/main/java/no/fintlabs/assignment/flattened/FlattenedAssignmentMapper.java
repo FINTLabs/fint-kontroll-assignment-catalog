@@ -18,13 +18,10 @@ public class FlattenedAssignmentMapper {
         }
 
         for (FlattenedAssignment existingAssignment : existingAssignments) {
-            //assignment finnes med samme assignmentid
             if (Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
                 Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId())) {
 
-                //assignment finnes med samme identityProviderUserObjectId og identityProviderGroupObjectId
                 if (isSync) {
-                    // hvis sync, oppdater hvis det finnes endringer
                     if (hasNoChanges(originalAssignment, existingAssignment)) {
                         return Optional.empty();
                     }
@@ -39,7 +36,6 @@ public class FlattenedAssignmentMapper {
                     mapWithExisting(originalAssignment, existingAssignment);
                     return Optional.of(originalAssignment);
                 } else {
-                    // hvis post, oppdater hvis ikke sagt opp
                     if (existingAssignment.getAssignmentTerminationDate() == null) {
                         mapWithExisting(originalAssignment, existingAssignment);
                         return Optional.of(originalAssignment);
@@ -48,11 +44,8 @@ public class FlattenedAssignmentMapper {
                     return Optional.empty();
                 }
             }
-
-            // kjør videre, sjekk neste flattened
         }
 
-        // hvis kommet hit finnes det flattened assignments med samme id, men ikke med samme identityProviderUserObjectId og identityProviderGroupObjectId, droppe?
         log.info(
                 "Flattened assignment already exist. Skipping flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, " +
                 "azureadgroupid: {}",

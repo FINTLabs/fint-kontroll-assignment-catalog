@@ -48,7 +48,7 @@ logging:
     root: INFO
     org.apache.kafka: WARN
     no.fintlabs.assignment: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
 
 springdoc:
   swagger-ui:

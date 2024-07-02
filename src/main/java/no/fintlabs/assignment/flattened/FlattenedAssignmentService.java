@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class FlattenedAssignmentService {
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
+    @Async
     @Transactional
     public void createFlattenedAssignments(Assignment assignment, boolean isSync) {
         if (assignment.getId() == null) {
@@ -53,11 +55,40 @@ public class FlattenedAssignmentService {
         }
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignments(flattenedAssignments, isSync);
+            saveFlattenedAssignmentsBatch(flattenedAssignments, isSync);
         }
     }
 
-    private void saveFlattenedAssignments(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
+    @Transactional
+    public void createFlattenedAssignmentsForMembership(Assignment assignment, Long userRef, Long roleRef) {
+        if (assignment.getId() == null) {
+            log.error("Assignment id is null. Cannot create or update flattened assignment");
+            return;
+        }
+
+        List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
+        FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
+
+        flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef)
+                .ifPresentOrElse(flattenedAssignment -> {
+                                     log.info("Found flattened assignment for role {}, user {} and assignment {}. Updating it", roleRef, userRef, assignment.getId());
+                                     flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, List.of(flattenedAssignment), false)
+                                             .ifPresent(flattenedAssignments::add);
+                                 }, () -> {
+                                     log.info("No flattened assignment found for role {}, user {} and assignment {}. Creating new", roleRef, userRef, assignment.getId());
+                                     mappedAssignment.setUserRef(userRef);
+                                     mappedAssignment.setAssignmentViaRoleRef(roleRef);
+                                     flattenedAssignments.add(mappedAssignment);
+                                 }
+
+                );
+
+        if (!flattenedAssignments.isEmpty()) {
+            saveFlattenedAssignmentsBatch(flattenedAssignments, false);
+        }
+    }
+
+    public void saveFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
         log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
 
@@ -65,13 +96,15 @@ public class FlattenedAssignmentService {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             flattenedAssignmentRepository.saveAll(batch);
-            flattenedAssignmentRepository.flush();
 
             if (!isSync) {
                 log.info("Publishing {} new flattened assignments to azure", batch.size());
                 batch.forEach(assigmentEntityProducerService::publish);
             }
         }
+
+        flattenedAssignmentRepository.flush();
+
         log.info("Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
 
@@ -84,6 +117,8 @@ public class FlattenedAssignmentService {
                     log.info("Deleting flattened assignment for with id: {}, for assignment id {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
                     flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
                     flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+
                 });
     }
 
@@ -95,8 +130,16 @@ public class FlattenedAssignmentService {
         return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(false);
     }
 
+    public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmedByAssignmentId(Long assignmentId) {
+        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNullAndAssignmentId(false, assignmentId);
+    }
+
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
         return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
+    }
+
+    public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(Long assignmentId) {
+        return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalseAndAssignmentId(assignmentId);
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
