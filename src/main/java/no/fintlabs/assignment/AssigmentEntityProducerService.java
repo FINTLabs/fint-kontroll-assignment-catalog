@@ -65,9 +65,10 @@ public class AssigmentEntityProducerService {
             log.warn("Publishing flattened assignment {}. ResourceRef is null", assignment.getId());
         }
 
-        log.info("{} with id {}. Azuread groupId {}, azuread userId {}, resourceRef {}",
+        log.info("{} with id {}, assignmentid {}, azuread-groupId {}, azuread-userId {}, resourceRef {}",
                  message,
                  assignment.getId(),
+                 assignment.getAssignmentId(),
                  assignment.getIdentityProviderGroupObjectId(),
                  assignment.getIdentityProviderUserObjectId(),
                  assignment.getResourceRef());

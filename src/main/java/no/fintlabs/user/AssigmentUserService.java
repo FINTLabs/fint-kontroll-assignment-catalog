@@ -6,6 +6,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.opa.OpaUtils;
+import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.role.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -58,6 +59,10 @@ public class AssigmentUserService {
                                                    .ascending());
 
         log.info("Fetching flattenedassignments for resource with Id: " + resourceId);
+
+        if(orgUnitsToFilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+            orgUnitsToFilter = null;
+        }
 
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndSearch(
                 resourceId, userType, orgUnitsToFilter, search, pageable);
