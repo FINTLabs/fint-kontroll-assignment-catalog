@@ -1,6 +1,7 @@
 package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
@@ -9,14 +10,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
+
 @Slf4j
 @Component
 public class RoleConsumer {
     private final RoleRepository roleRepository;
+    private final AssignmentService assignmentService;
     private final FintCache<Long, Role> roleCache;
 
-    public RoleConsumer(RoleRepository roleRepository, FintCache<Long, Role> roleCache) {
+    public RoleConsumer(RoleRepository roleRepository, AssignmentService assignmentService, FintCache<Long, Role> roleCache) {
         this.roleRepository = roleRepository;
+        this.assignmentService = assignmentService;
         this.roleCache = roleCache;
     }
 
@@ -47,22 +52,32 @@ public class RoleConsumer {
     }
 
     void processRoleUpdate(Role incomingRole) {
-        log.info("Processing role update: {}", incomingRole.getId());
+        log.info("Processing role update with id: {}", incomingRole.getId());
 
         roleRepository.findById(incomingRole.getId())
                 .ifPresentOrElse(
-                        existingRole -> {
-                            if (!existingRole.equals(incomingRole)) {
-                                log.info("Role {} already exists but has changes, updating", incomingRole.getId());
-                                roleRepository.save(incomingRole);
-                            }
-                        },
+                        existingRole -> updateRole(incomingRole, existingRole),
                         () -> {
                             log.info("Role is new. Saving {}", incomingRole.getId());
+                            incomingRole.setRoleStatusChanged(new Date());
                             roleRepository.save(incomingRole);
                         }
                 );
 
         roleCache.put(incomingRole.getId(), incomingRole);
     }
+
+    private void updateRole(Role incomingRole, Role existingRole) {
+        if (!existingRole.equals(incomingRole)) {
+            log.info("Role {} already exists but has changes, updating role with id: ", incomingRole.getId());
+
+            if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
+                incomingRole.setRoleStatusChanged(new Date());
+                assignmentService.activateOrDeactivateAssignmentsByRole(incomingRole);
+            }
+
+            roleRepository.save(incomingRole);
+        }
+    }
+
 }
