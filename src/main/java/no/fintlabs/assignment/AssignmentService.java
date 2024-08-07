@@ -6,6 +6,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -209,6 +210,20 @@ public class AssignmentService {
 
     public List<Assignment> getAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
+    }
+
+    public void activateOrDeactivateAssignmentsByRole(Role role) {
+        getAssignmentsByRole(role.getId())
+                .forEach(assignment -> {
+                    if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
+                        log.info("Deactivating assignment with id: {}", assignment.getId());
+                        assignment.setAssignmentRemovedDate(new Date());
+                    } else {
+                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
+                        assignment.setAssignmentRemovedDate(null);
+                    }
+                    assignmentRepository.saveAndFlush(assignment);
+                });
     }
 }
 
