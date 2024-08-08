@@ -75,9 +75,10 @@ public class FlattenedAssignmentService {
         flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef)
                 .ifPresentOrElse(flattenedAssignment -> {
                                      //TODO: sjekk på status endring
-                                     if (!flattenedAssignment.getIdentityProviderUserObjectId().equals(membership.getIdentityProviderUserObjectId())) {
+                                     if (membership.getIdentityProviderUserObjectId() != null && !membership.getIdentityProviderUserObjectId().equals(flattenedAssignment.getIdentityProviderUserObjectId())) {
                                          log.info("Found flattened assignment for role {}, user {} and assignment {}. Updating it", roleRef, userRef, assignment.getId());
                                          flattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+
                                          flattenedAssignments.add(flattenedAssignment);
                                      }
                                  }, () -> {
