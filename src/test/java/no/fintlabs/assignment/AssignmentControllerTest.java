@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.user.UserNotFoundException;
@@ -59,6 +60,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerServiceMock;
+
+    @MockBean
+    private MembershipService membershipServiceMock;
 
     @MockBean
     private AuthManager authManagerMock;

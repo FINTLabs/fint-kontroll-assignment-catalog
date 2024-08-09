@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.user.UserNotFoundException;
@@ -37,12 +38,15 @@ public class AssignmentController {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
+    private final MembershipService membershipService;
+
 
     public AssignmentController(AssignmentService assignmentService, OpaService opaService,
                                 AssignmentResponseFactory assignmentResponseFactory,
                                 FlattenedAssignmentService flattenedAssignmentService,
                                 AssigmentEntityProducerService assigmentEntityProducerService,
-                                AuthManager authManager) {
+                                AuthManager authManager,
+                                MembershipService membershipService) {
 
         this.assignmentService = assignmentService;
         this.opaService = opaService;
@@ -50,6 +54,7 @@ public class AssignmentController {
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.authManager = authManager;
+        this.membershipService = membershipService;
     }
 
     @GetMapping()
@@ -215,6 +220,19 @@ public class AssignmentController {
 
         flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(assignmentId)
                 .forEach(assigmentEntityProducerService::publishDeletion);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncassignmentsformemberships")
+    public ResponseEntity<HttpStatus> syncAssignmentsForMemberships(@AuthenticationPrincipal Jwt jwt, @RequestBody List<String> membershipIds) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        log.info("Syncing assignments for memberships");
+
+        membershipService.syncAssignmentsForMemberships(membershipIds);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

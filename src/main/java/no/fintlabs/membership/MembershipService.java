@@ -35,6 +35,10 @@ public class MembershipService {
         return membershipRepository.findAll(specification);
     }
 
+    public void syncAssignmentsForMemberships(List<String> membershipIds) {
+        membershipRepository.findAllById(membershipIds).forEach(this::processAssignmentsForMembership);
+    }
+
     @Async
     public void processAssignmentsForMembership(Membership savedMembership) {
         log.info("Processing assignments for membership, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(), savedMembership.getId());
