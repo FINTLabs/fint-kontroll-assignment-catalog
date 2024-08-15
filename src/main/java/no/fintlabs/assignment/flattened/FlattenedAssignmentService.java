@@ -49,11 +49,11 @@ public class FlattenedAssignmentService {
 
         List<FlattenedAssignment> existingAssignments = flattenedAssignmentRepository.findByAssignmentId(assignment.getId());
 
-        if (assignment.isUserAssignment()) {
+        if (assignment.isUserAssignment() && assignment.getAzureAdUserId() != null) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
             flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
                     .ifPresent(flattenedAssignments::add);
-        } else if (assignment.isGroupAssignment()) {
+        } else if (assignment.isGroupAssignment() && assignment.getAzureAdGroupId() != null) {
             flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, existingAssignments, isSync));
         }
 
