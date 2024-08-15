@@ -9,8 +9,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
@@ -153,5 +155,13 @@ public class FlattenedAssignmentService {
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
         return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
+    }
+
+    public Set<Long> getAssignmentIdsMissingIdentityProviderUserObjectId() {
+        return new HashSet<>(flattenedAssignmentRepository.findAssignmentIdsWhereIdentityProviderUserObjectIdIsNull());
+    }
+
+    public void deleteByAssignmentId(Long assignmentId) {
+        flattenedAssignmentRepository.deleteByAssignmentId(assignmentId);
     }
 }

@@ -203,7 +203,7 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 
-    public Optional<Assignment> getAssignmentsById(Long id) {
+    public Optional<Assignment> getAssignmentById(Long id) {
         return assignmentRepository.findById(id);
     }
 
