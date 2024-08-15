@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -156,7 +157,7 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Starting to sync assignment {}", id);
 
-        assignmentService.getAssignmentsById(id)
+        assignmentService.getAssignmentById(id)
                 .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
 
         long end = System.currentTimeMillis();
@@ -233,6 +234,44 @@ public class AssignmentController {
         log.info("Syncing assignments for memberships");
 
         membershipService.syncAssignmentsForMemberships(membershipIds);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncassignmentsmissingidentityprovideruserobjectid")
+    public ResponseEntity<HttpStatus> syncAssignmentsMissingIdentityProviderUserObjectId(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Syncing assignments missing identityProviderUserObjectId");
+
+        Set<Long> assignmentIds = flattenedAssignmentService.getAssignmentIdsMissingIdentityProviderUserObjectId();
+
+        log.info("Found {} assignments missing identityProviderUserObjectId", assignmentIds.size());
+
+        if(!assignmentIds.isEmpty()) {
+            log.info("Deleting {} flattened assignments for assignments missing identityProviderUserObjectId", assignmentIds.size());
+
+            for (Long assignmentId : assignmentIds) {
+                flattenedAssignmentService.deleteByAssignmentId(assignmentId);
+            }
+
+            log.info("Done deleting {} flattened assignments for assignments missing identityProviderUserObjectId", assignmentIds.size());
+
+            log.info("Creating flattened assignments for assignments missing identityProviderUserObjectId");
+
+            for (Long assignmentId : assignmentIds) {
+                assignmentService.getAssignmentById(assignmentId)
+                        .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+            }
+
+            log.info("Done creating flattened assignments for assignments missing identityProviderUserObjectId");
+        }
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
