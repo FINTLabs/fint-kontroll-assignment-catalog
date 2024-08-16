@@ -163,7 +163,26 @@ public class FlattenedAssignmentService {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
     }
 
-    public void deleteById(Long id) {
-        flattenedAssignmentRepository.deleteById(id);
+    public void deleteByIdsInBatches(Set<Long> ids) {
+        int batchSize = 1000;
+
+        List<Long> batch = new ArrayList<>(batchSize);
+        Long deletedCount = 0L;
+
+        for (Long id : ids) {
+            batch.add(id);
+            if (batch.size() == batchSize) {
+                deletedCount += batchSize;
+                flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
+                batch.clear();
+                log.info("Total deleted flattened assignments: {}", deletedCount);
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            deletedCount += batch.size();
+            flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
+            log.info("Done deleted flattened assignments: {}", deletedCount);
+        }
     }
 }
