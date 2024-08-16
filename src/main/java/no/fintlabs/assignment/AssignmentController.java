@@ -247,27 +247,18 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Syncing assignments missing identityProviderUserObjectId");
 
-        Set<Long> assignmentIds = flattenedAssignmentService.getAssignmentIdsMissingIdentityProviderUserObjectId();
+        Set<Long> ids = flattenedAssignmentService.getIdsMissingIdentityProviderUserObjectId();
 
-        log.info("Found {} assignments missing identityProviderUserObjectId", assignmentIds.size());
+        log.info("Found {} flattened assignments missing identityProviderUserObjectId", ids.size());
 
-        if(!assignmentIds.isEmpty()) {
-            log.info("Deleting {} flattened assignments for assignments missing identityProviderUserObjectId", assignmentIds.size());
+        if(!ids.isEmpty()) {
+            log.info("Deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
 
-            for (Long assignmentId : assignmentIds) {
-                flattenedAssignmentService.deleteByAssignmentId(assignmentId);
+            for (Long id : ids) {
+                flattenedAssignmentService.deleteById(id);
             }
 
-            log.info("Done deleting {} flattened assignments for assignments missing identityProviderUserObjectId", assignmentIds.size());
-
-            log.info("Creating flattened assignments for assignments missing identityProviderUserObjectId");
-
-            for (Long assignmentId : assignmentIds) {
-                assignmentService.getAssignmentById(assignmentId)
-                        .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
-            }
-
-            log.info("Done creating flattened assignments for assignments missing identityProviderUserObjectId");
+            log.info("Done deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
         }
 
         long end = System.currentTimeMillis();

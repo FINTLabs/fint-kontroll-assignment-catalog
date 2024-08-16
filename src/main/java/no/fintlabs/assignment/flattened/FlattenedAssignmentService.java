@@ -49,12 +49,14 @@ public class FlattenedAssignmentService {
 
         List<FlattenedAssignment> existingAssignments = flattenedAssignmentRepository.findByAssignmentId(assignment.getId());
 
-        if (assignment.isUserAssignment() && assignment.getAzureAdUserId() != null) {
+        if (assignment.isUserAssignment()) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
             flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
                     .ifPresent(flattenedAssignments::add);
-        } else if (assignment.isGroupAssignment() && assignment.getAzureAdGroupId() != null) {
+        } else if (assignment.isGroupAssignment()) {
             flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, existingAssignments, isSync));
+        } else {
+            log.error("Assignment with id {} is not a user or group assignment, not creating flattened assignment", assignment.getId());
         }
 
         if (!flattenedAssignments.isEmpty()) {
@@ -157,11 +159,11 @@ public class FlattenedAssignmentService {
         return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
     }
 
-    public Set<Long> getAssignmentIdsMissingIdentityProviderUserObjectId() {
-        return new HashSet<>(flattenedAssignmentRepository.findAssignmentIdsWhereIdentityProviderUserObjectIdIsNull());
+    public Set<Long> getIdsMissingIdentityProviderUserObjectId() {
+        return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
     }
 
-    public void deleteByAssignmentId(Long assignmentId) {
-        flattenedAssignmentRepository.deleteByAssignmentId(assignmentId);
+    public void deleteById(Long id) {
+        flattenedAssignmentRepository.deleteById(id);
     }
 }
