@@ -4,11 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -85,13 +83,6 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalseAndAssignmentId(Long assignmentId);
 
-    @Query("SELECT fa.assignmentId FROM FlattenedAssignment fa WHERE fa.identityProviderUserObjectId IS NULL AND fa.assignmentTerminationDate IS NULL")
-    List<Long> findAssignmentIdsWhereIdentityProviderUserObjectIdIsNull();
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM FlattenedAssignment fa WHERE fa.assignmentId = :assignmentId")
-    void deleteByAssignmentId(Long assignmentId);
-
-
+    @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.identityProviderUserObjectId IS NULL AND fa.assignmentTerminationDate IS NULL")
+    List<Long> findIdsWhereIdentityProviderUserObjectIdIsNull();
 }
