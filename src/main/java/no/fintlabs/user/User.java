@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -47,6 +48,8 @@ public class User {
     //private String displayName;
     private String organisationUnitId;
     private String organisationUnitName;
+    private String status;
+    private Date statusChanged;
 
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
@@ -54,6 +57,7 @@ public class User {
     @JsonManagedReference(value = "user-assignment")
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private Set<Assignment> assignments = new HashSet<>();
 
     public AssignmentUser toAssignmentUser() {
@@ -86,6 +90,10 @@ public class User {
         return string == null || string.isEmpty();
     }
 
+    public boolean hasStatusChanged(User updatedUser) {
+        return getStatus() != null && !getStatus().equalsIgnoreCase(updatedUser.getStatus());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -104,12 +112,34 @@ public class User {
                Objects.equals(lastName, user.lastName) &&
                Objects.equals(userType, user.userType) &&
                Objects.equals(organisationUnitId, user.organisationUnitId) &&
-               Objects.equals(organisationUnitName, user.organisationUnitName);
+               Objects.equals(organisationUnitName, user.organisationUnitName) &
+               Objects.equals(status, user.status) &&
+               Objects.equals(statusChanged, user.statusChanged);
+    }
+
+    public boolean convertedUserEquals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final User user = (User) o;
+        return Objects.equals(id, user.id) &&
+               Objects.equals(userName, user.userName) &&
+               Objects.equals(identityProviderUserObjectId, user.identityProviderUserObjectId) &&
+               Objects.equals(firstName, user.firstName) &&
+               Objects.equals(lastName, user.lastName) &&
+               Objects.equals(userType, user.userType) &&
+               Objects.equals(organisationUnitId, user.organisationUnitId) &&
+               Objects.equals(organisationUnitName, user.organisationUnitName) &&
+               Objects.equals(status, user.status) &&
+               Objects.equals(statusChanged, user.statusChanged);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, userRef, userObjectId, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName);
+        return Objects.hash(id, userRef, userObjectId, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName, status, statusChanged);
     }
 }
 

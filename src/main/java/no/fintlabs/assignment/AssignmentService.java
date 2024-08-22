@@ -208,8 +208,12 @@ public class AssignmentService {
         return assignmentRepository.findById(id);
     }
 
-    public List<Assignment> getAssignmentsByUser(Long userId) {
+    public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
+    }
+
+    public List<Assignment> getInactiveAssignmentsByUser(Long userId) {
+        return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(userId);
     }
 
     public void activateOrDeactivateAssignmentsByRole(Role role) {
@@ -224,6 +228,27 @@ public class AssignmentService {
                     }
                     assignmentRepository.saveAndFlush(assignment);
                 });
+    }
+
+    public void activateOrDeactivateAssignmentsByUser(User user) {
+        if (user.getStatus().equalsIgnoreCase("active")) {
+            // TODO: usikker på denne, hva skal vi gjøre når brukerstatus endres til aktiv?
+            /*getInactiveAssignmentsByUser(user.getId())
+                    .forEach(assignment -> {
+                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), user.getStatus());
+                        assignment.setAssignmentRemovedDate(null);
+                        assignmentRepository.saveAndFlush(assignment);
+                        flattenedAssignmentService.createFlattenedAssignments(assignment, true);
+                    });*/
+        } else {
+            getActiveAssignmentsByUser(user.getId())
+                    .forEach(assignment -> {
+                        log.info("Deactivating assignment with id: {}", assignment.getId());
+                        assignment.setAssignmentRemovedDate(new Date());
+                        assignmentRepository.saveAndFlush(assignment);
+                        flattenedAssignmentService.deleteFlattenedAssignments(assignment);
+                    });
+        }
     }
 }
 
