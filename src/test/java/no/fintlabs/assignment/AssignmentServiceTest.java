@@ -19,15 +19,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AssignmentServiceTest {
@@ -304,4 +307,21 @@ class AssignmentServiceTest {
         assertThrows(UserNotFoundException.class, () -> assignmentService.deleteAssignment(validId));
     }
 
+    @Test
+    public void shouldDeactivateAssignmentsIfUserInactive() {
+        User user = new User();
+        user.setId(1L);
+        user.setStatus("inactive");
+
+        Assignment assignment = new Assignment();
+        List<Assignment> assignments = List.of(assignment);
+        when(assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(user.getId())).thenReturn(assignments);
+
+        assignmentService.activateOrDeactivateAssignmentsByUser(user);
+
+        verify(assignmentRepository).saveAndFlush(assignment);
+        verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment);
+
+        assertNotNull(assignment.getAssignmentRemovedDate());
+    }
 }
