@@ -93,7 +93,7 @@ public class AssigmentEntityProducerService {
         return true;
     }
 
-    private void publishDeletion(UUID azureAdGroupId, UUID azureUserId) {
+    public void publishDeletion(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
 
         entityProducer.send(
