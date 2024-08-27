@@ -7,7 +7,6 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
-import no.fintlabs.user.UserRepository;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,13 +23,11 @@ public class AzureAdGroupMemberShipConsumer {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
-    private final UserRepository userRepository;
 
-    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService, UserRepository userRepository) {
+    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.flattenedAssignmentService = flattenedAssignmentService;
-        this.userRepository = userRepository;
     }
 
     @Bean
@@ -103,7 +100,7 @@ public class AzureAdGroupMemberShipConsumer {
                 assigmentEntityProducerService.publishDeletion(groupId, userId);
                 log.info("User assignment not found with id: {}, removing user from group: {} in azure", userId, groupId);
             } else {
-                handleValidMembershipUpdate(membership, groupId, userId);
+                handleValidMembershipUpdate(membership, flattenedAssignments);
             }
 
         } catch (Exception e) {
@@ -111,9 +108,7 @@ public class AzureAdGroupMemberShipConsumer {
         }
     }
 
-    private void handleValidMembershipUpdate(AzureAdGroupMembership membership, UUID groupId, UUID userId) {
-        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
-
+    private void handleValidMembershipUpdate(AzureAdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
         List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
                 .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
                 .peek(assignment -> {
