@@ -49,12 +49,14 @@ public class MembershipService {
             return;
         }
 
-        assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
-            try {
-                flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
-            } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
-            }
-        });
+        assignmentService.getAssignmentsByRole(savedMembership.getRoleId())
+                .forEach(assignment -> {
+                    try {
+                        flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
+                    } catch (Exception e) {
+                        log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}",
+                                  savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
+                    }
+                });
     }
 }
