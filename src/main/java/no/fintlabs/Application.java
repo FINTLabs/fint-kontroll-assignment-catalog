@@ -55,10 +55,10 @@ public class Application {
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(150);
+        executor.setMaxPoolSize(30);
+        executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("assigcat-");
-        executor.setKeepAliveSeconds(120);
+        executor.setKeepAliveSeconds(160);
         executor.initialize();
         return executor;
     }
