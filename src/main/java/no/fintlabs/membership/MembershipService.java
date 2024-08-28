@@ -1,6 +1,7 @@
 package no.fintlabs.membership;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,20 +37,31 @@ public class MembershipService {
     }
 
     public void syncAssignmentsForMemberships(List<String> membershipIds) {
-        membershipRepository.findAllById(membershipIds).forEach(this::processAssignmentsForMembership);
+        membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
     }
 
     @Async
-    public void processAssignmentsForMembership(Membership savedMembership) {
-        log.info("Processing assignments for membership, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(), savedMembership.getId());
+    public void deactivateAssignmentsForMembership(Membership membership) {
+        assignmentService.getAssignmentsByRoleAndUser(membership.getRoleId(), membership.getMemberId())
+                .forEach(assignmentService::deleteAssignment);
+    }
 
+    @Async
+    public void syncAssignmentsForMembership(Membership savedMembership) {
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
             log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(),
                      savedMembership.getId());
             return;
         }
 
-        assignmentService.getAssignmentsByRole(savedMembership.getRoleId()).forEach(assignment -> {
+        List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
+
+        if(!assignmentsByRole.isEmpty()) {
+            log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignmentsByRole.size());
+        }
+
+        assignmentsByRole
+                .forEach(assignment -> {
             try {
                 flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
             } catch (Exception e) {
