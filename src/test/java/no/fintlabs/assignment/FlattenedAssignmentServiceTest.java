@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -46,6 +47,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
+        assignment.setAzureAdUserId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
@@ -64,6 +66,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
+        assignment.setAzureAdGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
