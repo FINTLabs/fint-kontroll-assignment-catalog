@@ -23,6 +23,7 @@ public class AzureAdGroupMemberShipConsumer {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
+
     public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
@@ -90,38 +91,46 @@ public class AzureAdGroupMemberShipConsumer {
         log.debug("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
 
         try {
-            UUID groupId = parseUUID(membership.getAzureGroupRef().toString());
-            UUID userId = parseUUID(membership.getAzureUserRef().toString());
+            UUID groupId = membership.getAzureGroupRef();
+            UUID userId = membership.getAzureUserRef();
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
 
-            List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
-                    .peek(assignment -> {
-                        log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
-                                 assignment.getAssignmentId());
-                        assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                    })
-                    .toList();
-
-            List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                    .peek(assignment -> {
-                        log.info("Found inconsistent assignment on update, updating and publishing. {}", assignment.getAssignmentId());
-                    })
-                    .toList();
-
-            if (!assignmentsToUpdate.isEmpty()) {
-                flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToUpdate, false);
+            if(flattenedAssignments.isEmpty()) {
+                assigmentEntityProducerService.publishDeletion(groupId, userId);
+                log.info("User assignment not found with id: {}, removing user from group: {} in azure", userId, groupId);
+            } else {
+                handleValidMembershipUpdate(membership, flattenedAssignments);
             }
-
-            if (!assignmentsToDelete.isEmpty()) {
-                assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
-            }
-
 
         } catch (Exception e) {
             log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), e.getMessage());
+        }
+    }
+
+    private void handleValidMembershipUpdate(AzureAdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
+        List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
+                .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
+                .peek(assignment -> {
+                    log.info("Received update with groupref {} - userref {}, saving as confirmed on assignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
+                             assignment.getAssignmentId());
+                    assignment.setIdentityProviderGroupMembershipConfirmed(true);
+                })
+                .toList();
+
+        List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
+                .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
+                .peek(assignment -> {
+                    log.info("Found inconsistent assignment on update, updating and publishing. {}", assignment.getAssignmentId());
+                })
+                .toList();
+
+        if (!assignmentsToUpdate.isEmpty()) {
+            flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToUpdate, false);
+        }
+
+        if (!assignmentsToDelete.isEmpty()) {
+            assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
         }
     }
 
