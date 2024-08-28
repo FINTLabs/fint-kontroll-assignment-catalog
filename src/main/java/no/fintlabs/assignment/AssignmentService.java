@@ -209,7 +209,7 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(roleId, userId);
     }
 
-    public Optional<Assignment> getAssignmentsById(Long id) {
+    public Optional<Assignment> getAssignmentById(Long id) {
         return assignmentRepository.findById(id);
     }
 
@@ -219,6 +219,10 @@ public class AssignmentService {
 
     public List<Assignment> getInactiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(userId);
+    }
+
+    public List<Assignment> getAssignmentsByUser(Long userId) {
+        return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
 
     public void activateOrDeactivateAssignmentsByRole(Role role) {

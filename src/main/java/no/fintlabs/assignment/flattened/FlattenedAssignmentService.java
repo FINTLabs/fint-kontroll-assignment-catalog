@@ -9,8 +9,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
@@ -53,6 +55,8 @@ public class FlattenedAssignmentService {
                     .ifPresent(flattenedAssignments::add);
         } else if (assignment.isGroupAssignment()) {
             flattenedAssignments.addAll(flattenedAssignmentMembershipService.findMembershipsToCreateOrUpdate(assignment, existingAssignments, isSync));
+        } else {
+            log.error("Assignment with id {} is not a user or group assignment, not creating flattened assignment", assignment.getId());
         }
 
         if (!flattenedAssignments.isEmpty()) {
@@ -153,5 +157,32 @@ public class FlattenedAssignmentService {
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
         return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
+    }
+
+    public Set<Long> getIdsMissingIdentityProviderUserObjectId() {
+        return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
+    }
+
+    public void deleteByIdsInBatches(Set<Long> ids) {
+        int batchSize = 1000;
+
+        List<Long> batch = new ArrayList<>(batchSize);
+        Long deletedCount = 0L;
+
+        for (Long id : ids) {
+            batch.add(id);
+            if (batch.size() == batchSize) {
+                deletedCount += batchSize;
+                flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
+                batch.clear();
+                log.info("Total deleted flattened assignments: {}", deletedCount);
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            deletedCount += batch.size();
+            flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
+            log.info("Done deleted flattened assignments: {}", deletedCount);
+        }
     }
 }

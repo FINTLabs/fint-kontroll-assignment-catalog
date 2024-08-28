@@ -129,11 +129,11 @@ public class Assignment {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null;
+        return userRef != null  && azureAdUserId != null;
     }
 
     @JsonIgnore
     public boolean isGroupAssignment() {
-        return roleRef != null;
+        return roleRef != null && azureAdGroupId != null;
     }
 }

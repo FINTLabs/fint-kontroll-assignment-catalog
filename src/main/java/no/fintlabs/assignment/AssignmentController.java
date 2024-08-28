@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -156,8 +157,8 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Starting to sync assignment {}", id);
 
-        assignmentService.getAssignmentsById(id)
-                .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+        assignmentService.getAssignmentById(id)
+                .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, false));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignment {}: " + (end - start) + " ms", id);
@@ -175,7 +176,7 @@ public class AssignmentController {
         log.info("Starting to sync assignment by userid {}", id);
 
         List<Assignment> allAssignments = assignmentService.getAssignmentsByUser(id);
-        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, false));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignments by userid {}: " + (end - start) + " ms", id);
@@ -233,6 +234,33 @@ public class AssignmentController {
         log.info("Syncing assignments for memberships");
 
         membershipService.syncAssignmentsForMemberships(membershipIds);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/syncassignmentsmissingidentityprovideruserobjectid")
+    public ResponseEntity<HttpStatus> syncAssignmentsMissingIdentityProviderUserObjectId(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Syncing assignments missing identityProviderUserObjectId");
+
+        Set<Long> ids = flattenedAssignmentService.getIdsMissingIdentityProviderUserObjectId();
+
+        log.info("Found {} flattened assignments missing identityProviderUserObjectId", ids.size());
+
+        if(!ids.isEmpty()) {
+            log.info("Deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
+
+            flattenedAssignmentService.deleteByIdsInBatches(ids);
+
+            log.info("Done deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
+        }
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
