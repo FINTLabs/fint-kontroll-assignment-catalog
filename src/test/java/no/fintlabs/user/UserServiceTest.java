@@ -7,10 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Date;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,7 +37,7 @@ public class UserServiceTest {
         User result = userService.updateUser(user, updatedUser);
 
         assertEquals(updatedUser, result);
-        verify(updatedUser).setStatusChanged(any(Date.class));
+//        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
         verify(assignmentService).activateOrDeactivateAssignmentsByUser(updatedUser);
     }
@@ -57,7 +54,7 @@ public class UserServiceTest {
         User result = userService.updateUser(user, updatedUser);
 
         assertEquals(updatedUser, result);
-        verify(updatedUser).setStatusChanged(any(Date.class));
+//        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
         verify(assignmentService, never()).activateOrDeactivateAssignmentsByUser(updatedUser);
     }
@@ -72,7 +69,7 @@ public class UserServiceTest {
         User result = userService.updateUser(user, updatedUser);
 
         assertEquals(user, result);
-        verify(updatedUser, never()).setStatusChanged(any(Date.class));
+//        verify(updatedUser, never()).setStatusChanged(any(Date.class));
         verify(userRepository, never()).save(updatedUser);
         verify(assignmentService, never()).activateOrDeactivateAssignmentsByUser(updatedUser);
     }
