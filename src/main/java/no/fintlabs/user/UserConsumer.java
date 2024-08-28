@@ -54,6 +54,7 @@ public class UserConsumer {
 
     private void handleCachedUser(User cachedUser, User convertedUser) {
         if (!cachedUser.convertedUserEquals(convertedUser)) {
+            log.info("User found in cache, but not equal. Cached user: {}, converted user: {}", cachedUser, convertedUser);
             updateUserInCache(convertedUser, "User found in cache, but not equal, updating user: {}");
         } else {
             log.info("User in cache is up-to-date: {}", cachedUser.getId());
