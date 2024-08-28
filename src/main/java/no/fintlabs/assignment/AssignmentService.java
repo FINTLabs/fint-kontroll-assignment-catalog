@@ -81,14 +81,15 @@ public class AssignmentService {
     }
 
     public Assignment deleteAssignment(Long id) {
-        String userName = opaService.getUserNameAuthenticatedUser();
+        log.info("Deleting assignment with id {}", id);
 
-        User user = userRepository.getUserByUserName(userName)
-                .orElseThrow(() -> new UserNotFoundException(userName));
+        String userName = opaService.getUserNameAuthenticatedUser();
 
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
-        assignment.setAssignerRemoveRef(user.getId());
+
+        userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
+
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
@@ -204,6 +205,10 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 
+    public List<Long> getAssignmentsByRoleAndUser(Long roleId, Long userId) {
+        return assignmentRepository.findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(roleId, userId);
+    }
+
     public Optional<Assignment> getAssignmentsById(Long id) {
         return assignmentRepository.findById(id);
     }
@@ -223,8 +228,9 @@ public class AssignmentService {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
                         assignment.setAssignmentRemovedDate(new Date());
                     } else {
-                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
-                        assignment.setAssignmentRemovedDate(null);
+//                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
+//                        assignment.setAssignmentRemovedDate(null);
+                        //TODO: Håndtere aktivering av gruppe
                     }
                     assignmentRepository.saveAndFlush(assignment);
                 });
@@ -232,7 +238,7 @@ public class AssignmentService {
 
     public void activateOrDeactivateAssignmentsByUser(User user) {
         if (user.getStatus().equalsIgnoreCase("active")) {
-            // TODO: usikker på denne, hva skal vi gjøre når brukerstatus endres til aktiv?
+            // TODO: Håndtere aktivering av bruker
             /*getInactiveAssignmentsByUser(user.getId())
                     .forEach(assignment -> {
                         log.info("Activating assignment with id: {}, status: {}", assignment.getId(), user.getStatus());

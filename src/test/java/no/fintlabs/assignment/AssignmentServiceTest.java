@@ -56,8 +56,7 @@ class AssignmentServiceTest {
     @InjectMocks
     private AssignmentService assignmentService;
 
-    private Assignment userAssignmentWithAssigner, userAssignmentWithUnknownAssigner, roleAssignmentWithAssigner,
-            roleAssignmentWithUnknownAssigner;
+    private Assignment userAssignmentWithAssigner, userAssignmentWithUnknownAssigner, roleAssignmentWithAssigner;
     private User userWithDisplayName, userWithOutDisplayName;
 
     @BeforeEach
@@ -297,14 +296,21 @@ class AssignmentServiceTest {
     }
 
     @Test
-    void shouldDeleteAssignment_InvalidUser_ThrowsUserNotFoundException() {
+    void shouldDeleteAssignment_InvalidUser_shouldNotSetAssignerRemoveRef() {
         Long validId = 1L;
         String invalidUserName = "invalidUser";
 
         given(opaService.getUserNameAuthenticatedUser()).willReturn(invalidUserName);
         given(userRepository.getUserByUserName(invalidUserName)).willReturn(Optional.empty());
 
-        assertThrows(UserNotFoundException.class, () -> assignmentService.deleteAssignment(validId));
+        Assignment assignment = new Assignment();
+
+        given(assignmentRepository.getReferenceById(validId)).willReturn(assignment);
+
+        assignmentService.deleteAssignment(validId);
+
+        assertThat(assignment.getAssignmentRemovedDate()).isNotNull();
+        assertThat(assignment.getAssignerRemoveRef()).isNull();
     }
 
     @Test

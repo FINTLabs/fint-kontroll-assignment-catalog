@@ -37,48 +37,79 @@ public class MembershipConsumer {
                                          .build());
     }
 
-    private void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
+    void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
         Membership incomingMembership = consumerRecord.value();
 
         membershipCache.getOptional(incomingMembership.getId())
                 .ifPresentOrElse(
-                        cachedMembership -> {
-                            if (!cachedMembership.equals(incomingMembership)) {
-                                process(incomingMembership);
-                            }
-                        }
-                        , () -> process(incomingMembership));
-
+                        cachedMembership -> handleCachedMembership(cachedMembership, incomingMembership)
+                        , () -> handleMembership(incomingMembership));
     }
 
-    private void process(Membership incomingMembership) {
+    private void handleCachedMembership(Membership cachedMembership, Membership incomingMembership) {
+        if (!cachedMembership.equals(incomingMembership)) {
+            handleMembership(incomingMembership);
+        }
+    }
+
+    private void handleMembership(Membership incomingMembership) {
         membershipRepository.findById(incomingMembership.getId())
                 .ifPresentOrElse(
-                        existingMembership -> {
-                            Membership savedMembership = processExistingMembership(existingMembership, incomingMembership);
-                            membershipCache.put(savedMembership.getId(), savedMembership);
-                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
-                            membershipService.processAssignmentsForMembership(savedMembership);
-                        },
-                        () -> {
-                            Membership savedMembership = processNewMembership(incomingMembership);
-                            membershipCache.put(savedMembership.getId(), savedMembership);
-                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
-                            membershipService.processAssignmentsForMembership(savedMembership);
-                        });
+                        existingMembership -> handleExistingMembership(incomingMembership, existingMembership),
+                        () -> handleNewMembership(incomingMembership));
     }
 
-    private Membership processNewMembership(Membership incomingMembership) {
-        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
-        return membershipRepository.save(incomingMembership);
+    private void handleNewMembership(Membership incomingMembership) {
+        Membership savedMembership = saveNewMembership(incomingMembership);
+        membershipService.syncAssignmentsForMembership(savedMembership);
     }
 
-    private Membership processExistingMembership(Membership existingMembership, Membership incomingMembership) {
-        if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
-            return membershipRepository.save(incomingMembership);
+    private void handleExistingMembership(Membership incomingMembership, Membership existingMembership) {
+        Membership savedMembership = updateExistingMembership(existingMembership, incomingMembership);
+
+        if (shouldDeactivateMembership(incomingMembership, existingMembership)) {
+            membershipService.deactivateAssignmentsForMembership(savedMembership);
         } else {
-            return existingMembership;
+            membershipService.syncAssignmentsForMembership(savedMembership);
+        }
+    }
+
+    private boolean shouldDeactivateMembership(Membership incomingMembership, Membership existingMembership) {
+        String existingStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
+
+        return !existingMembership.equals(incomingMembership) && !existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()) &&
+               incomingMembership.getMemberStatus() != null && incomingMembership.getMemberStatus().equalsIgnoreCase("inactive");
+    }
+
+    private Membership saveNewMembership(Membership incomingMembership) {
+        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
+        Membership savedMembership = membershipRepository.saveAndFlush(incomingMembership);
+        membershipCache.put(savedMembership.getId(), savedMembership);
+        logCacheSize();
+        return savedMembership;
+    }
+
+    private Membership updateExistingMembership(Membership existingMembership, Membership incomingMembership) {
+        Membership membership;
+
+        if (!existingMembership.equals(incomingMembership)) {
+            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(),
+                     incomingMembership.getId());
+            membership = membershipRepository.saveAndFlush(incomingMembership);
+        } else {
+            membership = existingMembership;
+        }
+
+        membershipCache.put(membership.getId(), membership);
+        logCacheSize();
+        return membership;
+    }
+
+    private void logCacheSize() {
+        long cacheSize = membershipCache.getNumberOfEntries();
+
+        if (cacheSize % 100 == 0) {
+            log.info("Membership cache size is now {}", cacheSize);
         }
     }
 
