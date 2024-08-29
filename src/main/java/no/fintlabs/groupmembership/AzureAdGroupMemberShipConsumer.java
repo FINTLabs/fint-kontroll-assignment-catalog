@@ -81,6 +81,14 @@ public class AzureAdGroupMemberShipConsumer {
                         assigmentEntityProducerService.publish(assignment);
                     });
 
+            flattenedAssignments
+                    .stream()
+                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && assignment.isIdentityProviderGroupMembershipConfirmed())
+                    .forEach(assignment -> {
+                        log.info("Found inconsistent delete, recreating assignment in Azure. Assignmentid: {}", assignment.getAssignmentId());
+                        assigmentEntityProducerService.publish(assignment);
+                    });
+
             log.info("Finished handling deletion for azureref {}", record.key());
         } catch (Exception e) {
             log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
