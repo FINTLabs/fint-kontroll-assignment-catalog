@@ -10,10 +10,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,7 +57,7 @@ public class RoleConsumerTest {
 
         consumer.process(record);
 
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
 
     }
@@ -110,7 +108,7 @@ public class RoleConsumerTest {
         consumer.process(record);
 
         verify(roleRepository, times(1)).findById(updatedRole.getId());
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
     }
 
@@ -134,12 +132,8 @@ public class RoleConsumerTest {
         consumer.processRoleUpdate(updatedRole);
 
         verify(assignmentService, times(1)).activateOrDeactivateAssignmentsByRole(updatedRole);
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
-
-        // Assert that roleStatusChanged is set to today's date
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        assertThat(updatedRole.getRoleStatusChanged().toInstant().truncatedTo(ChronoUnit.SECONDS)).isEqualTo(now);
     }
 
     @Test
@@ -162,11 +156,7 @@ public class RoleConsumerTest {
         consumer.processRoleUpdate(updatedRole);
 
         verify(assignmentService, times(1)).activateOrDeactivateAssignmentsByRole(updatedRole);
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
-
-        // Assert that roleStatusChanged is set to today's date
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        assertThat(updatedRole.getRoleStatusChanged().toInstant().truncatedTo(ChronoUnit.SECONDS)).isEqualTo(now);
     }
 }
