@@ -27,10 +27,8 @@ public class AssignmentService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
-
     private final ResourceRepository resourceRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
-
     private final OpaService opaService;
 
     public AssignmentService(AssignmentRepository assignmentRepository,
@@ -47,14 +45,26 @@ public class AssignmentService {
         this.opaService = opaService;
     }
 
-    public Assignment createNewAssignment(Assignment assignment) {
-        Long userRef = assignment.getUserRef();
-        Long roleRef = assignment.getRoleRef();
-        Long resourceRef = assignment.getResourceRef();
+    public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
+        log.info("Trying to create new assignment for resource {} and {}", resourceRef, userRef != null ? "user " + userRef : "role " + roleRef);
 
-        assignment = handleUserAssignment(assignment, userRef, resourceRef);
-        assignment = handleRoleAssignment(assignment, roleRef, resourceRef);
-        assignment = handleResourceAssignment(assignment, resourceRef);
+        Assignment assignment = Assignment.builder()
+                .assignerUserName(opaService.getUserNameAuthenticatedUser())
+                .resourceRef(resourceRef)
+                .organizationUnitId(organizationUnitId)
+                .userRef(userRef)
+                .roleRef(roleRef)
+                .build();
+
+        if (userRef != null) {
+            handleDirectUserAssignment(assignment, userRef, resourceRef);
+        }
+
+        if (roleRef != null) {
+            handleGroupAssignment(assignment, roleRef, resourceRef);
+        }
+
+        enrichByResource(assignment, resourceRef);
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -138,55 +148,43 @@ public class AssignmentService {
         return user.map(User::getDisplayname);
     }
 
-    private Assignment handleUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
-        if (userRef != null) {
-            if (existingUserFlattenedAssignmentNotTerminated(assignment)) {
-                log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
-                throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
-            }
-
-            userRepository.findById(userRef).ifPresentOrElse(user -> {
-                assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId());
-                assignment.setUserFirstName(user.getFirstName());
-                assignment.setUserLastName(user.getLastName());
-                assignment.setUserUserType(user.getUserType());
-            }, () -> {
-                throw new UserNotFoundException(userRef);
-            });
+    private void handleDirectUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
+        if (existingUserFlattenedAssignmentNotTerminated(assignment)) {
+            log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
+            throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
         }
 
-        return assignment;
+        userRepository.findById(userRef).ifPresentOrElse(user -> {
+            assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId());
+            assignment.setUserFirstName(user.getFirstName());
+            assignment.setUserLastName(user.getLastName());
+            assignment.setUserUserType(user.getUserType());
+        }, () -> {
+            throw new UserNotFoundException(userRef);
+        });
     }
 
-    private Assignment handleRoleAssignment(Assignment assignment, Long roleRef, Long resourceRef) {
-        if (roleRef != null) {
-            if (existingRoleAssignment(assignment)) {
-                throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
-            }
-
-            roleRepository.findById(roleRef).ifPresentOrElse(role -> {
-                assignment.setRoleName(role.getRoleName());
-                assignment.setRoleType(role.getRoleType());
-            }, () -> {
-                throw new RoleNotFoundException(roleRef.toString());
-            });
+    private void handleGroupAssignment(Assignment assignment, Long roleRef, Long resourceRef) {
+        if (existingRoleAssignment(assignment)) {
+            throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
         }
 
-        return assignment;
+        roleRepository.findById(roleRef).ifPresentOrElse(role -> {
+            assignment.setRoleName(role.getRoleName());
+            assignment.setRoleType(role.getRoleType());
+        }, () -> {
+            throw new RoleNotFoundException(roleRef.toString());
+        });
     }
 
-    private Assignment handleResourceAssignment(Assignment assignment, Long resourceRef) {
-        if (resourceRef != null) {
-            resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
-                assignment.setResourceName(resource.getResourceName());
-                assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-                assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
-            }, () -> {
-                throw new ResourceNotFoundException(resourceRef.toString());
-            });
-        }
-
-        return assignment;
+    private void enrichByResource(Assignment assignment, Long resourceRef) {
+        resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
+            assignment.setResourceName(resource.getResourceName());
+            assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
+            assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
+        }, () -> {
+            throw new ResourceNotFoundException(resourceRef.toString());
+        });
     }
 
     private boolean existingUserFlattenedAssignmentNotTerminated(Assignment assignment) {
@@ -232,8 +230,8 @@ public class AssignmentService {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
                         assignment.setAssignmentRemovedDate(new Date());
                     } else {
-//                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
-//                        assignment.setAssignmentRemovedDate(null);
+                        //                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
+                        //                        assignment.setAssignmentRemovedDate(null);
                         //TODO: Håndtere aktivering av gruppe
                     }
                     assignmentRepository.saveAndFlush(assignment);

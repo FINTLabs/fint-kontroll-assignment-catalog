@@ -221,7 +221,7 @@ class AssignmentServiceTest {
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
-        Assignment returnedAssignment = assignmentService.createNewAssignment(assignment);
+        Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
@@ -230,44 +230,26 @@ class AssignmentServiceTest {
 
     @Test
     void shouldCreateNewAssignment_InvalidUserReference_ThrowsUserNotFoundException() {
-        Assignment assignment = Assignment.builder()
-                .userRef(999L)
-                .roleRef(1L)
-                .resourceRef(1L)
-                .build();
-
         given(userRepository.findById(999L)).willThrow(new UserNotFoundException("999"));
 
-        assertThrows(UserNotFoundException.class, () -> assignmentService.createNewAssignment(assignment));
+        assertThrows(UserNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 999L, 1L));
     }
 
     @Test
     void shouldCreateNewAssignment_InvalidRoleReference_ThrowsRoleNotFoundException() {
-        Assignment assignment = Assignment.builder()
-                .userRef(1L)
-                .roleRef(999L)
-                .resourceRef(1L)
-                .build();
-
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(roleRepository.findById(999L)).willThrow(new RoleNotFoundException("999"));
 
-        assertThrows(RoleNotFoundException.class, () -> assignmentService.createNewAssignment(assignment));
+        assertThrows(RoleNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, 999L));
     }
 
     @Test
     void shouldCreateNewAssignment_InvalidResourceReference_ThrowsResourceNotFoundException() {
-        Assignment assignment = Assignment.builder()
-                .userRef(1L)
-                .roleRef(1L)
-                .resourceRef(999L)
-                .build();
-
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
         given(resourceRepository.findById(999L)).willThrow(new ResourceNotFoundException("999"));
 
-        assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(assignment));
+        assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
     }
 
     @Test
