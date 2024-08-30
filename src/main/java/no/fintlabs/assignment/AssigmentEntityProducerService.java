@@ -109,7 +109,7 @@ public class AssigmentEntityProducerService {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
         ResourceGroupMembership azureAdGroupMembership = new ResourceGroupMembership(key, azureAdGroupId, azureUserId);
 
-        log.info("Publiserer ressurs " + azureAdGroupId + " tildelt bruker " + azureUserId);
+        log.info("Publishing to Azure - groupid: {}, userid: {}", azureAdGroupId, azureUserId);
 
         entityProducer.send(
                 EntityProducerRecord.<ResourceGroupMembership>builder()
