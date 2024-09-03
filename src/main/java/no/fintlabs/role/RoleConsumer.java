@@ -66,7 +66,7 @@ public class RoleConsumer {
 
     private void updateRole(Role incomingRole, Role existingRole) {
         if (!existingRole.equals(incomingRole)) {
-            log.info("Role {} already exists but has changes, updating role with id: ", incomingRole.getId());
+            log.info("Role id: {} already exists but has changes, updating role. Existing: {}, Incoming: {}", incomingRole.getId(), existingRole, incomingRole);
 
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
