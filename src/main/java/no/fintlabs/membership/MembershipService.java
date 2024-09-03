@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -41,9 +42,9 @@ public class MembershipService {
     }
 
     @Async
-    public void deactivateAssignmentsForMembership(Membership membership) {
-        assignmentService.getAssignmentsByRoleAndUser(membership.getRoleId(), membership.getMemberId())
-                .forEach(assignmentService::deleteAssignment);
+    public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
+        Set<Long> flattenedAssignmentIdsByUserAndRoleRef = flattenedAssignmentService.findFlattenedAssignmentIdsByUserAndRoleRef(membership.getRoleId(), membership.getMemberId());
+        flattenedAssignmentService.deleteByIdsInBatches(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
     @Async

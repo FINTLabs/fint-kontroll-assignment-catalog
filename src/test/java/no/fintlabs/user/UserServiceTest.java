@@ -39,7 +39,7 @@ public class UserServiceTest {
         assertEquals(updatedUser, result);
 //        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
-        verify(assignmentService).activateOrDeactivateAssignmentsByUser(updatedUser);
+        verify(assignmentService).deactivateAssignmentsByUser(updatedUser);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class UserServiceTest {
         assertEquals(updatedUser, result);
 //        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
-        verify(assignmentService, never()).activateOrDeactivateAssignmentsByUser(updatedUser);
+        verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
     }
 
     @Test
@@ -71,6 +71,6 @@ public class UserServiceTest {
         assertEquals(user, result);
 //        verify(updatedUser, never()).setStatusChanged(any(Date.class));
         verify(userRepository, never()).save(updatedUser);
-        verify(assignmentService, never()).activateOrDeactivateAssignmentsByUser(updatedUser);
+        verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
     }
 }

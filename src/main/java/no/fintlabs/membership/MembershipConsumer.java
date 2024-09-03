@@ -68,7 +68,7 @@ public class MembershipConsumer {
         Membership savedMembership = updateExistingMembership(existingMembership, incomingMembership);
 
         if (shouldDeactivateMembership(incomingMembership, existingMembership)) {
-            membershipService.deactivateAssignmentsForMembership(savedMembership);
+            membershipService.deactivateFlattenedAssignmentsForMembership(savedMembership);
         } else {
             membershipService.syncAssignmentsForMembership(savedMembership);
         }

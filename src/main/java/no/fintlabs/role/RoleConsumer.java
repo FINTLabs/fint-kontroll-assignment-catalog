@@ -57,7 +57,6 @@ public class RoleConsumer {
                         existingRole -> updateRole(incomingRole, existingRole),
                         () -> {
                             log.info("Role is new. Saving {}", incomingRole.getId());
-//                            incomingRole.setRoleStatusChanged(new Date());
                             roleRepository.saveAndFlush(incomingRole);
                         }
                 );
@@ -70,8 +69,7 @@ public class RoleConsumer {
             log.info("Role {} already exists but has changes, updating role with id: ", incomingRole.getId());
 
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
-//                incomingRole.setRoleStatusChanged(new Date());
-                assignmentService.activateOrDeactivateAssignmentsByRole(incomingRole);
+                assignmentService.deactivateAssignmentsByRole(incomingRole);
             }
 
             roleRepository.saveAndFlush(incomingRole);
