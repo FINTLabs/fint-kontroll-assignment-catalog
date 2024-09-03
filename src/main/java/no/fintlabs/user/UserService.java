@@ -38,7 +38,7 @@ public class UserService {
             User savedUser = saveUser(updatedUser);
 
             if (user.hasStatusChanged(updatedUser)) {
-                assignmentService.activateOrDeactivateAssignmentsByUser(updatedUser);
+                assignmentService.deactivateAssignmentsByUser(updatedUser);
             }
 
             return savedUser;

@@ -223,32 +223,19 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
 
-    public void activateOrDeactivateAssignmentsByRole(Role role) {
+    public void deactivateAssignmentsByRole(Role role) {
         getAssignmentsByRole(role.getId())
                 .forEach(assignment -> {
                     if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
                         assignment.setAssignmentRemovedDate(new Date());
-                    } else {
-                        //                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), role.getRoleStatus());
-                        //                        assignment.setAssignmentRemovedDate(null);
-                        //TODO: Håndtere aktivering av gruppe
+                        assignmentRepository.saveAndFlush(assignment);
                     }
-                    assignmentRepository.saveAndFlush(assignment);
                 });
     }
 
-    public void activateOrDeactivateAssignmentsByUser(User user) {
-        if (user.getStatus().equalsIgnoreCase("active")) {
-            // TODO: Håndtere aktivering av bruker
-            /*getInactiveAssignmentsByUser(user.getId())
-                    .forEach(assignment -> {
-                        log.info("Activating assignment with id: {}, status: {}", assignment.getId(), user.getStatus());
-                        assignment.setAssignmentRemovedDate(null);
-                        assignmentRepository.saveAndFlush(assignment);
-                        flattenedAssignmentService.createFlattenedAssignments(assignment, true);
-                    });*/
-        } else {
+    public void deactivateAssignmentsByUser(User user) {
+        if (user.getStatus().equalsIgnoreCase("disabled")) {
             getActiveAssignmentsByUser(user.getId())
                     .forEach(assignment -> {
                         log.info("Deactivating assignment with id: {}", assignment.getId());

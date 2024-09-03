@@ -299,13 +299,13 @@ class AssignmentServiceTest {
     public void shouldDeactivateAssignmentsIfUserInactive() {
         User user = new User();
         user.setId(1L);
-        user.setStatus("inactive");
+        user.setStatus("disabled");
 
         Assignment assignment = new Assignment();
         List<Assignment> assignments = List.of(assignment);
         when(assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(user.getId())).thenReturn(assignments);
 
-        assignmentService.activateOrDeactivateAssignmentsByUser(user);
+        assignmentService.deactivateAssignmentsByUser(user);
 
         verify(assignmentRepository).saveAndFlush(assignment);
         verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment);

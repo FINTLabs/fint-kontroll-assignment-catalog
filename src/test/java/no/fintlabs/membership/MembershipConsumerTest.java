@@ -76,7 +76,7 @@ public class MembershipConsumerTest {
 
         verify(membershipRepository).saveAndFlush(incomingMembership);
         verify(membershipCache).put("1", savedMembership);
-        verify(membershipService).deactivateAssignmentsForMembership(savedMembership);
+        verify(membershipService).deactivateFlattenedAssignmentsForMembership(savedMembership);
     }
 
     @Test
