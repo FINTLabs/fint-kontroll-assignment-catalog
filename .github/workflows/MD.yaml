@@ -100,7 +100,7 @@ jobs:
           kustomizationPath: 'kustomize/overlays/${{ steps.environment.outputs.result }}/${{ env.ORG}}'
         id: bake
 
-      - uses: azure/login@v1
+      - uses: azure/login@v2
         with:
           creds: "${{ secrets[format('AKS_{0}_FINT_GITHUB', steps.environment.outputs.result)] }}"
 
