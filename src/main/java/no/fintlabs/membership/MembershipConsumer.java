@@ -86,11 +86,7 @@ public class MembershipConsumer {
     }
 
     private Membership saveNewMembership(Membership incomingMembership) {
-        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}, status {}",
-                incomingMembership.getRoleId(),
-                incomingMembership.getMemberId(),
-                incomingMembership.getId(),
-                incomingMembership.getMemberStatus());
+        log.info("Incoming membership does not exist. Saving it, id {}, status {}", incomingMembership.getId(), incomingMembership.getMemberStatus());
         Membership savedMembership = membershipRepository.saveAndFlush(incomingMembership);
         membershipCache.put(savedMembership.getId(), savedMembership);
         logCacheSize();

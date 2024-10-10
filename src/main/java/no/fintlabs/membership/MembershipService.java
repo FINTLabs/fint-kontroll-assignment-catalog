@@ -44,6 +44,8 @@ public class MembershipService {
     @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
         Set<Long> flattenedAssignmentIdsByUserAndRoleRef = flattenedAssignmentService.findFlattenedAssignmentIdsByUserAndRoleRef(membership.getRoleId(), membership.getMemberId());
+        log.info("Deactivating {} flattened assignments assigned via inactive membership {}",
+                flattenedAssignmentIdsByUserAndRoleRef.size(), membership.getId());
         flattenedAssignmentService.deleteByIdsInBatches(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
