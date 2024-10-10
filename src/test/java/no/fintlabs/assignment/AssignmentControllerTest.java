@@ -6,7 +6,8 @@ import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
-import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
@@ -50,7 +53,7 @@ public class AssignmentControllerTest {
     private AssignmentService assignmentServiceMock;
 
     @MockBean
-    private OpaService opaServiceMock;
+    private ResourceRepository resourceRepositoryMock;
 
     @MockBean
     private AssignmentResponseFactory assignmentResponseFactoryMock;
@@ -96,15 +99,24 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void shouldCreateAssignment() throws Exception {
+    public void shouldCreateValidUserAssignment() throws Exception {
         NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
         newAssignmentRequest.resourceRef = 1L;
         newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.userRef = 1L;
 
         Assignment expectedReturnAssignment = new Assignment();
         expectedReturnAssignment.setId(1L);
+        expectedReturnAssignment.setResourceRef(1L);
+        expectedReturnAssignment.setOrganizationUnitId("99999999");
+        expectedReturnAssignment.setUserRef(1L);
 
-        when(assignmentServiceMock.createNewAssignment(isA(Assignment.class))).thenReturn(expectedReturnAssignment);
+        Resource value = new Resource();
+        value.setId(1L);
+        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
+
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+        when(assignmentServiceMock.createNewAssignment(1L, "99999999", 1L, null)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +125,111 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$").isNotEmpty())
                 .andExpect(jsonPath("$.id").value("1"));
 
-        verify(assignmentServiceMock).createNewAssignment(isA(Assignment.class));
+        verify(assignmentServiceMock).createNewAssignment(1L, "99999999", 1L, null);
+    }
+
+    @Test
+    public void shouldCreateValidGroupAssignment() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 1L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 1L;
+
+        Assignment expectedReturnAssignment = new Assignment();
+        expectedReturnAssignment.setId(1L);
+        expectedReturnAssignment.setResourceRef(1L);
+        expectedReturnAssignment.setOrganizationUnitId("99999999");
+        expectedReturnAssignment.setRoleRef(1L);
+
+        Resource value = new Resource();
+        value.setId(1L);
+        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
+
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+        when(assignmentServiceMock.createNewAssignment(1L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$").isNotEmpty())
+                .andExpect(jsonPath("$.id").value("1"))
+                .andExpect(jsonPath("$.organizationUnitId").value("99999999"))
+                .andExpect(jsonPath("$.roleRef").value("1"));
+
+        verify(assignmentServiceMock).createNewAssignment(1L, "99999999", null, 1L);
+    }
+
+    @Test
+    public void createAssignment_failOnBothRoleAndUser() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 1L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 1L;
+        newAssignmentRequest.userRef = 1L;
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("Cannot assign both role and user"));
+    }
+
+    @Test
+    public void createAssignment_failMissingResource() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = null;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 1L;
+        newAssignmentRequest.userRef = 1L;
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("ResourceRef must be set"));
+    }
+
+    @Test
+    public void createAssignment_failMissingIdentityProviderGroupObjectId() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 123L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 1L;
+        newAssignmentRequest.userRef = 1L;
+
+        Resource value = new Resource();
+        value.setId(1L);
+        value.setIdentityProviderGroupObjectId(null);
+
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 1 does not have azure group id set"));
+    }
+
+    @Test
+    public void createAssignment_failUsedResourceNotFound() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 123L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 1L;
+        newAssignmentRequest.userRef = 1L;
+
+        Resource value = new Resource();
+        value.setId(1L);
+        value.setIdentityProviderGroupObjectId(null);
+
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 1 not found"));
     }
 
     @Test

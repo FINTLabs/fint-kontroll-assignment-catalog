@@ -17,7 +17,9 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
+import org.hibernate.annotations.ColumnTransformer;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -28,11 +30,12 @@ import java.util.Set;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="AssignmentRoles")
+@Table(name = "AssignmentRoles")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
 public class Role {
+
     @Id
     //@GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,10 +45,14 @@ public class Role {
     private String organisationUnitId;
     private String organisationUnitName;
 
+    @ColumnTransformer(write = "LOWER(?)")
+    private String roleStatus;
+    private Date roleStatusChanged;
+
     @OneToMany(mappedBy = "role",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value="role-assignment")
+    @JsonManagedReference(value = "role-assignment")
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();
@@ -61,13 +68,6 @@ public class Role {
                 .build();
     }
 
-    private Long getAssignmentId(Long resourceRef) {
-        return  assignments.stream()
-                .filter(assignment -> assignment.getResourceRef().equals(resourceRef))
-                .map(assignment -> assignment.getId())
-                .toList().get(0);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -79,11 +79,11 @@ public class Role {
         final Role role = (Role) o;
         return Objects.equals(id, role.id) && Objects.equals(roleObjectId, role.roleObjectId) && Objects.equals(roleName, role.roleName) &&
                Objects.equals(roleType, role.roleType) && Objects.equals(organisationUnitId, role.organisationUnitId) &&
-               Objects.equals(organisationUnitName, role.organisationUnitName);
+               Objects.equals(organisationUnitName, role.organisationUnitName) && Objects.equals(roleStatus, role.roleStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, roleObjectId, roleName, roleType, organisationUnitId, organisationUnitName);
+        return Objects.hash(id, roleObjectId, roleName, roleType, organisationUnitId, organisationUnitName, roleStatus);
     }
 }
