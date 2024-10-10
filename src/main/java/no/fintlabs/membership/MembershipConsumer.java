@@ -82,7 +82,11 @@ public class MembershipConsumer {
     }
 
     private Membership saveNewMembership(Membership incomingMembership) {
-        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
+        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}, status {}",
+                incomingMembership.getRoleId(),
+                incomingMembership.getMemberId(),
+                incomingMembership.getId(),
+                incomingMembership.getMemberStatus());
         Membership savedMembership = membershipRepository.saveAndFlush(incomingMembership);
         membershipCache.put(savedMembership.getId(), savedMembership);
         logCacheSize();
@@ -93,8 +97,11 @@ public class MembershipConsumer {
         Membership membership;
 
         if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(),
-                     incomingMembership.getId());
+            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}, status {}",
+                    incomingMembership.getRoleId(),
+                    incomingMembership.getMemberId(),
+                    incomingMembership.getId(),
+                    incomingMembership.getMemberStatus());
             membership = membershipRepository.saveAndFlush(incomingMembership);
         } else {
             membership = existingMembership;
