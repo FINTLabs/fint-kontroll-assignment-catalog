@@ -8,11 +8,7 @@ import no.fintlabs.membership.Membership;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
@@ -134,6 +130,28 @@ public class FlattenedAssignmentService {
 
                 });
     }
+    @Transactional
+    public void deactivateFlattenedAssignments(Set<Long> flattenedAssignmentIds) {
+        log.info("Deactivate flattened assignments:  {}", flattenedAssignmentIds);
+
+        String deactivationReason = "Role membership deactivated";
+        Date deactivationDate = new Date();
+        flattenedAssignmentIds
+                .stream()
+                .map(flattenedAssignmentRepository::findById)
+                .map(Optional::get)
+                .peek(flattenedAssignment -> {
+                    log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
+                            flattenedAssignment.getId(),
+                            flattenedAssignment.getAssignmentId(),
+                            deactivationReason
+                    );
+                    flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
+                    flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
+                    flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+                });
+    }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
         return flattenedAssignmentRepository.findAll();
@@ -165,28 +183,5 @@ public class FlattenedAssignmentService {
 
     public Set<Long> getIdsMissingIdentityProviderUserObjectId() {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
-    }
-
-    public void deleteByIdsInBatches(Set<Long> ids) {
-        int batchSize = 1000;
-
-        List<Long> batch = new ArrayList<>(batchSize);
-        Long deletedCount = 0L;
-
-        for (Long id : ids) {
-            batch.add(id);
-            if (batch.size() == batchSize) {
-                deletedCount += batchSize;
-                flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
-                batch.clear();
-                log.info("Total deleted flattened assignments: {}", deletedCount);
-            }
-        }
-
-        if (!batch.isEmpty()) {
-            deletedCount += batch.size();
-            flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
-            log.info("Done deleted flattened assignments: {}", deletedCount);
-        }
     }
 }
