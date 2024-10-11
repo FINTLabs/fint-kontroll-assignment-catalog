@@ -2,8 +2,10 @@ package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.consuming.ListenerConfiguration;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -22,14 +24,18 @@ public class UserConsumer {
     @Bean
     public ConcurrentMessageListenerContainer<String, User> userConsumerConfiguration(
             UserService userService,
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService parameterizedListenerContainerFactoryService
     ) {
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("kontrolluser")
+                .topicNamePrefixParameters(TopicNamePrefixParameters.builder()
+                                                   .orgIdApplicationDefault()
+                                                   .domainContextApplicationDefault()
+                                                   .build())
+                .resourceName("kontrolluser")
                 .build();
 
-        ConcurrentMessageListenerContainer container = entityConsumerFactoryService.createFactory(
+        ConcurrentMessageListenerContainer container = parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
                         KontrollUser.class,
                         (ConsumerRecord<String, KontrollUser> consumerRecord) -> {
                             KontrollUser kontrollUser = consumerRecord.value();
@@ -60,7 +66,10 @@ public class UserConsumer {
                                                 User savedUser = userService.convertAndSaveAsUser(convertedUser);
                                                 userCache.put(savedUser.getId(), savedUser);
                                             });
-                        }
+                        }, ListenerConfiguration.builder()
+                                .seekingOffsetResetOnAssignment(false)
+                                .maxPollRecords(100)
+                                .build()
                 )
                 .createContainer(entityTopicNameParameters);
 

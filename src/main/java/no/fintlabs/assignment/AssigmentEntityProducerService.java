@@ -3,40 +3,61 @@ package no.fintlabs.assignment;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.groupmembership.ResourceGroupMembership;
-import no.fintlabs.kafka.entity.EntityProducer;
-import no.fintlabs.kafka.entity.EntityProducerFactory;
-import no.fintlabs.kafka.entity.EntityProducerRecord;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
-import no.fintlabs.kafka.entity.topic.EntityTopicService;
+import no.fintlabs.kafka.model.ParameterizedProducerRecord;
+import no.fintlabs.kafka.producing.ParameterizedTemplate;
+import no.fintlabs.kafka.producing.ParameterizedTemplateFactory;
+import no.fintlabs.kafka.topic.EntityTopicService;
+import no.fintlabs.kafka.topic.configuration.CleanupFrequency;
+import no.fintlabs.kafka.topic.configuration.EntityTopicConfiguration;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
 @Service
 public class AssigmentEntityProducerService {
 
-    private final EntityProducer<ResourceGroupMembership> entityProducer;
+    private final ParameterizedTemplate<ResourceGroupMembership> resourceGroupMembershipTemplate;
     private final EntityTopicNameParameters resourceGroupMembershipTopicNameParameters;
     private final EntityTopicNameParameters fullResourceGroupMembershipTopicNameParameters;
 
     public AssigmentEntityProducerService(
-            EntityProducerFactory entityProducerFactory,
+            ParameterizedTemplateFactory parameterizedTemplateFactory,
             EntityTopicService entityTopicService
     ) {
-        entityProducer = entityProducerFactory.createProducer(ResourceGroupMembership.class);
+        resourceGroupMembershipTemplate = parameterizedTemplateFactory.createTemplate(ResourceGroupMembership.class);
+
+        TopicNamePrefixParameters topicNamePrefixParameters = TopicNamePrefixParameters.builder()
+                .orgIdApplicationDefault()
+                .domainContextApplicationDefault()
+                .build();
 
         resourceGroupMembershipTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("resource-group-membership")
+                .topicNamePrefixParameters(topicNamePrefixParameters)
+                .resourceName("resource-group-membership")
                 .build();
-        entityTopicService.ensureTopic(resourceGroupMembershipTopicNameParameters, 0);
+        entityTopicService.createOrModifyTopic(resourceGroupMembershipTopicNameParameters,
+                                               EntityTopicConfiguration.builder()
+                                                       .lastValueRetainedForever()
+                                                       .nullValueRetentionTime(Duration.ofDays(7))
+                                                       .cleanupFrequency(CleanupFrequency.NORMAL)
+                                                       .build());
 
         fullResourceGroupMembershipTopicNameParameters = EntityTopicNameParameters
                 .builder()
-                .resource("full-resource-group-membership")
+                .topicNamePrefixParameters(topicNamePrefixParameters)
+                .resourceName("full-resource-group-membership")
                 .build();
-        entityTopicService.ensureTopic(fullResourceGroupMembershipTopicNameParameters, 300000); // 5 minutes retention
+
+        entityTopicService.createOrModifyTopic(fullResourceGroupMembershipTopicNameParameters, EntityTopicConfiguration.builder()
+                .lastValueRetentionTime(Duration.ofMinutes(5))
+                .nullValueRetentionTime(Duration.ofDays(7))
+                .cleanupFrequency(CleanupFrequency.NORMAL)
+                .build());
     }
 
     public void publish(FlattenedAssignment assignment) {
@@ -96,12 +117,10 @@ public class AssigmentEntityProducerService {
     private void publishDeletion(UUID azureAdGroupId, UUID azureUserId) {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
 
-        entityProducer.send(
-                EntityProducerRecord.<ResourceGroupMembership>builder()
-                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
-                        .key(key)
-                        .value(null)
-                        .build()
+        resourceGroupMembershipTemplate.send(
+                new ParameterizedProducerRecord<>(
+                        resourceGroupMembershipTopicNameParameters,
+                        null, key, null)
         );
     }
 
@@ -111,12 +130,9 @@ public class AssigmentEntityProducerService {
 
         log.info("Publiserer ressurs " + azureAdGroupId + " tildelt bruker " + azureUserId);
 
-        entityProducer.send(
-                EntityProducerRecord.<ResourceGroupMembership>builder()
-                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
-                        .key(key)
-                        .value(azureAdGroupMembership)
-                        .build()
+        resourceGroupMembershipTemplate.send(
+                new ParameterizedProducerRecord<>(
+                        resourceGroupMembershipTopicNameParameters, null, key, azureAdGroupMembership)
         );
     }
 
@@ -126,12 +142,8 @@ public class AssigmentEntityProducerService {
 
         log.info("Republishing resource {} assigned to user {}", azureAdGroupId, azureUserId);
 
-        entityProducer.send(
-                EntityProducerRecord.<ResourceGroupMembership>builder()
-                        .topicNameParameters(fullResourceGroupMembershipTopicNameParameters)
-                        .key(key)
-                        .value(azureAdGroupMembership)
-                        .build()
+        resourceGroupMembershipTemplate.send(
+                new ParameterizedProducerRecord(fullResourceGroupMembershipTopicNameParameters, null, key, azureAdGroupMembership)
         );
     }
 }

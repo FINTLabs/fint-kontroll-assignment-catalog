@@ -2,8 +2,10 @@ package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.consuming.ListenerConfiguration;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -22,14 +24,22 @@ public class RoleConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Role> roleConsumerConfig(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService parameterizedListenerContainerFactoryService
     ){
-        return entityConsumerFactoryService.createFactory(
+        return parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
                         Role.class,
-                        this::process)
+                        this::process,
+                        ListenerConfiguration.builder()
+                                .seekingOffsetResetOnAssignment(false)
+                                .maxPollRecords(100)
+                                .build())
                 .createContainer(EntityTopicNameParameters
                         .builder()
-                        .resource("role-catalog-role")
+                        .resourceName("role-catalog-role")
+                        .topicNamePrefixParameters(TopicNamePrefixParameters.builder()
+                                .orgIdApplicationDefault()
+                                .domainContextApplicationDefault()
+                                .build())
                         .build());
     }
 

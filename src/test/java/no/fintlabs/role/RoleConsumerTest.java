@@ -1,7 +1,7 @@
 package no.fintlabs.role;
 
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ public class RoleConsumerTest {
     private RoleRepository roleRepository;
 
     @Mock
-    private EntityConsumerFactoryService factoryService;
+    private ParameterizedListenerContainerFactoryService factoryService;
 
     @Mock
     private FintCache<Long, Role> roleCache;

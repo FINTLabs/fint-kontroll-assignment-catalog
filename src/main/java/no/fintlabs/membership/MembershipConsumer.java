@@ -2,8 +2,10 @@ package no.fintlabs.membership;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.consuming.ListenerConfiguration;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -27,13 +29,22 @@ public class MembershipConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Membership> membershipConsumerConfiguration(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService parameterizedListenerContainerFactoryService
     ) {
-        return entityConsumerFactoryService.createFactory(
+        TopicNamePrefixParameters topicNamePrefixParameters = TopicNamePrefixParameters.builder()
+                .orgIdApplicationDefault()
+                .domainContextApplicationDefault()
+                .build();
+
+        return parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
                         Membership.class,
-                        this::processMemberships)
+                        this::processMemberships, ListenerConfiguration.builder()
+                                .seekingOffsetResetOnAssignment(false)
+                                .maxPollRecords(100)
+                                .build())
                 .createContainer(EntityTopicNameParameters.builder()
-                                         .resource("role-catalog-membership")
+                                         .resourceName("role-catalog-membership")
+                                         .topicNamePrefixParameters(topicNamePrefixParameters)
                                          .build());
     }
 
@@ -75,7 +86,8 @@ public class MembershipConsumer {
 
     private Membership processExistingMembership(Membership existingMembership, Membership incomingMembership) {
         if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
+            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(),
+                     incomingMembership.getId());
             return membershipRepository.save(incomingMembership);
         } else {
             return existingMembership;
