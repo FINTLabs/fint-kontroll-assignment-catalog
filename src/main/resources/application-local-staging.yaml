@@ -7,6 +7,8 @@ fint:
   client:
     base-url: https://beta.felleskomponent.no
   kafka:
+    topic:
+      org-id: fintlabs-no
     default-replicas: 1
   kontroll:
     opa:
@@ -41,6 +43,7 @@ spring:
             client-secret: ${fint.client-secret}
             provider: fint-idp
             scope: fint-client
+
 server:
   port: 8097
 logging:

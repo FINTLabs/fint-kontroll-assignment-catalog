@@ -5,8 +5,10 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.consuming.ListenerConfiguration;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +25,8 @@ public class AzureAdGroupMemberShipConsumer {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
-    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService) {
+    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService,
+                                          FlattenedAssignmentService flattenedAssignmentService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.flattenedAssignmentService = flattenedAssignmentService;
@@ -31,16 +34,30 @@ public class AzureAdGroupMemberShipConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService parameterizedListenerContainerFactoryService
     ) {
 
-        return entityConsumerFactoryService.createFactory(
+        TopicNamePrefixParameters topicNamePrefixParameters = TopicNamePrefixParameters.builder()
+                .orgIdApplicationDefault()
+                .domainContextApplicationDefault()
+                .build();
+
+        ListenerConfiguration listenerConfiguration = ListenerConfiguration.builder()
+                .seekingOffsetResetOnAssignment(false)
+                .maxPollRecords(100)
+                .build();
+
+        EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
+                .builder()
+                .resourceName("azuread-resource-group-membership")
+                .topicNamePrefixParameters(topicNamePrefixParameters)
+                .build();
+
+        return parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
                         AzureAdGroupMembership.class,
-                        this::processGroupMembership)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
-                                         .resource("azuread-resource-group-membership")
-                                         .build());
+                        this::processGroupMembership,
+                        listenerConfiguration)
+                .createContainer(entityTopicNameParameters);
     }
 
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {

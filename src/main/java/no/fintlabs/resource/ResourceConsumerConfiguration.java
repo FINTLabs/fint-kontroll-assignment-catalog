@@ -1,8 +1,10 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.consuming.ListenerConfiguration;
+import no.fintlabs.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.topic.name.EntityTopicNameParameters;
+import no.fintlabs.kafka.topic.name.TopicNamePrefixParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,15 +24,23 @@ public class ResourceConsumerConfiguration {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Resource> resourceConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService parameterizedListenerContainerFactoryService
     ) {
 
-        return entityConsumerFactoryService.createFactory(
+        return parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
                         Resource.class,
-                        this::processResource)
+                        this::processResource,
+                        ListenerConfiguration.builder()
+                                .seekingOffsetResetOnAssignment(false)
+                                .maxPollRecords(100)
+                                .build())
                 .createContainer(EntityTopicNameParameters
                                          .builder()
-                                         .resource("resource-group")
+                                         .resourceName("resource-group")
+                                         .topicNamePrefixParameters(TopicNamePrefixParameters.builder()
+                                                                            .orgIdApplicationDefault()
+                                                                            .domainContextApplicationDefault()
+                                                                            .build())
                                          .build());
     }
 
