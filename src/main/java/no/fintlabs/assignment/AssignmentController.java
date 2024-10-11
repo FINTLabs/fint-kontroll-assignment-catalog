@@ -234,7 +234,7 @@ public class AssignmentController {
         if (!ids.isEmpty()) {
             log.info("Deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
 
-            flattenedAssignmentService.deleteByIdsInBatches(ids);
+            flattenedAssignmentService.deactivateFlattenedAssignments(ids);
 
             log.info("Done deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
         }
