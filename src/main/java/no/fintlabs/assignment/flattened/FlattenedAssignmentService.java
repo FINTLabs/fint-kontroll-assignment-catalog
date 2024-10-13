@@ -140,7 +140,8 @@ public class FlattenedAssignmentService {
                 .stream()
                 .map(flattenedAssignmentRepository::findById)
                 .map(Optional::get)
-                .peek(flattenedAssignment -> {
+                .toList()
+                .forEach(flattenedAssignment -> {
                     log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
                             flattenedAssignment.getId(),
                             flattenedAssignment.getAssignmentId(),
