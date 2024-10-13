@@ -119,16 +119,11 @@ public class FlattenedAssignmentService {
 
     @Transactional
     public void deleteFlattenedAssignments(Assignment assignment) {
-        log.info("Deleting flattened assignments for assignment with id {}", assignment.getId());
+        log.info("Deactivate flattened assignments for assignment with id {}", assignment.getId());
 
-        flattenedAssignmentRepository.findByAssignmentId(assignment.getId())
-                .forEach(flattenedAssignment -> {
-                    log.info("Deleting flattened assignment for with id: {}, for assignment id {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
-                    flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
-                    flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
-                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
-
-                });
+        String deactivationReason = "Assosiated assignment removed by user";
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentId(assignment.getId());
+        deactivateFlattenedAssignments(flattenedAssignments,deactivationReason, assignment.getAssignmentRemovedDate());
     }
     @Transactional
     public void deactivateFlattenedAssignments(Set<Long> flattenedAssignmentIds) {
@@ -136,22 +131,13 @@ public class FlattenedAssignmentService {
 
         String deactivationReason = "Role membership deactivated";
         Date deactivationDate = new Date();
-        flattenedAssignmentIds
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentIds
                 .stream()
-                .map(flattenedAssignmentRepository::findById)
+                .map(flattenedAssignmentRepository::findById)                
+                .filter(Optional::isPresent)
                 .map(Optional::get)
-                .toList()
-                .forEach(flattenedAssignment -> {
-                    log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
-                            flattenedAssignment.getId(),
-                            flattenedAssignment.getAssignmentId(),
-                            deactivationReason
-                    );
-                    flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
-                    flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
-                    flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
-                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
-                });
+                .toList();
+        deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
@@ -184,5 +170,23 @@ public class FlattenedAssignmentService {
 
     public Set<Long> getIdsMissingIdentityProviderUserObjectId() {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
+    }
+
+    private void deactivateFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
+        if (flattenedAssignments.isEmpty()) {
+            log.info("No flattened assignments found for deactivation");
+            return;
+        }
+        flattenedAssignments.forEach(flattenedAssignment -> {
+            log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
+                    flattenedAssignment.getId(),
+                    flattenedAssignment.getAssignmentId(),
+                    deactivationReason
+            );
+            flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
+            flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
+            flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+            assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+        });
     }
 }
