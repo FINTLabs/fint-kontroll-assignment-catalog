@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @Component
 public class MembershipConsumer {
@@ -36,7 +39,7 @@ public class MembershipConsumer {
                 .domainContextApplicationDefault()
                 .build();
 
-        return parameterizedListenerContainerFactoryService.createRecordListenerContainerFactory(
+        return parameterizedListenerContainerFactoryService.createBatchListenerContainerFactory(
                         Membership.class,
                         this::processMemberships, ListenerConfiguration.builder()
                                 .seekingOffsetResetOnAssignment(false)
@@ -48,51 +51,44 @@ public class MembershipConsumer {
                                          .build());
     }
 
-    private void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
-        Membership incomingMembership = consumerRecord.value();
+    private void processMemberships(List<ConsumerRecord<String, Membership>> consumerRecord) {
+        List<Membership> toProcess = new ArrayList<>();
 
-        membershipCache.getOptional(incomingMembership.getId())
-                .ifPresentOrElse(
-                        cachedMembership -> {
-                            if (!cachedMembership.equals(incomingMembership)) {
-                                process(incomingMembership);
+        consumerRecord.forEach(record -> {
+            Membership incomingMembership = record.value();
+            membershipCache.getOptional(incomingMembership.getId())
+                    .ifPresentOrElse(
+                            cachedMembership -> {
+                                if (!cachedMembership.equals(incomingMembership)) {
+                                    toProcess.add(incomingMembership);
+                                }
                             }
-                        }
-                        , () -> process(incomingMembership));
+                            , () -> toProcess.add(incomingMembership));
+        });
 
+        process(toProcess);
     }
 
-    private void process(Membership incomingMembership) {
-        membershipRepository.findById(incomingMembership.getId())
-                .ifPresentOrElse(
-                        existingMembership -> {
-                            Membership savedMembership = processExistingMembership(existingMembership, incomingMembership);
-                            membershipCache.put(savedMembership.getId(), savedMembership);
-                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
-                            membershipService.processAssignmentsForMembership(savedMembership);
-                        },
-                        () -> {
-                            Membership savedMembership = processNewMembership(incomingMembership);
-                            membershipCache.put(savedMembership.getId(), savedMembership);
-                            log.info("Membership cache size is now {}", membershipCache.getAll().size());
-                            membershipService.processAssignmentsForMembership(savedMembership);
-                        });
+    private void process(List<Membership> incomingMemberships) {
+        List<String> membershipIds = incomingMemberships.stream().map(Membership::getId).toList();
+        List<Membership> membershipsTopProcess = membershipRepository.findAllById(membershipIds);
+
+        List<Membership> toSave = new ArrayList<>();
+
+        incomingMemberships.forEach(incoming -> {
+            Membership existing = membershipsTopProcess.stream().filter(m -> m.getId().equals(incoming.getId())).findFirst().orElse(null);
+            if (existing != null && !existing.equals(incoming)) {
+                log.info("Members are not equal. Saving: roleId {}, memberId {}, id {}", incoming.getRoleId(), incoming.getMemberId(), incoming.getId());
+                toSave.add(incoming);
+            }
+
+            membershipCache.put(incoming.getId(), incoming);
+        });
+
+        List<Membership> savedMemberships = membershipRepository.saveAll(toSave);
+
+        log.info("Membership cache size is now {}", membershipCache.getAll().size());
+
+        savedMemberships.forEach(membershipService::processAssignmentsForMembership);
     }
-
-    private Membership processNewMembership(Membership incomingMembership) {
-        log.info("Incoming membership does not exist. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(), incomingMembership.getId());
-        return membershipRepository.save(incomingMembership);
-    }
-
-    private Membership processExistingMembership(Membership existingMembership, Membership incomingMembership) {
-        if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}", incomingMembership.getRoleId(), incomingMembership.getMemberId(),
-                     incomingMembership.getId());
-            return membershipRepository.save(incomingMembership);
-        } else {
-            return existingMembership;
-        }
-    }
-
-
 }

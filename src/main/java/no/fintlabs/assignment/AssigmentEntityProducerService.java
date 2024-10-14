@@ -118,9 +118,10 @@ public class AssigmentEntityProducerService {
         String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
 
         resourceGroupMembershipTemplate.send(
-                new ParameterizedProducerRecord<>(
-                        resourceGroupMembershipTopicNameParameters,
-                        null, key, null)
+                ParameterizedProducerRecord.<ResourceGroupMembership>builder()
+                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
+                        .key(key)
+                        .build()
         );
     }
 
@@ -131,9 +132,11 @@ public class AssigmentEntityProducerService {
         log.info("Publiserer ressurs " + azureAdGroupId + " tildelt bruker " + azureUserId);
 
         resourceGroupMembershipTemplate.send(
-                new ParameterizedProducerRecord<>(
-                        resourceGroupMembershipTopicNameParameters, null, key, azureAdGroupMembership)
-        );
+                ParameterizedProducerRecord.<ResourceGroupMembership>builder()
+                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
+                        .key(key)
+                        .value(azureAdGroupMembership)
+                        .build());
     }
 
     private void rePublish(UUID azureAdGroupId, UUID azureUserId) {
@@ -143,7 +146,10 @@ public class AssigmentEntityProducerService {
         log.info("Republishing resource {} assigned to user {}", azureAdGroupId, azureUserId);
 
         resourceGroupMembershipTemplate.send(
-                new ParameterizedProducerRecord(fullResourceGroupMembershipTopicNameParameters, null, key, azureAdGroupMembership)
-        );
+                ParameterizedProducerRecord.<ResourceGroupMembership>builder()
+                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
+                        .key(key)
+                        .value(azureAdGroupMembership)
+                        .build());
     }
 }
