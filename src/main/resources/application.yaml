@@ -38,8 +38,8 @@ logging:
     root: INFO
     org.apache.kafka: WARN
     no.fintlabs.assignment: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.SQL: INFO
+    org.hibernate.orm.jdbc.bind: INFO
     no.fintlabs.cache.ehcache: WARN
 server:
   error:
