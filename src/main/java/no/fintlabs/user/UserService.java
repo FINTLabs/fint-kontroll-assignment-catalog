@@ -1,7 +1,7 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import no.fintlabs.assignment.AssignmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,30 +12,42 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final AssignmentService assignmentService;
+
+    public UserService(UserRepository userRepository, AssignmentService assignmentService) {
+        this.userRepository = userRepository;
+        this.assignmentService = assignmentService;
+    }
 
     public User save(User user) {
         return userRepository.save(user);
     }
-    public Page<User> findBySearchCriteria(Specification<User> spec, Pageable page){
-        Page<User> searchResult = userRepository.findAll(spec, page);
-        return searchResult;
+
+    public Page<User> findBySearchCriteria(Specification<User> spec, Pageable page) {
+        return userRepository.findAll(spec, page);
     }
 
-    public User convertAndSaveAsUser(User userUpdate) {
-        Optional<User> existingUserOptional = userRepository.findById(userUpdate.getId());
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
 
-        if (existingUserOptional.isPresent()) {
-            User existingUser = existingUserOptional.get();
-            if (!existingUser.equals(userUpdate)) {
-                return save(userUpdate);
-            } else {
-                log.info("User {} already exists and is equal to the incoming user. Skipping.", userUpdate.getId());
-                return existingUser;
+    public User updateUser(User user, User updatedUser) {
+        if (!user.convertedUserEquals(updatedUser)) {
+//            updatedUser.setStatusChanged(new Date());
+            User savedUser = saveUser(updatedUser);
+
+            if (user.hasStatusChanged(updatedUser)) {
+                assignmentService.deactivateAssignmentsByUser(updatedUser);
             }
+
+            return savedUser;
         } else {
-            return save(userUpdate);
+            return user;
         }
+    }
+
+    public User saveUser(User user) {
+        return userRepository.save(user);
     }
 }

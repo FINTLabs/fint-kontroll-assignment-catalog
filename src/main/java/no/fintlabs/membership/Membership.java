@@ -11,6 +11,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -29,6 +30,8 @@ public class Membership {
     private Long roleId;
     private Long memberId;
     private UUID identityProviderUserObjectId;
+    private String memberStatus;
+    private Date memberStatusChanged;
 
     @Override
     public boolean equals(Object o) {
@@ -40,12 +43,13 @@ public class Membership {
         }
         final Membership that = (Membership) o;
         return Objects.equals(id, that.id) && Objects.equals(roleId, that.roleId) && Objects.equals(memberId, that.memberId) &&
-               Objects.equals(identityProviderUserObjectId, that.identityProviderUserObjectId);
+               Objects.equals(identityProviderUserObjectId, that.identityProviderUserObjectId) &&
+               Objects.equals(memberStatus, that.memberStatus) && Objects.equals(memberStatusChanged, that.memberStatusChanged);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, roleId, memberId, identityProviderUserObjectId);
+        return Objects.hash(id, roleId, memberId, identityProviderUserObjectId, memberStatus, memberStatusChanged);
     }
 }
 

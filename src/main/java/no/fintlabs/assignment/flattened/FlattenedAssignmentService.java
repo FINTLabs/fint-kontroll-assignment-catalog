@@ -8,11 +8,7 @@ import no.fintlabs.membership.Membership;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
@@ -123,16 +119,25 @@ public class FlattenedAssignmentService {
 
     @Transactional
     public void deleteFlattenedAssignments(Assignment assignment) {
-        log.info("Deleting flattened assignments for assignment with id {}", assignment.getId());
+        log.info("Deactivate flattened assignments for assignment with id {}", assignment.getId());
 
-        flattenedAssignmentRepository.findByAssignmentId(assignment.getId())
-                .forEach(flattenedAssignment -> {
-                    log.info("Deleting flattened assignment for with id: {}, for assignment id {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
-                    flattenedAssignment.setAssignmentTerminationDate(assignment.getAssignmentRemovedDate());
-                    flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
-                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+        String deactivationReason = "Assosiated assignment removed by user";
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentId(assignment.getId());
+        deactivateFlattenedAssignments(flattenedAssignments,deactivationReason, assignment.getAssignmentRemovedDate());
+    }
+    @Transactional
+    public void deactivateFlattenedAssignments(Set<Long> flattenedAssignmentIds) {
+        log.info("Deactivate flattened assignments:  {}", flattenedAssignmentIds);
 
-                });
+        String deactivationReason = "Role membership deactivated";
+        Date deactivationDate = new Date();
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentIds
+                .stream()
+                .map(flattenedAssignmentRepository::findById)                
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+        deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
@@ -159,30 +164,29 @@ public class FlattenedAssignmentService {
         return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
     }
 
+    public Set<Long> findFlattenedAssignmentIdsByUserAndRoleRef(Long userRef, Long roleRef) {
+        return new HashSet<>(flattenedAssignmentRepository.findFlattenedAssignmentIdsByUserAndRoleRef(userRef, roleRef));
+    }
+
     public Set<Long> getIdsMissingIdentityProviderUserObjectId() {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
     }
 
-    public void deleteByIdsInBatches(Set<Long> ids) {
-        int batchSize = 1000;
-
-        List<Long> batch = new ArrayList<>(batchSize);
-        Long deletedCount = 0L;
-
-        for (Long id : ids) {
-            batch.add(id);
-            if (batch.size() == batchSize) {
-                deletedCount += batchSize;
-                flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
-                batch.clear();
-                log.info("Total deleted flattened assignments: {}", deletedCount);
-            }
+    private void deactivateFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
+        if (flattenedAssignments.isEmpty()) {
+            log.info("No flattened assignments found for deactivation");
+            return;
         }
-
-        if (!batch.isEmpty()) {
-            deletedCount += batch.size();
-            flattenedAssignmentRepository.deleteAllByIdInBatch(batch);
-            log.info("Done deleted flattened assignments: {}", deletedCount);
-        }
+        flattenedAssignments.forEach(flattenedAssignment -> {
+            log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
+                    flattenedAssignment.getId(),
+                    flattenedAssignment.getAssignmentId(),
+                    deactivationReason
+            );
+            flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
+            flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
+            flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+            assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+        });
     }
 }

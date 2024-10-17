@@ -1,5 +1,6 @@
 package no.fintlabs.role;
 
+import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -7,6 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.time.Instant;
+import java.util.Date;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,12 +26,15 @@ public class RoleConsumerTest {
     @Mock
     private FintCache<Long, Role> roleCache;
 
+    @Mock
+    private AssignmentService assignmentService;
+
     private RoleConsumer consumer;
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new RoleConsumer(roleRepository, roleCache);
+        consumer = new RoleConsumer(roleRepository, assignmentService, roleCache);
     }
 
     @Test
@@ -50,7 +57,7 @@ public class RoleConsumerTest {
 
         consumer.process(record);
 
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
 
     }
@@ -101,7 +108,55 @@ public class RoleConsumerTest {
         consumer.process(record);
 
         verify(roleRepository, times(1)).findById(updatedRole.getId());
-        verify(roleRepository, times(1)).save(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
+        verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
+    }
+
+    @Test
+    public void processRole_deactivate() {
+        Role updatedRole = Role.builder()
+                .id(1L)
+                .roleName("roleName")
+                .roleStatus("Inactive")
+                .build();
+
+        Role existingRole = Role.builder()
+                .id(1L)
+                .roleName("roleName_changed")
+                .roleStatus("Active")
+                .roleStatusChanged(Date.from(Instant.parse("2023-08-01T12:00:00Z")))
+                .build();
+
+        when(roleRepository.findById(updatedRole.getId())).thenReturn(java.util.Optional.of(existingRole));
+
+        consumer.processRoleUpdate(updatedRole);
+
+        verify(assignmentService, times(1)).deactivateAssignmentsByRole(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
+        verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
+    }
+
+    @Test
+    public void processRole_activate() {
+        Role updatedRole = Role.builder()
+                .id(1L)
+                .roleName("roleName")
+                .roleStatus("active")
+                .build();
+
+        Role existingRole = Role.builder()
+                .id(1L)
+                .roleName("roleName_changed")
+                .roleStatus("Inactive")
+                .roleStatusChanged(Date.from(Instant.parse("2023-08-01T12:00:00Z")))
+                .build();
+
+        when(roleRepository.findById(updatedRole.getId())).thenReturn(java.util.Optional.of(existingRole));
+
+        consumer.processRoleUpdate(updatedRole);
+
+        verify(assignmentService, times(1)).deactivateAssignmentsByRole(updatedRole);
+        verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
     }
 }
