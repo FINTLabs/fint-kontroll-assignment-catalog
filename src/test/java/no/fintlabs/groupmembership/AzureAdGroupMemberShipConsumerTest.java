@@ -87,5 +87,29 @@ public class AzureAdGroupMemberShipConsumerTest {
         verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
     }
 
+    @Test
+    public void processGroupMembership_handlesUpdate_toDelete() {
+        UUID groupIdUuid = UUID.randomUUID();
+        UUID userIdUuid = UUID.randomUUID();
+
+        String groupId = groupIdUuid.toString();
+        String userId = userIdUuid.toString();
+
+        AzureAdGroupMembership azureAdGroupMembership = new AzureAdGroupMembership("testId", groupIdUuid, userIdUuid);
+
+        ConsumerRecord<String, AzureAdGroupMembership> record =
+                new ConsumerRecord<>("topic", 1, 1, groupId + "_" + userId, azureAdGroupMembership);
+
+        FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
+
+        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(List.of());
+
+        consumer.processGroupMembership(record);
+
+        verify(assigmentEntityProducerService, times(1)).publishDeletion(groupIdUuid, userIdUuid);
+
+        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
+        verify(flattenedAssignmentService, times(0)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
+    }
 
 }

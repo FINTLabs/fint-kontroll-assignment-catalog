@@ -7,7 +7,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
-import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserNotFoundException;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -33,29 +34,29 @@ import java.util.Set;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
-    private final OpaService opaService;
     private final AuthManager authManager;
     private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
-
     private final MembershipService membershipService;
+    private final ResourceRepository resourceRepository;
 
 
-    public AssignmentController(AssignmentService assignmentService, OpaService opaService,
+    public AssignmentController(AssignmentService assignmentService,
                                 AssignmentResponseFactory assignmentResponseFactory,
                                 FlattenedAssignmentService flattenedAssignmentService,
                                 AssigmentEntityProducerService assigmentEntityProducerService,
                                 AuthManager authManager,
-                                MembershipService membershipService) {
+                                MembershipService membershipService,
+                                ResourceRepository resourceRepository) {
 
         this.assignmentService = assignmentService;
-        this.opaService = opaService;
         this.assignmentResponseFactory = assignmentResponseFactory;
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.authManager = authManager;
         this.membershipService = membershipService;
+        this.resourceRepository = resourceRepository;
     }
 
     @GetMapping()
@@ -72,38 +73,17 @@ public class AssignmentController {
     }
 
     @PostMapping()
-    public ResponseEntity<?> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
-        Assignment assignment = Assignment.builder()
-                .assignerUserName(opaService.getUserNameAuthenticatedUser())
-                .resourceRef(request.resourceRef)
-                .organizationUnitId(request.organizationUnitId)
-                .build();
+    public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
+        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
 
-        log.info("Request returned - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-
-        if (request.userRef != null && request.roleRef != null) {
-            return ResponseEntity.badRequest().body("Either userRef or roleRef must be set, not both");
-        }
-
-        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            return ResponseEntity.badRequest().body("OrganizationUnitId must be set and not empty");
-        }
-
-        if (request.userRef != null) {
-            assignment.setUserRef(request.userRef);
-        }
-        if (request.roleRef != null) {
-            assignment.setRoleRef(request.roleRef);
-        }
-
-        log.info("Trying to create new assignment for resource {} and {}"
-                , request.getResourceRef()
-                , request.userRef != null ? "user " + request.getUserRef() : "role " + request.getRoleRef()
-        );
+        validateUserRoleRefs(request);
+        validateResource(request);
+        validateOrganizationUnitId(request);
 
         try {
-            Assignment newAssignment = assignmentService.createNewAssignment(assignment);
-            return new ResponseEntity<>(newAssignment, HttpStatus.CREATED);
+            Assignment newAssignment =
+                    assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
+            return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
         } catch (AssignmentAlreadyExistsException exception) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         } catch (Exception e) {
@@ -212,7 +192,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus>  syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -251,10 +231,10 @@ public class AssignmentController {
 
         log.info("Found {} flattened assignments missing identityProviderUserObjectId", ids.size());
 
-        if(!ids.isEmpty()) {
+        if (!ids.isEmpty()) {
             log.info("Deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
 
-            flattenedAssignmentService.deleteByIdsInBatches(ids);
+            flattenedAssignmentService.deactivateFlattenedAssignments(ids);
 
             log.info("Done deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
         }
@@ -263,6 +243,37 @@ public class AssignmentController {
         log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private void validateResource(NewAssignmentRequest request) {
+        if (request.resourceRef == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
+        }
+
+        resourceRepository.findById(request.resourceRef)
+                .ifPresentOrElse(
+                        resource -> {
+                            if (resource.getIdentityProviderGroupObjectId() == null) {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " does not have azure group id set");
+                            }
+                        },
+                        () -> {
+                            log.error("Resource: {} not found", request.resourceRef);
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " not found");
+                        }
+                );
+    }
+
+    private void validateOrganizationUnitId(NewAssignmentRequest request) {
+        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
+        }
+    }
+
+    private void validateUserRoleRefs(NewAssignmentRequest request) {
+        if (request.userRef != null && request.roleRef != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+        }
     }
 
     private boolean validateIsAdmin(Jwt jwt) {
