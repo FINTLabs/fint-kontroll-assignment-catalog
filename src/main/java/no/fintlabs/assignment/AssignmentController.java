@@ -75,7 +75,6 @@ public class AssignmentController {
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-
         validateUserRoleRefs(request);
         validateResource(request);
         validateOrganizationUnitId(request);

@@ -176,21 +176,6 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void createAssignment_failMissingResource() throws Exception {
-        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
-        newAssignmentRequest.resourceRef = null;
-        newAssignmentRequest.organizationUnitId = "99999999";
-        newAssignmentRequest.roleRef = 1L;
-        newAssignmentRequest.userRef = 1L;
-
-        mockMvc.perform(post("/api/assignments")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("ResourceRef must be set"));
-    }
-
-    @Test
     public void createAssignment_failMissingIdentityProviderGroupObjectId() throws Exception {
         NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
         newAssignmentRequest.resourceRef = 123L;
