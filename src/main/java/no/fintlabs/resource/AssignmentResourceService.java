@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import no.fintlabs.authorization.AuthorizationUtil;
 
 import java.util.List;
 
@@ -25,14 +26,21 @@ public class AssignmentResourceService {
     private final AssignmentService assignmentService;
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final AuthorizationUtil authorizationUtil;
 
     private final UserRepository userRepository;
 
-    public AssignmentResourceService(ResourceRepository resourceRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository,
-                                     UserRepository userRepository) {
+    public AssignmentResourceService(
+            ResourceRepository resourceRepository,
+            AssignmentService assignmentService,
+            FlattenedAssignmentRepository flattenedAssignmentRepository,
+            AuthorizationUtil authorizationUtil,
+            UserRepository userRepository
+    ) {
         this.resourceRepository = resourceRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
+        this.authorizationUtil = authorizationUtil;
         this.userRepository = userRepository;
     }
 
@@ -106,6 +114,7 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
         resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment));
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
@@ -125,5 +134,13 @@ public class AssignmentResourceService {
 
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
         return flattenedAssignment.getAssignmentViaRoleRef() == null;
+    }
+    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment) {
+        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
+        return (isDirectAssignment(flattenedAssignment) && orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId()) && isResourceUnrestricted(flattenedAssignment));
+    }
+    private boolean isResourceUnrestricted(FlattenedAssignment flattenedAssignment) {
+    List<String> unrestrictedEnforcementTypes = List.of("FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        return unrestrictedEnforcementTypes.contains(flattenedAssignment.getLicenseEnforcement());
     }
 }
