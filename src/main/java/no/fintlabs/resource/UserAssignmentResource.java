@@ -15,6 +15,7 @@ public class UserAssignmentResource {
     private Long assigneeRef;
     private Long assignmentRef;
     private boolean directAssignment;
+    private boolean deletableAssignment;
     private Long assignmentViaRoleRef;
     private String assignmentViaRoleName;
     private String assignerUsername;
@@ -22,4 +23,5 @@ public class UserAssignmentResource {
     private Long resourceRef;
     private String resourceName;
     private String resourceType;
+    private String licenseEnforcement;
 }
