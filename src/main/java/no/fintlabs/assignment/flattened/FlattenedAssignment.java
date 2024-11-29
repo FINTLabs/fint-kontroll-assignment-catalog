@@ -39,6 +39,8 @@ public class FlattenedAssignment {
     private Long userRef;
     private UUID identityProviderUserObjectId;
     private Long resourceRef;
+    private String licenseEnforcement;
+    private String resourceConsumerOrgUnitId;
     private UUID identityProviderGroupObjectId;
     @Builder.Default
     private boolean identityProviderGroupMembershipConfirmed = false;
