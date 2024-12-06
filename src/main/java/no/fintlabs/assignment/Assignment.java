@@ -61,6 +61,7 @@ public class Assignment {
     private String resourceName;
     private UUID azureAdGroupId;
     private String organizationUnitId;
+    private String resourceConsumerOrgUnitId;
     private Long assignerRef;
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;
