@@ -12,7 +12,7 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
-import no.fintlabs.user.AssigmentUserService;
+import no.fintlabs.user.AssignmentUserService;
 import no.fintlabs.user.AssignmentUser;
 import no.fintlabs.user.ResourceAssignmentUser;
 import no.fintlabs.user.User;
@@ -36,11 +36,11 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssigmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
-    private AssigmentUserService assigmentUserService;
+    private AssignmentUserService assignmentUserService;
 
     @Autowired
     private AssignmentService assignmentService;
@@ -127,7 +127,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
 
-        Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
+        Page<AssignmentUser> usersPage = assignmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(0);
     }
@@ -167,7 +167,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
 
-        Page<AssignmentUser> usersPage = assigmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
+        Page<AssignmentUser> usersPage = assignmentUserService.findBySearchCriteria(2L, spec, Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(1);
     }
@@ -216,7 +216,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         testEntityManager.clear();
 
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
-                assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
@@ -294,7 +294,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         testEntityManager.clear();
 
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
-                assigmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
