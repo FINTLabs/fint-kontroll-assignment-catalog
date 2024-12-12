@@ -1,6 +1,7 @@
 package no.fintlabs.user;
 
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
@@ -8,6 +9,7 @@ import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -62,10 +64,21 @@ public class UserSpecificationBuilder {
     }
 
     private Specification<User> nameLike(String searchString) {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + searchString + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + searchString + "%"));
+        return (root, query, criteriaBuilder) -> {
+            String[] searchParts = searchString.toLowerCase().split("\\s+");
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            for (String part : searchParts) {
+                String searchPattern = "%" + part + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), searchPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), searchPattern)
+                ));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private Specification<User> belongsToOrgUnit(List<String> orgUnits) {
