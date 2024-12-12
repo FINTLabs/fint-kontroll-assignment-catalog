@@ -42,7 +42,7 @@ public class UserControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private AssigmentUserService assigmentUserServiceMock;
+    private AssignmentUserService assigmentUserServiceMock;
 
     @MockBean
     private OpaService opaServiceMock;

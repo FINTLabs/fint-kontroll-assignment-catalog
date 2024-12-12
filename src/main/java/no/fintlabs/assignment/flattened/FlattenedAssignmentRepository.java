@@ -54,6 +54,29 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     Page<Object[]> findAssignmentsByResourceAndUserTypeAndSearch(@Param("resourceId") Long resourceId, @Param("userType") String userType, @Param("orgUnits") List<String> orgUnits,
                                                                  @Param("search") String search, Pageable pageable);
 
+    @Query("SELECT fa, u, a, r, assignerUser.firstName, assignerUser.lastName " +
+            "FROM FlattenedAssignment fa " +
+            "LEFT JOIN User u ON u.id = fa.userRef " +
+            "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
+            "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
+            "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
+            "WHERE fa.resourceRef = :resourceId " +
+            "AND fa.assignmentTerminationDate IS NULL " +
+            "AND (:userType = 'ALLTYPES' OR LOWER(u.userType) = LOWER(:userType)) " +
+            "AND (:fullName IS NULL OR LOWER(u.firstName) LIKE %:fullName% OR LOWER(u.firstName) LIKE %:firstName% OR LOWER(u.lastName) LIKE %:lastName%) " +
+            "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits) " +
+            "ORDER BY u.firstName, u.lastName"
+    )
+    Page<Object[]> findAssignmentsByResourceAndUserTypeAndNamesSearch(
+            @Param("resourceId") Long resourceId,
+            @Param("userType") String userType,
+            @Param("orgUnits") List<String> orgUnits,
+            @Param("firstName") String firstName,
+            @Param("lastName") String lastName,
+            @Param("fullName") String fullName,
+            Pageable pageable
+    );
+
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
            "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
