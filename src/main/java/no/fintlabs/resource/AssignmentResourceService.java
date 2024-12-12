@@ -103,6 +103,7 @@ public class AssignmentResourceService {
         Assignment assignment = (Assignment) result[4];
         String assignerFirstName = (String) result[5];
         String assignerLastName = (String) result[6];
+        String objectType = (String) result[7];
 
         UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
         resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
@@ -110,7 +111,7 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
         resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment,resource));
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment,resource, objectType));
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
@@ -131,14 +132,14 @@ public class AssignmentResourceService {
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
         return flattenedAssignment.getAssignmentViaRoleRef() == null;
     }
-    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource) {
+    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
         List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
-        return (isDirectAssignment(flattenedAssignment)
+        return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
                 && (orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
                 || isResourceUnrestricted(resource)));
     }
     private boolean isResourceUnrestricted(Resource resource) {
-    List<String> unrestrictedEnforcementTypes = List.of("FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+    List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
         return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }
