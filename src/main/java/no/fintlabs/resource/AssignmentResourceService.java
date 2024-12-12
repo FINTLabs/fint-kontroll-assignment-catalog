@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import no.fintlabs.authorization.AuthorizationUtil;
 
 import java.util.List;
 
@@ -25,14 +26,21 @@ public class AssignmentResourceService {
     private final AssignmentService assignmentService;
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final AuthorizationUtil authorizationUtil;
 
     private final UserRepository userRepository;
 
-    public AssignmentResourceService(ResourceRepository resourceRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository,
-                                     UserRepository userRepository) {
+    public AssignmentResourceService(
+            ResourceRepository resourceRepository,
+            AssignmentService assignmentService,
+            FlattenedAssignmentRepository flattenedAssignmentRepository,
+            AuthorizationUtil authorizationUtil,
+            UserRepository userRepository
+    ) {
         this.resourceRepository = resourceRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
+        this.authorizationUtil = authorizationUtil;
         this.userRepository = userRepository;
     }
 
@@ -63,12 +71,10 @@ public class AssignmentResourceService {
     public Page<UserAssignmentResource> findUserAssignmentResourcesByRole(Long roleId, String resourceType, List<String> orgUnits,
                                                                           List<String> orgUnitsInScope, String search, int page, int size) {
         Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("u.firstName")
-                                                   .ascending()
-                                                   .and(Sort.by("u.lastName"))
+                                           Sort.by("res.resourceName")
                                                    .ascending());
 
-        log.info("Fetching flattenedassignments for role with Id: " + roleId);
+        log.info("Fetching flattened assignments for role with Id: " + roleId);
 
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByRoleAndResourceTypeAndSearch(roleId, resourceType, search, pageable);
 
@@ -79,9 +85,7 @@ public class AssignmentResourceService {
                                                                           List<String> orgUnitsInScope, String search, int page, int size) {
 
         Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("u.firstName")
-                                                   .ascending()
-                                                   .and(Sort.by("u.lastName"))
+                                           Sort.by("res.resourceName")
                                                    .ascending());
 
         log.info("Fetching flattenedassignments for user with Id: " + userId);
@@ -99,6 +103,7 @@ public class AssignmentResourceService {
         Assignment assignment = (Assignment) result[4];
         String assignerFirstName = (String) result[5];
         String assignerLastName = (String) result[6];
+        String objectType = (String) result[7];
 
         UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
         resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
@@ -106,6 +111,7 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
         resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment,resource, objectType));
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
@@ -125,5 +131,15 @@ public class AssignmentResourceService {
 
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
         return flattenedAssignment.getAssignmentViaRoleRef() == null;
+    }
+    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
+        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
+        return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
+                && (orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
+                || isResourceUnrestricted(resource)));
+    }
+    private boolean isResourceUnrestricted(Resource resource) {
+    List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }
