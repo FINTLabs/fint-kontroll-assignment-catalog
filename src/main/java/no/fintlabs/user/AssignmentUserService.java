@@ -69,9 +69,9 @@ public class AssignmentUserService {
         String lastName = null;
 
         if (search != null) {
-            fullName = search.toLowerCase().strip().replaceAll("\\s+", ";");
-            firstName = fullName.contains(";") ? StringUtils.substringBeforeLast(fullName, ";") : fullName;
-            lastName = fullName.contains(";") ? StringUtils.substringAfterLast(fullName, ";") : fullName;
+            fullName = search.toLowerCase().strip().replaceAll("\\s+", "%");
+            firstName = fullName.contains("%") ? StringUtils.substringBeforeLast(fullName, "%") : fullName;
+            lastName = fullName.contains("%") ? StringUtils.substringAfterLast(fullName, "%") : fullName;
         }
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
                 resourceId, userType, orgUnitsToFilter, firstName, lastName, fullName, pageable);
