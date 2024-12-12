@@ -68,6 +68,14 @@ class UserSpecificationBuilderIntegrationTest extends DatabaseIntegrationTest {
         assertEquals(1, (users.size()));
     }
     @Test
+    void givenUserWithMiddlename_whenSearchStringDoesNotContainsMiddleName_thenReturnUser() {
+        UserSpecificationBuilder userSpecificationBuilder = new UserSpecificationBuilder(1L, "ALLTYPES",allOrgUnitsAsList , allOrgUnitsAsList, "Anders Hansen");
+        Specification<User> spec = userSpecificationBuilder.assignmentSearch();
+        List<User> users = userRepository.findAll(spec);
+
+        assertEquals(1, (users.size()));
+    }
+    @Test
     void givenUser_whenSearchStringContainsPartOfLastName_thenReturnUser() {
         UserSpecificationBuilder userSpecificationBuilder = new UserSpecificationBuilder(1L, "ALLTYPES",allOrgUnitsAsList , allOrgUnitsAsList, "Hans");
         Specification<User> spec = userSpecificationBuilder.assignmentSearch();
