@@ -70,7 +70,7 @@ public class AssignmentUserService {
 
         if (search != null) {
             fullName = search.toLowerCase().strip().replaceAll("\\s+", "%");
-            firstName = fullName.contains("%") ? StringUtils.substringBeforeLast(fullName, "%") : fullName;
+            firstName = fullName.contains("%") ? StringUtils.substringBeforeLast(fullName, "%") : null;
             lastName = fullName.contains("%") ? StringUtils.substringAfterLast(fullName, "%") : fullName;
         }
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
