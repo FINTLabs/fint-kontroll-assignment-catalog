@@ -53,14 +53,14 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         allOrgUnitsAsList = List.of(OrgUnitType.ALLORGUNITS.name());
 
-        User user = User.builder()
+        User user1 = User.builder()
                 .id(123L)
                 .firstName("Jan Anders")
                 .lastName("Hansen")
                 .userType("EMPLOYEESTAFF")
                 .build();
 
-        userRepository.save(user);
+        userRepository.save(user1);
 
         Resource resource = Resource.builder()
                 .id(456L)
@@ -121,5 +121,89 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 10
         );
         assertEquals(1, (resourceAssignmentUserPage.getContent().size()));
+    }
+    @Test
+    void givenUser_whenSearchStringNotContainsLastName_thenReturnUser() {
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+                456L,
+                "ALLTYPES",
+                allOrgUnitsAsList,
+                allOrgUnitsAsList,
+                "Jan Ander",
+                0,
+                10
+        );
+        assertEquals(1, (resourceAssignmentUserPage.getContent().size()));
+    }
+    @Test
+    void givenTwoUserWithSameLastName_whenSearchStringContainsLastName_thenReturnTwoUsers() {
+        User user2 = User.builder()
+                .id(125L)
+                .firstName("Anne")
+                .lastName("Hansen")
+                .userType("EMPLOYEESTAFF")
+                .build();
+        userRepository.save(user2);
+
+        Assignment assignment2 = Assignment.builder()
+                .userRef(125L)
+                .resourceRef(456L)
+                .assignmentRemovedDate(null)
+                .build();
+        Assignment savedAssignment2 =  assignmentRepository.save(assignment2);
+
+        FlattenedAssignment flattenedAssignment2 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment2.getId())
+                .userRef(125L)
+                .resourceRef(456L)
+                .build();
+        flattenedAssignmentRepository.save(flattenedAssignment2);
+
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+                456L,
+                "ALLTYPES",
+                allOrgUnitsAsList,
+                allOrgUnitsAsList,
+                "hansen",
+                0,
+                10
+        );
+        assertEquals(2, (resourceAssignmentUserPage.getContent().size()));
+    }
+    @Test
+    void givenTwoUserWithSameLastName_whenSearchStringContainsLastNameAndPartOfFirstName_thenReturnOneUser() {
+        User user2 = User.builder()
+                .id(125L)
+                .firstName("Anne")
+                .lastName("Hansen")
+                .userType("EMPLOYEESTAFF")
+                .build();
+        userRepository.save(user2);
+
+        Assignment assignment2 = Assignment.builder()
+                .userRef(125L)
+                .resourceRef(456L)
+                .assignmentRemovedDate(null)
+                .build();
+        Assignment savedAssignment2 =  assignmentRepository.save(assignment2);
+
+        FlattenedAssignment flattenedAssignment2 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment2.getId())
+                .userRef(125L)
+                .resourceRef(456L)
+                .build();
+        flattenedAssignmentRepository.save(flattenedAssignment2);
+
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+                456L,
+                "ALLTYPES",
+                allOrgUnitsAsList,
+                allOrgUnitsAsList,
+                "anne hansen",
+                0,
+                10
+        );
+        assertEquals(1, (resourceAssignmentUserPage.getContent().size()));
+        assertEquals("Anne", resourceAssignmentUserPage.getContent().getFirst().getAssigneeFirstName());
     }
 }

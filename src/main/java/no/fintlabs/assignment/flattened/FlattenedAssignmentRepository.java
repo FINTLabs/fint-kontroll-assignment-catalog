@@ -63,7 +63,9 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             "WHERE fa.resourceRef = :resourceId " +
             "AND fa.assignmentTerminationDate IS NULL " +
             "AND (:userType = 'ALLTYPES' OR LOWER(u.userType) = LOWER(:userType)) " +
-            "AND (:fullName IS NULL OR LOWER(u.firstName) LIKE %:fullName% OR LOWER(u.firstName) LIKE %:firstName% OR LOWER(u.lastName) LIKE %:lastName%) " +
+            "AND (:fullName IS NULL OR LOWER(u.firstName) LIKE %:fullName% " +
+            "OR LOWER(u.firstName) LIKE %:firstName% AND LOWER(u.lastName) LIKE %:lastName% " +
+            "OR :firstName IS NULL AND LOWER(u.lastName) LIKE %:fullName%) " +
             "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits) " +
             "ORDER BY u.firstName, u.lastName"
     )
