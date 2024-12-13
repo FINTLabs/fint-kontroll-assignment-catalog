@@ -1,6 +1,5 @@
 package no.fintlabs.user;
 
-import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
@@ -17,7 +16,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
@@ -41,49 +39,54 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
     @MockBean
     private AssignmentService assignmentService;
+    private List<String> allOrgUnitsAsList;
 
-    User user = User.builder()
-            .id(1L)
-            .firstName("Jan Anders")
-            .lastName("Hansen")
-            .userType("EMPLOYEESTAFF")
-            .build();
-
-    List<String> allOrgUnitsAsList = List.of(OrgUnitType.ALLORGUNITS.name());
-
-    Resource resource = Resource.builder()
-            .id(1L)
-            .resourceName("Adobek12")
-            .build();
-
-    Assignment assignment = Assignment.builder()
-            .id(1L)
-            .userRef(1L)
-            .resourceRef(1L)
-            .assignmentRemovedDate(null)
-            .build();
-    FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
-            .id(1L)
-            .assignmentId(1L)
-            .userRef(1L)
-            .resourceRef(1L)
-            .build();
 
     @BeforeEach
     public void setUp() {
-        userRepository.deleteAll();
-        resourceRepository.deleteAll();
-        assignmentRepository.deleteAll();
-        flattenedAssignmentRepository.deleteAll();
+        // @DataJpaTest ruller tilbake alle transaksjoner etter hver test
+
+//        userRepository.deleteAll();
+        //        resourceRepository.deleteAll();
+        //        assignmentRepository.deleteAll();
+        //        flattenedAssignmentRepository.deleteAll();
+
+        allOrgUnitsAsList = List.of(OrgUnitType.ALLORGUNITS.name());
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Jan Anders")
+                .lastName("Hansen")
+                .userType("EMPLOYEESTAFF")
+                .build();
+
         userRepository.save(user);
+
+        Resource resource = Resource.builder()
+                .id(456L)
+                .resourceName("Adobek12")
+                .build();
         resourceRepository.save(resource);
-        assignmentRepository.save(assignment);
+
+        Assignment assignment = Assignment.builder()
+                .userRef(123L)
+                .resourceRef(456L)
+                .assignmentRemovedDate(null)
+                .build();
+        Assignment savedAssignment = assignmentRepository.save(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(123L)
+                .resourceRef(456L)
+                .build();
+
         flattenedAssignmentRepository.save(flattenedAssignment);
     }
     @Test
     void givenUserWithMiddlename_whenSearchStringContainsMiddleName_thenReturnUser() {
         Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
-                1L,
+                456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
@@ -96,7 +99,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     void givenUserWithMiddlename_whenSearchStringDoesNotContainsMiddleName_thenReturnUser() {
         Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
-                1L,
+                456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
@@ -109,7 +112,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     void givenUser_whenSearchStringContainsPartOfLastName_thenReturnUser() {
         Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
-                1L,
+                456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
