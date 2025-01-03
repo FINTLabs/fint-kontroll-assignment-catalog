@@ -34,3 +34,9 @@ spec:
   envFrom:
     - configMapRef:
         name: fint-kontroll-access-management-config
+
+  observability:
+    metrics:
+      enabled: true
+      port: "8080"
+      path: '/beta/fintlabs-no/actuator/prometheus'

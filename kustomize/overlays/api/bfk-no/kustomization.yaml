@@ -37,6 +37,9 @@ patches:
       - op: replace
         path: "/spec/url/basePath"
         value: "/bfk-no"
+      - op: replace
+        path: "/spec/observability/metrics/path"
+        value: "/bfk-no/actuator/prometheus"
       - op: add
         path: "/spec/resources"
         value:

@@ -37,6 +37,9 @@ patches:
       - op: replace
         path: "/spec/url/basePath"
         value: "/afk-no"
+      - op: replace
+        path: "/spec/observability/metrics/path"
+        value: "/afk-no/actuator/prometheus"
       - op: add
         path: "/spec/resources"
         value:
