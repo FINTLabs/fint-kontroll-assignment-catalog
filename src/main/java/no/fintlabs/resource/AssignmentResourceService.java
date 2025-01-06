@@ -76,17 +76,12 @@ public class AssignmentResourceService {
     }
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByUser(Long userId, String resourceType, List<String> orgUnits,
-                                                                          List<String> orgUnitsInScope, String search, int page, int size) {
-
-        Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("u.firstName")
-                                                   .ascending()
-                                                   .and(Sort.by("u.lastName"))
-                                                   .ascending());
+                                                                          List<String> orgUnitsInScope, List<Long> resourceIds, String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
 
         log.info("Fetching flattenedassignments for user with Id: " + userId);
 
-        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, search, pageable);
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, resourceIds, search, pageable);
 
         return results.map(this::mapToUserAssignmentResource);
     }
