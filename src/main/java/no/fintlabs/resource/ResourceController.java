@@ -71,7 +71,8 @@ public class ResourceController {
                                                    String resourceType,
                                                    @RequestParam(value = "orgUnits", required = false)
                                                    List<String> orgUnits,
-                                                   @RequestParam(value = "search", required = false) String search
+                                                   @RequestParam(value = "search", required = false) String search,
+                                                   @RequestParam(value = "resourcefilter", required = false) List<Long> resourceIds
     ) {
         if (roleId == null) {
             return ResponseEntity.badRequest().body("roleId is required");
@@ -82,7 +83,7 @@ public class ResourceController {
 
         log.info("Fetching resources for roleId: {}", roleId);
         Page<UserAssignmentResource>
-                userAssignmentResources = assignmentResourceService.findUserAssignmentResourcesByRole(roleId, resourceType, orgUnits, orgUnitsInScope, search, page, size);
+                userAssignmentResources = assignmentResourceService.findUserAssignmentResourcesByRole(roleId, resourceType, orgUnits, orgUnitsInScope, resourceIds, search, page, size);
 
         return ResourceResponseFactory.resourceAssignmentUsersToResponseEntity(userAssignmentResources);
     }

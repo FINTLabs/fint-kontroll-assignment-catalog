@@ -76,8 +76,10 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "AND (fa.assignmentTerminationDate IS NULL) " +
            "AND (a.assignmentRemovedDate IS NULL) " +
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
-           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
-    Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
+           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%) " +
+           "AND (:resourceIds IS NULL OR fa.resourceRef IN :resourceIds) " +
+           "ORDER BY u.firstName, u.lastName ASC")
+    Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
