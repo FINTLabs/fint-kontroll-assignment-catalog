@@ -35,11 +35,6 @@ public class CacheConfiguration {
         return createCacheLongKey(User.class);
     }
 
-    @Bean
-    FintCache<Long, ApplicationResourceLocation> applicationResourceLocationCache() {
-        return  createCacheLongKey(ApplicationResourceLocation.class);
-    }
-
     private <V> FintCache<String, V> createCacheStringKey(Class<V> resourceClass) {
         return fintCacheManager.createCache(
                 resourceClass.getName().toLowerCase(Locale.ROOT),
