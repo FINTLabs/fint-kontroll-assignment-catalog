@@ -1,5 +1,6 @@
 package no.fintlabs;
 
+import no.fintlabs.applicationResourceLocation.ApplicationResourceLocation;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.cache.FintCacheManager;
 import no.fintlabs.membership.Membership;
@@ -32,6 +33,11 @@ public class CacheConfiguration {
     @Bean
     FintCache<Long, User> userCache() {
         return createCacheLongKey(User.class);
+    }
+
+    @Bean
+    FintCache<Long, ApplicationResourceLocation> applicationResourceLocationCache() {
+        return  createCacheLongKey(ApplicationResourceLocation.class);
     }
 
     private <V> FintCache<String, V> createCacheStringKey(Class<V> resourceClass) {
