@@ -12,16 +12,24 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @Configuration
 public class ApplicationResourceLocationConsumerConfiguration {
 
+
     @Bean
     public ConcurrentMessageListenerContainer<String, ApplicationResourceLocation> applicationResourceLocationConsumer(
             EntityConsumerFactoryService entityConsumerFactoryService,
             ApplicationResourceLocationService applicationResourceLocationService
     ) {
+        EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
+                .builder()
+                .resource("applicationresourcelocation-extended")
+                .build();
 
         return entityConsumerFactoryService.createFactory(
                         ApplicationResourceLocation.class,
-                        (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord)
-                                -> applicationResourceLocationService.save(consumerRecord.value()))
-                .createContainer(EntityTopicNameParameters.builder().resource("applicationresourcelocation-extended").build());
+                        (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) ->{
+                            log.debug("Processing applicationResourceLocation with id: {} - for applicationResource: {}",
+                                    consumerRecord.value().id,consumerRecord.value().resourceId);
+                            applicationResourceLocationService.save(consumerRecord.value());
+                        })
+                .createContainer(entityTopicNameParameters);
     }
 }

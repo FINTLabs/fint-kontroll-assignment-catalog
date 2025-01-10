@@ -1,10 +1,34 @@
 package no.fintlabs.applicationResourceLocation;
 
-public record ApplicationResourceLocation(
-        Long id,
-        Long applicationResourceId,
-        String resourceId,
-        String orgUnitId,
-        String orgUnitName,
-        Long resourceLimit) {
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Table(name = "application_resource_location")
+public class ApplicationResourceLocation{
+
+        @Id
+        Long id;
+        @Column(name = "applicationresourceid")
+        Long applicationResourceId;
+        @Column(name = "resourceid")
+        String resourceId;
+        @Column(name = "orgunitid")
+        String orgUnitId;
+        @Column(name = "orgunitname")
+        String orgUnitName;
+        @Column(name = "resourcelimit")
+        Long resourceLimit;
 }

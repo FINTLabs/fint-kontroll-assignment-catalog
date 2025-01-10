@@ -16,6 +16,7 @@ public class ApplicationResourceLocationService {
     }
 
     public void save(ApplicationResourceLocation resourceLocation) {
+        log.info("Saving applicationResourceLocation with id: {} - for resource: {}", resourceLocation.id, resourceLocation.resourceId);
         applicationResourceLocationRepository.save(resourceLocation);
     }
 }
