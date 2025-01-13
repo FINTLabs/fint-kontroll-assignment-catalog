@@ -54,6 +54,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             "OR LOWER(u.firstName) LIKE %:firstName% AND LOWER(u.lastName) LIKE %:lastName% " +
             "OR :firstName IS NULL AND LOWER(u.lastName) LIKE %:fullName%) " +
             "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits) " +
+            "AND (:userIds IS NULL OR fa.userRef IN :userIds) " +
             "ORDER BY u.firstName, u.lastName"
     )
     Page<Object[]> findAssignmentsByResourceAndUserTypeAndNamesSearch(
@@ -63,7 +64,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("firstName") String firstName,
             @Param("lastName") String lastName,
             @Param("fullName") String fullName,
-            Pageable pageable
+            @Param("userIds") List<Long> userIds, Pageable pageable
     );
 
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
