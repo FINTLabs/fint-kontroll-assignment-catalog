@@ -63,25 +63,26 @@ public class UserController {
 
     @GetMapping("/v2/resource/{id}/users")
     public ResponseEntity<?> getUsersByResourceId2(@AuthenticationPrincipal Jwt jwt,
-                                                                    @PathVariable Long id,
-                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                                                 ".pagesize:20}")
-                                                                    int size,
-                                                                    @RequestParam(value = "userType", defaultValue = "ALLTYPES")
-                                                                    String userType,
-                                                                    @RequestParam(value = "orgUnits", required = false)
-                                                                    List<String> orgUnits,
-                                                                    @RequestParam(value = "search", required = false) String search
+                                                   @PathVariable Long id,
+                                                   @RequestParam(defaultValue = "0") int page,
+                                                   @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
+                                                                                ".pagesize:20}")
+                                                   int size,
+                                                   @RequestParam(value = "userType", defaultValue = "ALLTYPES")
+                                                   String userType,
+                                                   @RequestParam(value = "orgUnits", required = false)
+                                                   List<String> orgUnits,
+                                                   @RequestParam(value = "search", required = false) String search,
+                                                   @RequestParam(value = "userfilter", required = false) List<Long> userIds
     ) {
-        if(id == null) {
+        if (id == null) {
             return ResponseEntity.badRequest().body("Resource id is required");
         }
 
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
 
-        Page<ResourceAssignmentUser> resourceAssignments = assignmentUserService.findResourceAssignmentUsers(id, userType, orgUnits, orgUnitsInScope, search, page, size);
+        Page<ResourceAssignmentUser> resourceAssignments = assignmentUserService.findResourceAssignmentUsers(id, userType, orgUnits, orgUnitsInScope, userIds, search, page, size);
 
         return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
     }
