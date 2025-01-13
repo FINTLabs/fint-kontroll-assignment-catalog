@@ -9,16 +9,17 @@ import lombok.*;
 
 import java.util.Objects;
 
-@Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
+@Entity
 @Table(name = "orgunit_distance")
 public class OrgUnitDistance {
     @Id
-    private String key;
+    @Column(name = "id")
+    private String id;
     @Column(name = "orgunitid")
     private String orgUnitId;
     @Column(name = "suborgunitid")
@@ -32,12 +33,12 @@ public class OrgUnitDistance {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         OrgUnitDistance that = (OrgUnitDistance) o;
-        return distance == that.distance && Objects.equals(key, that.key) && Objects.equals(orgUnitId, that.orgUnitId) && Objects.equals(subOrgUnitId, that.subOrgUnitId);
+        return distance == that.distance && Objects.equals(id, that.id) && Objects.equals(orgUnitId, that.orgUnitId) && Objects.equals(subOrgUnitId, that.subOrgUnitId);
     }
 
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, orgUnitId, subOrgUnitId, distance);
+        return Objects.hash(id, orgUnitId, subOrgUnitId, distance);
     }
 }
