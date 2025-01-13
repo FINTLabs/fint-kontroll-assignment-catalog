@@ -14,7 +14,7 @@ public class OrgUnitDistanceService {
     }
 
     public void save(OrgUnitDistance orgUnitDistance) {
-        log.info("Saving orgUnitDistance with id (key): {}", orgUnitDistance.getKey());
+        log.info("Saving orgUnitDistance with id: {}", orgUnitDistance.getId());
         orgUnitDistanceRepository.save(orgUnitDistance);
     }
 

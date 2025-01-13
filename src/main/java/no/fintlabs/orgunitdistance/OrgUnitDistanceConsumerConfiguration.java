@@ -26,7 +26,7 @@ public class OrgUnitDistanceConsumerConfiguration {
         return entityConsumerFactoryService.createFactory(
                 OrgUnitDistance.class,
                 (ConsumerRecord<String,OrgUnitDistance> consumerRecord) ->{
-                    log.debug("Processing orgunitdistance with id: {}", consumerRecord.value().getKey());
+                    log.debug("Processing orgunitdistance with id: {}", consumerRecord.value().getId());
                     orgUnitDistanceService.save(consumerRecord.value());
                 }
         ).createContainer(entityTopicNameParameters);
