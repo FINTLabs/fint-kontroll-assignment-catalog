@@ -23,8 +23,13 @@ public class RoleResponseFactory {
             int pageNumber,
             int pageSize
     ){
-        RoleSpecificationBuilder builder = new RoleSpecificationBuilder(resourceId, roleType, orgUnits,  orgUnitsInScope, searchString);
-
+        RoleSpecificationBuilder builder = new RoleSpecificationBuilder(
+                resourceId,
+                roleType,
+                orgUnits,
+                orgUnitsInScope,
+                searchString
+        );
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,
                 Sort.by("roleName").ascending()
