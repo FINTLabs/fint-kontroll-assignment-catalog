@@ -40,6 +40,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @MockBean
     private AssignmentService assignmentService;
     private List<String> allOrgUnitsAsList;
+    private List<Long> userIds;
 
 
     @BeforeEach
@@ -90,7 +91,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "Anders",
+                userIds, "Anders",
                 0,
                 10
         );
@@ -103,7 +104,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "Jan Hansen",
+                userIds, "Jan Hansen",
                 0,
                 10
         );
@@ -116,7 +117,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "Hans",
+                userIds, "Hans",
                 0,
                 10
         );
@@ -129,7 +130,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "Jan Ander",
+                userIds, "Jan Ander",
                 0,
                 10
         );
@@ -164,7 +165,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "hansen",
+                userIds, "hansen",
                 0,
                 10
         );
@@ -199,7 +200,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 "ALLTYPES",
                 allOrgUnitsAsList,
                 allOrgUnitsAsList,
-                "anne hansen",
+                userIds, "anne hansen",
                 0,
                 10
         );

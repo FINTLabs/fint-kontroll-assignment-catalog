@@ -1,5 +1,6 @@
 package no.fintlabs.user;
 
+import no.fintlabs.role.AssignmentRole;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,19 @@ public class UserResponseFactory {
                         "totalPages", resourceAssignmentUsersPagable.getTotalPages(),
                         "size", resourceAssignmentUsersPagable.getSize(),
                         "totalItems", resourceAssignmentUsersPagable.getTotalElements()
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    public static ResponseEntity<Map<String, Object>> assignmentRoleToResponseEntity(Page<AssignmentRole> rolePage) {
+
+        return new ResponseEntity<>(
+                Map.of( "roles", rolePage.getContent(),
+                        "currentPage", rolePage.getNumber(),
+                        "totalPages", rolePage.getTotalPages(),
+                        "size", rolePage.getSize(),
+                        "totalItems", rolePage.getTotalElements()
                 ),
                 HttpStatus.OK
         );

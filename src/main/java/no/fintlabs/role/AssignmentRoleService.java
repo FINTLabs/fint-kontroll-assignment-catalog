@@ -17,8 +17,10 @@ public class AssignmentRoleService {
         this.roleRepository = roleRepository;
         this.assignmentService = assignmentService;
     }
+
     public Page<AssignmentRole> findBySearchCriteria(Long resourceId, Specification<Role> specification, Pageable page) {
-        Page<AssignmentRole> assignmentRoles = roleRepository.findAll(specification, page)
+
+        return roleRepository.findAll(specification, page)
                 .map(Role::toAssignmentRole)
                 .map(role ->  {
                     assignmentService.getAssignmentRefForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignmentRef);
@@ -26,7 +28,6 @@ public class AssignmentRoleService {
                     assignmentService.getAssignerDisplaynameForRoleAssignment(role.getId(), resourceId).ifPresent(role::setAssignerDisplayname);
                     return role;
                 });
-        return assignmentRoles;
     }
 }
 
