@@ -1,6 +1,7 @@
 package no.fintlabs.role;
 
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
@@ -40,6 +41,9 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;
+
+    @MockBean
+    private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;

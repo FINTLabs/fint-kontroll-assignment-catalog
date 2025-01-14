@@ -17,7 +17,13 @@ public class RoleSpecificationBuilder {
     private final List<String> orgUnitsInScope;
     private final String searchString;
 
-    public RoleSpecificationBuilder(Long resourceId, String roleType, List<String> orgUnits, List<String> orgUnitsInScope, String searchString){
+    public RoleSpecificationBuilder(
+            Long resourceId,
+            String roleType,
+            List<String> orgUnits,
+            List<String> orgUnitsInScope,
+            String searchString
+    ){
         this.resourceId = resourceId;
         this.roleType = roleType;
         this.orgUnits = orgUnits;
