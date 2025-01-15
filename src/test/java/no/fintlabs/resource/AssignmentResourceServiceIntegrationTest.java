@@ -135,7 +135,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
@@ -181,7 +181,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
@@ -224,7 +224,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
@@ -274,7 +274,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
@@ -323,7 +323,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
@@ -371,7 +371,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
@@ -426,7 +426,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null, 0, 20);
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
@@ -580,6 +580,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
+                .licenseEnforcement(freeAll)
                 .build();
 
         Resource savedResourceIndirect = resourceRepository.saveAndFlush(resource);
@@ -589,6 +590,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
+                .licenseEnforcement(freeAll)
                 .build();
 
         Resource savedResourceDirect = resourceRepository.saveAndFlush(resource2);
@@ -688,6 +690,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
+                .licenseEnforcement(freeAll)
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -697,6 +700,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
+                .licenseEnforcement(freeAll)
                 .build();
 
         Resource savedResource2 = resourceRepository.saveAndFlush(resource2);

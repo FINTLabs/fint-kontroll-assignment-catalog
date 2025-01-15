@@ -23,6 +23,6 @@ public class ApplicationResourceLocationService {
     }
     public Optional<String> getNearestResourceConsumerForOrgUnit(Long resourceRef, String orgUnitId) {
         log.info("Getting nearest resource consumer for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
-        return applicationResourceLocationRepository.findNearestResourceConsumberForOrgUnit(resourceRef, orgUnitId);
+        return applicationResourceLocationRepository.findNearestResourceConsumerForOrgUnit(resourceRef, orgUnitId);
     }
 }

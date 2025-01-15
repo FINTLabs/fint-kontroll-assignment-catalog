@@ -11,5 +11,5 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
             " where arl.applicationresourceid = ?1 and od.suborgunitid = ?2" +
             " order by od.distance limit 1"
             , nativeQuery = true)
-    Optional< String> findNearestResourceConsumberForOrgUnit(Long resourceRef, String orgUnitId);
+    Optional< String> findNearestResourceConsumerForOrgUnit(Long resourceRef, String orgUnitId);
 }
