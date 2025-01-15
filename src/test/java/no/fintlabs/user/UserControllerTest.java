@@ -81,7 +81,7 @@ public class UserControllerTest {
 
         String scope = "user";
         when(opaServiceMock.getOrgUnitsInScope(scope)).thenReturn(List.of("99999999"));
-        when(assigmentUserServiceMock.findResourceAssignmentUsers(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isA(Integer.class), isA(Integer.class)))
+        when(assigmentUserServiceMock.findResourceAssignmentUsers(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isNull(), isA(Integer.class), isA(Integer.class)))
                 .thenReturn(new PageImpl<>(List.of(resourceAssignmentUser)));
 
         mockMvc.perform(get("/api/assignments/v2/resource/1/users")
@@ -92,7 +92,7 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.users[0].assigneeRef").value(1L));
 
         verify(opaServiceMock, times(1)).getOrgUnitsInScope(scope);
-        verify(assigmentUserServiceMock, times(1)).findResourceAssignmentUsers(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isA(Integer.class), isA(Integer.class));
+        verify(assigmentUserServiceMock, times(1)).findResourceAssignmentUsers(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isNull(), isA(Integer.class), isA(Integer.class));
     }
 
     private void createSecurityContext(Jwt jwt) throws ServletException {
