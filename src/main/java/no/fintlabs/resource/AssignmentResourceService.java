@@ -112,11 +112,9 @@ public class AssignmentResourceService {
         if (user != null) {
             resourceAssignmentUser.setAssigneeRef(user.getId());
         }
-
         if (role != null) {
             resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
         }
-
         String assignerDisplayName = (assignerFirstName != null && assignerLastName != null) ? assignerFirstName + " " + assignerLastName : null;
         resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
@@ -133,7 +131,11 @@ public class AssignmentResourceService {
                 || isResourceUnrestricted(resource)));
     }
     private boolean isResourceUnrestricted(Resource resource) {
-    List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        //TODO: temporary solution, should be replaced with a proper check
+        if (resource.getLicenseEnforcement() == null) {
+            return false;
+        }
+        List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
         return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }
