@@ -14,28 +14,15 @@ import java.util.UUID;
 
 @Repository
 public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAssignment, Long>, JpaSpecificationExecutor<FlattenedAssignment> {
-
-    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(
-            UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, boolean identityProviderGroupMembershipConfirmed);
-
     List<FlattenedAssignment> findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(boolean identityProviderGroupMembershipConfirmed);
 
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
 
     List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
 
-    Optional<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentIdAndAssignmentTerminationDateIsNull(UUID identityProviderGroupObjectId,
-                                                                                                                                                      UUID identityProviderUserObjectId,
-                                                                                                                                                      Long assignmentId);
-
-    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId,
-                                                                                                                Long assignmentId);
     Optional<FlattenedAssignment> findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long userRef, Long resourceRef);
 
     Optional<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
-
-    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmed(
-            UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId, boolean groupMembershipDeletionConfirmed);
 
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.userRef = :userId AND fa.assignmentViaRoleRef = :roleId AND fa.assignmentTerminationDate IS NULL")
     List<Long> findFlattenedAssignmentIdsByUserAndRoleRef(@Param("userId") Long userId, @Param("roleId") Long roleId);
@@ -67,6 +54,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             "OR LOWER(u.firstName) LIKE %:firstName% AND LOWER(u.lastName) LIKE %:lastName% " +
             "OR :firstName IS NULL AND LOWER(u.lastName) LIKE %:fullName%) " +
             "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits) " +
+            "AND (:userIds IS NULL OR fa.userRef IN :userIds) " +
             "ORDER BY u.firstName, u.lastName"
     )
     Page<Object[]> findAssignmentsByResourceAndUserTypeAndNamesSearch(
@@ -76,7 +64,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("firstName") String firstName,
             @Param("lastName") String lastName,
             @Param("fullName") String fullName,
-            Pageable pageable
+            @Param("userIds") List<Long> userIds, Pageable pageable
     );
 
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'role' as objectType  FROM FlattenedAssignment fa " +
@@ -89,8 +77,10 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "AND (fa.assignmentTerminationDate IS NULL) " +
            "AND (a.assignmentRemovedDate IS NULL) " +
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
-           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
-    Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
+           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%) " +
+           "AND (:resourceIds IS NULL OR fa.resourceRef IN :resourceIds) " +
+           "ORDER BY u.firstName, u.lastName ASC")
+    Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'user' as objectType  FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
@@ -102,8 +92,10 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "AND (fa.assignmentTerminationDate IS NULL) " +
            "AND (a.assignmentRemovedDate IS NULL) " +
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
-           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%)")
-    Page<Object[]> findAssignmentsByUserAndResourceTypeAndSearch(@Param("userId") Long userId, @Param("resourceType") String resourceType, @Param("search") String search, Pageable pageable);
+           "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%) " +
+           "AND (:resourceIds IS NULL OR fa.resourceRef IN :resourceIds) " +
+           "ORDER BY u.firstName, u.lastName ASC")
+    Page<Object[]> findAssignmentsByUserAndResourceTypeAndSearch(@Param("userId") Long userId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 

@@ -11,7 +11,6 @@ import no.fintlabs.user.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import no.fintlabs.authorization.AuthorizationUtil;
@@ -69,28 +68,23 @@ public class AssignmentResourceService {
     }
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByRole(Long roleId, String resourceType, List<String> orgUnits,
-                                                                          List<String> orgUnitsInScope, String search, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("res.resourceName")
-                                                   .ascending());
+                                                                          List<String> orgUnitsInScope, List<Long> resourceIds, String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
 
-        log.info("Fetching flattened assignments for role with Id: " + roleId);
+        log.info("Fetching flattenedassignments for role with Id: " + roleId);
 
-        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByRoleAndResourceTypeAndSearch(roleId, resourceType, search, pageable);
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByRoleAndResourceTypeAndSearch(roleId, resourceType, resourceIds, search, pageable);
 
         return results.map(this::mapToUserAssignmentResource);
     }
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByUser(Long userId, String resourceType, List<String> orgUnits,
-                                                                          List<String> orgUnitsInScope, String search, int page, int size) {
-
-        Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("res.resourceName")
-                                                   .ascending());
+                                                                          List<String> orgUnitsInScope, List<Long> resourceIds, String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
 
         log.info("Fetching flattenedassignments for user with Id: " + userId);
 
-        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, search, pageable);
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, resourceIds, search, pageable);
 
         return results.map(this::mapToUserAssignmentResource);
     }
