@@ -8,14 +8,16 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
+
 @EntityListeners(AuditingEntityListener.class)
 @MappedSuperclass
 public class CommonEntity {
     @CreatedDate
-    private Long createdDate;
+    private Instant createdDate;
 
     @LastModifiedDate
-    private Long modifiedDate;
+    private Instant modifiedDate;
 
     @CreatedBy
     private String createdBy;
