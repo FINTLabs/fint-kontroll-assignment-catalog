@@ -12,8 +12,8 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
-import no.fintlabs.user.AssignmentUserService;
 import no.fintlabs.user.AssignmentUser;
+import no.fintlabs.user.AssignmentUserService;
 import no.fintlabs.user.ResourceAssignmentUser;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -74,55 +74,11 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Test
     public void shouldNotFindUsersWithDeletedAssignments() {
-        Resource resource = Resource.builder()
-                .id(2L)
-                .resourceId("2")
-                .resourceType("ALLTYPES")
-                .resourceName("Test resource")
-                .build();
-
-        resourceRepository.save(resource);
-
-        Resource resource2 = Resource.builder()
-                .id(3L)
-                .resourceId("3")
-                .resourceType("ALLTYPES")
-                .resourceName("Test resource 2")
-                .build();
-
-        resourceRepository.save(resource2);
-
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId("555")
-                .userType("ALLTYPES")
-                .build();
-
-        userRepository.save(user);
-
-        Assignment assignment = Assignment.builder()
-                .assignmentId("123")
-                .assignerUserName("deleted")
-                .assignmentRemovedDate(new Date())
-                .userRef(123L)
-                .resourceRef(2L)
-                .build();
-
-        assignmentRepository.save(assignment);
-
-        Assignment assignment2 = Assignment.builder()
-                .assignmentId("456")
-                .assignerUserName("not deleted")
-                .assignmentRemovedDate(null)
-                .userRef(123L)
-                .resourceRef(3L)
-                .build();
-
-        assignmentRepository.save(assignment2);
-
+        Resource resource = createResource(2L, "2", "ALLTYPES", "Test resource");
+        Resource resource2 = createResource(3L, "3", "ALLTYPES", "Test resource 2");
+        User user = createUser(123L, "Test", "Testesen", "test", "555", "ALLTYPES");
+        Assignment assignment = createAssignment(null, user.getId(), resource.getId(), "deleted", new Date());
+        Assignment assignment2 = createAssignment(null, user.getId(), resource2.getId(), "not deleted", null);
 
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
@@ -134,35 +90,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Test
     public void shouldFindUsersWithAssignments() {
-        Resource resource = Resource.builder()
-                .id(2L)
-                .resourceId("2")
-                .resourceType("ALLTYPES")
-                .resourceName("Test resource")
-                .build();
-
-        resourceRepository.save(resource);
-
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId("555")
-                .userType("ALLTYPES")
-                .build();
-
-        userRepository.save(user);
-
-        Assignment assignmentNotDeleted = Assignment.builder()
-                .assignmentId("456")
-                .assignerUserName("not-deleted")
-                .assignmentRemovedDate(null)
-                .userRef(123L)
-                .resourceRef(2L)
-                .build();
-        assignmentRepository.save(assignmentNotDeleted);
-
+        Resource resource = createResource(2L, "2", "ALLTYPES", "Test resource");
+        User user = createUser(123L, "Test", "Testesen", "test", "555", "ALLTYPES");
+        Assignment assignmentNotDeleted = createAssignment(null, user.getId(), resource.getId(), "not deleted", null);
 
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
@@ -175,35 +105,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Transactional
     @Test
     public void shouldFindResourceAssignmentUser_user_direct() {
-        Resource resource = Resource.builder()
-                .id(1L)
-                .resourceId("1")
-                .resourceType("ALLTYPES")
-                .resourceName("Test resource")
-                .build();
-
-        Resource savedResource = resourceRepository.saveAndFlush(resource);
-
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId("555")
-                .userName("test@test.no")
-                .userType("ALLTYPES")
-                .build();
-
-        User savedUser = userRepository.saveAndFlush(user);
-
-        Assignment assignment = Assignment.builder()
-                .assignerUserName("test@test.no")
-                .assignmentRemovedDate(null)
-                .userRef(savedUser.getId())
-                .roleRef(null)
-                .resourceRef(savedResource.getId())
-                .build();
-        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+        Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
+        Assignment savedAssignment = createAssignment(null, savedUser.getId(), savedResource.getId(), "test@test.no", null);
 
         FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment.getId())
@@ -216,7 +120,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         testEntityManager.clear();
 
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
-                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
@@ -242,45 +146,10 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Transactional
     @Test
     public void shouldFindResourceAssignmentUser_user_inDirect() {
-        Resource resource = Resource.builder()
-                .id(1L)
-                .resourceId("1")
-                .resourceType("ALLTYPES")
-                .resourceName("Test resource")
-                .build();
-
-        Resource savedResource = resourceRepository.saveAndFlush(resource);
-
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId("555")
-                .userName("test@test.no")
-                .userType("ALLTYPES")
-                .build();
-
-        User savedUser = userRepository.saveAndFlush(user);
-
-        Role role = Role.builder()
-                .id(123L)
-                .roleName("Test role")
-                .organisationUnitName("Test org unit")
-                .organisationUnitId("555")
-                .roleType("ALLTYPES")
-                .build();
-
-        Role savedRole = roleRepository.saveAndFlush(role);
-
-        Assignment assignment = Assignment.builder()
-                .assignerUserName("test@test.no")
-                .assignmentRemovedDate(null)
-                .roleRef(savedRole.getId())
-                .userRef(null)
-                .resourceRef(savedResource.getId())
-                .build();
-        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+        Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
+        Role savedRole = createRole();
+        Assignment savedAssignment = createAssignment(savedRole.getId(), null, savedResource.getId(), "test@test.no", null);
 
         FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment.getId())
@@ -294,7 +163,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         testEntityManager.clear();
 
         Page<ResourceAssignmentUser> resourceAssignmentUsers =
-                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, 0, 20);
+                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("555"), List.of("555"), null, null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
@@ -310,5 +179,99 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assertThat(resourceAssignmentUser.getAssignerDisplayname()).isEqualTo("Test Testesen");
         assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo("Test");
         assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo("Testesen");
+    }
+
+    @Transactional
+    @Test
+    public void shouldFindResourceAssignmentUser_userFilter() {
+        Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
+        User savedUser2 = createUser(456L, "Test2", "Testesen2",  "test2@test.no", "456" , "ALLTYPES");
+        Role savedRole = createRole();
+        Assignment savedAssignment = createAssignment(savedRole.getId(), null, savedResource.getId(), "test@test.no", null);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(savedRole.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+        FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        FlattenedAssignment flattenedAssignment2 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser2.getId())
+                .assignmentViaRoleRef(savedRole.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+        FlattenedAssignment savedFlattenedAssignment2 = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment2);
+
+        testEntityManager.flush();
+        testEntityManager.clear();
+
+        Page<ResourceAssignmentUser> resourceAssignmentUsers =
+                assignmentUserService.findResourceAssignmentUsers(1L, "ALLTYPES", List.of("456"), List.of("456"), List.of(456L), null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        ResourceAssignmentUser resourceAssignmentUser = resourceAssignmentUsers.getContent().get(0);
+        assertThat(resourceAssignmentUser.getAssignmentRef()).isEqualTo(savedFlattenedAssignment.getAssignmentId());
+        assertThat(resourceAssignmentUser.getAssignerUsername()).isEqualTo(savedAssignment.getAssignerUserName());
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleRef()).isEqualTo(savedAssignment.getRoleRef());
+        assertThat(resourceAssignmentUser.isDirectAssignment()).isFalse();
+
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isNotEmpty();
+        assertThat(resourceAssignmentUser.getAssignmentViaRoleName()).isEqualTo(savedRole.getRoleName());
+
+        assertThat(resourceAssignmentUser.getAssigneeRef()).isEqualTo(savedUser2.getId());
+        assertThat(resourceAssignmentUser.getAssignerDisplayname()).isEqualTo(savedUser.getDisplayname());
+        assertThat(resourceAssignmentUser.getAssigneeFirstName()).isEqualTo(savedUser2.getFirstName());
+        assertThat(resourceAssignmentUser.getAssigneeLastName()).isEqualTo(savedUser2.getLastName());
+    }
+
+    private Assignment createAssignment(Long roleId, Long userId, Long resourceId, String assignerUserName, Date assignmentRemovedDate) {
+        Assignment assignment = Assignment.builder()
+                .assignerUserName(assignerUserName)
+                .assignmentRemovedDate(assignmentRemovedDate)
+                .roleRef(roleId)
+                .userRef(userId)
+                .resourceRef(resourceId)
+                .build();
+        return assignmentRepository.saveAndFlush(assignment);
+    }
+
+    private Role createRole() {
+        Role role = Role.builder()
+                .id(123L)
+                .roleName("Test role")
+                .organisationUnitName("Test org unit")
+                .organisationUnitId("555")
+                .roleType("ALLTYPES")
+                .build();
+
+        return roleRepository.saveAndFlush(role);
+    }
+
+    private User createUser(long id, String firstName, String lastName, String userName, String orgId, String userType) {
+        User user = User.builder()
+                .id(id)
+                .firstName(firstName)
+                .lastName(lastName)
+                .organisationUnitId(orgId)
+                .userName(userName)
+                .userType(userType)
+                .build();
+
+        return userRepository.saveAndFlush(user);
+    }
+
+    private Resource createResource(Long id, String resourceId, String resourceType, String resourceName) {
+        Resource resource = Resource.builder()
+                .id(id)
+                .resourceId(resourceId)
+                .resourceType(resourceType)
+                .resourceName(resourceName)
+                .build();
+
+        return resourceRepository.saveAndFlush(resource);
     }
 }
