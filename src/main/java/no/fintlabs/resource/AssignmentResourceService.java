@@ -5,6 +5,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -24,14 +25,21 @@ public class AssignmentResourceService {
     private final AssignmentService assignmentService;
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final AuthorizationUtil authorizationUtil;
 
     private final UserRepository userRepository;
 
-    public AssignmentResourceService(ResourceRepository resourceRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository,
-                                     UserRepository userRepository) {
+    public AssignmentResourceService(
+            ResourceRepository resourceRepository,
+            AssignmentService assignmentService,
+            FlattenedAssignmentRepository flattenedAssignmentRepository,
+            AuthorizationUtil authorizationUtil,
+            UserRepository userRepository
+    ) {
         this.resourceRepository = resourceRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
+        this.authorizationUtil = authorizationUtil;
         this.userRepository = userRepository;
     }
 
@@ -89,6 +97,7 @@ public class AssignmentResourceService {
         Assignment assignment = (Assignment) result[4];
         String assignerFirstName = (String) result[5];
         String assignerLastName = (String) result[6];
+        String objectType = (String) result[7];
 
         UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
         resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
@@ -96,17 +105,16 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
         resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment,resource, objectType));
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
         if (user != null) {
             resourceAssignmentUser.setAssigneeRef(user.getId());
         }
-
         if (role != null) {
             resourceAssignmentUser.setAssignmentViaRoleName(role.getRoleName());
         }
-
         String assignerDisplayName = (assignerFirstName != null && assignerLastName != null) ? assignerFirstName + " " + assignerLastName : null;
         resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
@@ -115,5 +123,19 @@ public class AssignmentResourceService {
 
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
         return flattenedAssignment.getAssignmentViaRoleRef() == null;
+    }
+    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
+        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
+        return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
+                && (orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
+                || isResourceUnrestricted(resource)));
+    }
+    private boolean isResourceUnrestricted(Resource resource) {
+        //TODO: temporary solution, should be replaced with a proper check
+        if (resource.getLicenseEnforcement() == null) {
+            return false;
+        }
+        List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }

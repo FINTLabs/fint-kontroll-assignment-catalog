@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
@@ -29,19 +30,24 @@ public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final ResourceRepository resourceRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
+    private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
 
-    public AssignmentService(AssignmentRepository assignmentRepository,
-                             ResourceRepository resourceRepository,
-                             UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             FlattenedAssignmentService flattenedAssignmentService,
-                             OpaService opaService) {
+    public AssignmentService(
+            AssignmentRepository assignmentRepository,
+            ResourceRepository resourceRepository,
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            FlattenedAssignmentService flattenedAssignmentService,
+            ApplicationResourceLocationService applicationResourceLocationService,
+            OpaService opaService
+    ) {
         this.assignmentRepository = assignmentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.flattenedAssignmentService = flattenedAssignmentService;
+        this.applicationResourceLocationService = applicationResourceLocationService;
         this.opaService = opaService;
     }
 
@@ -182,6 +188,8 @@ public class AssignmentService {
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
             assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
+            assignment.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
+                    resourceRef, assignment.getOrganizationUnitId()).orElse(null));
         }, () -> {
             throw new ResourceNotFoundException(resourceRef.toString());
         });
