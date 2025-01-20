@@ -53,6 +53,7 @@ dependencies {
     implementation 'no.fintlabs:fint-flyt-cache:1.2.3'
     implementation 'no.fintlabs:fint-resource-server-security:1.1.0'
     implementation 'no.fintlabs:fint-kontroll-auth:1.2.4'
+    implementation 'no.fintlabs:fint-kontroll-db-audit:1.0.0-RC2'
     implementation 'no.fint:fint-model-resource:0.4.1'
     //implementation 'io.springfox:springfox-boot-starter:3.0.0'
     //implementation 'io.springfox:springfox-swagger-ui:3.0.0'
