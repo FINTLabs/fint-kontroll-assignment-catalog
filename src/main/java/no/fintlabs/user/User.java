@@ -17,7 +17,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.audit.CommonEntity;
+import no.fintlabs.audit.AuditEntity;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -35,7 +35,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
-public class User extends CommonEntity {
+public class User extends AuditEntity {
 
     @Id
     private Long id;
