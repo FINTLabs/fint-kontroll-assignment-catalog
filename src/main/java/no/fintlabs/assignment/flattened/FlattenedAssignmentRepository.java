@@ -67,7 +67,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("userIds") List<Long> userIds, Pageable pageable
     );
 
-    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
+    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'role' as objectType  FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
            "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
            "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
@@ -82,7 +82,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "ORDER BY u.firstName, u.lastName ASC")
     Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
-    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName FROM FlattenedAssignment fa " +
+    @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'user' as objectType  FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
            "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
            "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +

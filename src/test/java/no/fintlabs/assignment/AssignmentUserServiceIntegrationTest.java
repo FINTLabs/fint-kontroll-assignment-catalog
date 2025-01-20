@@ -2,6 +2,7 @@ package no.fintlabs.assignment;
 
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
@@ -56,6 +57,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @MockBean
     private OpaService opaService;
+
+    @MockBean
+    private ApplicationResourceLocationService applicationResourceLocationService;
 
     @Autowired
     private AssignmentRepository assignmentRepository;
