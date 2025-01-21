@@ -27,19 +27,19 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.userRef = :userId AND fa.assignmentViaRoleRef = :roleId AND fa.assignmentTerminationDate IS NULL")
     List<Long> findFlattenedAssignmentIdsByUserAndRoleRef(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
-    @Query("SELECT fa, u, a, r, assignerUser.firstName, assignerUser.lastName " +
-           "FROM FlattenedAssignment fa " +
-           "LEFT JOIN User u ON u.id = fa.userRef " +
-           "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
-           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
-           "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
-           "WHERE fa.resourceRef = :resourceId " +
-           "AND fa.assignmentTerminationDate IS NULL " +
-           "AND (:userType = 'ALLTYPES' OR LOWER(u.userType) = LOWER(:userType)) " +
-           "AND (:search IS NULL OR LOWER(u.firstName) LIKE %:search% OR LOWER(u.lastName) LIKE %:search%) " +
-           "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits)")
-    Page<Object[]> findAssignmentsByResourceAndUserTypeAndSearch(@Param("resourceId") Long resourceId, @Param("userType") String userType, @Param("orgUnits") List<String> orgUnits,
-                                                                 @Param("search") String search, Pageable pageable);
+//    @Query("SELECT fa, u, a, r, assignerUser.firstName, assignerUser.lastName " +
+//           "FROM FlattenedAssignment fa " +
+//           "LEFT JOIN User u ON u.id = fa.userRef " +
+//           "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
+//           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
+//           "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
+//           "WHERE fa.resourceRef = :resourceId " +
+//           "AND fa.assignmentTerminationDate IS NULL " +
+//           "AND (:userType = 'ALLTYPES' OR LOWER(u.userType) = LOWER(:userType)) " +
+//           "AND (:search IS NULL OR LOWER(u.firstName) LIKE %:search% OR LOWER(u.lastName) LIKE %:search%) " +
+//           "AND (:orgUnits IS NULL OR u.organisationUnitId IN :orgUnits)")
+//    Page<Object[]> findAssignmentsByResourceAndUserTypeAndSearch(@Param("resourceId") Long resourceId, @Param("userType") String userType, @Param("orgUnits") List<String> orgUnits,
+//                                                                 @Param("search") String search, Pageable pageable);
 
     @Query("SELECT fa, u, a, r, assignerUser.firstName, assignerUser.lastName " +
             "FROM FlattenedAssignment fa " +
@@ -66,6 +66,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("fullName") String fullName,
             @Param("userIds") List<Long> userIds, Pageable pageable
     );
+
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'role' as objectType  FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
            "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
@@ -78,7 +79,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
            "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%) " +
            "AND (:resourceIds IS NULL OR fa.resourceRef IN :resourceIds) " +
-           "ORDER BY u.firstName, u.lastName ASC")
+           "ORDER BY res.resourceName ASC")
     Page<Object[]> findAssignmentsByRoleAndResourceTypeAndSearch(@Param("roleId") Long roleId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
     @Query("SELECT fa, res, r, u, a, assignerUser.firstName, assignerUser.lastName, 'user' as objectType  FROM FlattenedAssignment fa " +
@@ -93,7 +94,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
            "AND (:resourceType = 'ALLTYPES' OR LOWER(res.resourceType) = LOWER(:resourceType)) " +
            "AND (:search IS NULL OR LOWER(res.resourceName) LIKE %:search%) " +
            "AND (:resourceIds IS NULL OR fa.resourceRef IN :resourceIds) " +
-           "ORDER BY u.firstName, u.lastName ASC")
+           "ORDER BY res.resourceName ASC")
     Page<Object[]> findAssignmentsByUserAndResourceTypeAndSearch(@Param("userId") Long userId, @Param("resourceType") String resourceType, @Param("resourceIds") List<Long> resourceIds, @Param("search") String search, Pageable pageable);
 
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
