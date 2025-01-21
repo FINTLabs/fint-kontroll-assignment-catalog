@@ -8,10 +8,10 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.role.Role;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +19,7 @@ import java.util.List;
 
 @Service
 @Slf4j
-public class AssigmentUserService {
+public class AssignmentUserService {
 
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
@@ -27,7 +27,7 @@ public class AssigmentUserService {
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
 
 
-    public AssigmentUserService(UserRepository userRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository) {
+    public AssignmentUserService(UserRepository userRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
@@ -47,25 +47,30 @@ public class AssigmentUserService {
 
     public Page<ResourceAssignmentUser> findResourceAssignmentUsers(Long resourceId, String userType, List<String> orgUnits,
                                                                     List<String> orgUnitsInScope,
-                                                                    String search,
+                                                                    List<Long> userIds, String search,
                                                                     int page, int size) {
 
         List<String> orgUnitsToFilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
 
-        Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("u.firstName")
-                                                   .ascending()
-                                                   .and(Sort.by("u.lastName"))
-                                                   .ascending());
+        Pageable pageable = PageRequest.of(page, size);
 
         log.info("Fetching flattenedassignments for resource with Id: " + resourceId);
 
         if(orgUnitsToFilter.contains(OrgUnitType.ALLORGUNITS.name())) {
             orgUnitsToFilter = null;
         }
+        String fullName = null;
+        String firstName = null;
+        String lastName = null;
 
-        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndSearch(
-                resourceId, userType, orgUnitsToFilter, search, pageable);
+        if (search != null) {
+            fullName = search.toLowerCase().strip().replaceAll("\\s+", "%");
+            firstName = fullName.contains("%") ? StringUtils.substringBeforeLast(fullName, "%") : null;
+            lastName = fullName.contains("%") ? StringUtils.substringAfterLast(fullName, "%") : fullName;
+        }
+
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
+                resourceId, userType, orgUnitsToFilter, firstName, lastName, fullName, userIds, pageable);
 
         return results.map(result -> {
             FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
