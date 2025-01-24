@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.audit.AuditEntity;
 
 import java.util.Date;
 import java.util.UUID;
@@ -26,12 +27,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="FlattenedAssignments")
+@Table(name = "FlattenedAssignments")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
-public class FlattenedAssignment {
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
+public class FlattenedAssignment extends AuditEntity {
+
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @NonNull
     private Long assignmentId;
