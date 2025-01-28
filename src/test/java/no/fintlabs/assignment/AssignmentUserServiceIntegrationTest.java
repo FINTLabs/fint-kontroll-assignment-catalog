@@ -8,6 +8,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
@@ -57,6 +58,8 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @MockBean
     private OpaService opaService;
+    @MockBean
+    private AuthorizationUtil authorizationUtil;
 
     @MockBean
     private ApplicationResourceLocationService applicationResourceLocationService;

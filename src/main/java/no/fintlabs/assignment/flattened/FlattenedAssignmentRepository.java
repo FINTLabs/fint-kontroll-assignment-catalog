@@ -41,11 +41,12 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     Page<Object[]> findAssignmentsByResourceAndUserTypeAndSearch(@Param("resourceId") Long resourceId, @Param("userType") String userType, @Param("orgUnits") List<String> orgUnits,
                                                                  @Param("search") String search, Pageable pageable);
 
-    @Query("SELECT fa, u, a, r, assignerUser.firstName, assignerUser.lastName " +
+    @Query("SELECT fa, res, u, a, r, assignerUser.firstName, assignerUser.lastName, 'user' as objectType  " +
             "FROM FlattenedAssignment fa " +
             "LEFT JOIN User u ON u.id = fa.userRef " +
             "LEFT JOIN Role r ON r.id = fa.assignmentViaRoleRef " +
             "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
+            "LEFT JOIN Resource res ON res.id = fa.resourceRef " +
             "LEFT JOIN User assignerUser ON assignerUser.userName = a.assignerUserName " +
             "WHERE fa.resourceRef = :resourceId " +
             "AND fa.assignmentTerminationDate IS NULL " +
