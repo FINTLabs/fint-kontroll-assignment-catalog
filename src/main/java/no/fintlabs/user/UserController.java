@@ -95,8 +95,8 @@ public class UserController {
                         userIds,
                         search,
                         page,
-                size
-        );
+                        size
+                );
         if (resourceAssignments == null) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,

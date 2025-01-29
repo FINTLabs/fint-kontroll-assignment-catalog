@@ -4,8 +4,8 @@ logging:
 #    org.flywaydb.core.internal.command.DbMigrate: DEBUG
 #    org.springframework.security: DEBUG
 #    org.testcontainers: DEBUG
-#   org.hibernate.SQL: DEBUG
-#    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
 
 
 spring:
