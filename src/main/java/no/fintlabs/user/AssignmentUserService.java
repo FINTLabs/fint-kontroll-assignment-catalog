@@ -130,9 +130,9 @@ public class AssignmentUserService {
     }
     private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
         List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
-        return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
-                && (orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
-                || isResourceUnrestricted(resource)));
+        return (objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
+                && (flattenedAssignment.getResourceConsumerOrgUnitId() != null &&orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
+                || isResourceUnrestricted(resource));
     }
     private boolean isResourceUnrestricted(Resource resource) {
         //TODO: temporary solution, should be replaced with a proper check
