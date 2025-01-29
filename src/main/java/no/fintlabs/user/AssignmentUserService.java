@@ -80,7 +80,8 @@ public class AssignmentUserService {
             log.warn("Fetching flattened assignments for resource with Id: {} returned no results",  resourceId);
             return null;
         }
-        log.warn("Fetching flattened assignments for resource with Id: {} returned {} objects",  resourceId, results.get().getSize());
+        log.info("Fetching flattened assignments for resource with Id: {} returned {} objects",  resourceId, results.get().getSize());
+
         return results.get().map(result -> {
             FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
             Resource resource = (Resource) result[1];
