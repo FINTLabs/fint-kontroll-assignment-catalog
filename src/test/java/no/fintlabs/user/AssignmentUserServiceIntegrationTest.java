@@ -6,6 +6,7 @@ import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentUserService.class})
+@Import({AssignmentUserService.class, AuthorizationUtil.class})
 public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -39,6 +40,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
     @MockBean
     private AssignmentService assignmentService;
+    @MockBean
+    private AuthorizationUtil authorizationUtil;
+
     private List<String> allOrgUnitsAsList;
     private List<Long> userIds;
 

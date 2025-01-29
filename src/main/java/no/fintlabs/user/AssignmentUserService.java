@@ -6,6 +6,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.resource.Resource;
@@ -18,6 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -56,7 +58,7 @@ public class AssignmentUserService {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        log.info("Fetching flattenedassignments for resource with Id: " + resourceId);
+        log.info("Fetching flattened assignments for resource with Id: {}",  resourceId);
 
         if(orgUnitsToFilter.contains(OrgUnitType.ALLORGUNITS.name())) {
             orgUnitsToFilter = null;
@@ -71,10 +73,15 @@ public class AssignmentUserService {
             lastName = fullName.contains("%") ? StringUtils.substringAfterLast(fullName, "%") : fullName;
         }
 
-        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
+        Optional< Page<Object[]>> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
                 resourceId, userType, orgUnitsToFilter, firstName, lastName, fullName, userIds, pageable);
 
-        return results.map(result -> {
+        if (results.isEmpty()) {
+            log.warn("Fetching flattened assignments for resource with Id: {} returned no results",  resourceId);
+            return null;
+        }
+        log.warn("Fetching flattened assignments for resource with Id: {} returned {} objects",  resourceId, results.get().getSize());
+        return results.get().map(result -> {
             FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
             Resource resource = (Resource) result[1];
             User user = (User) result[2];
@@ -131,7 +138,11 @@ public class AssignmentUserService {
         if (resource.getLicenseEnforcement() == null) {
             return false;
         }
-        List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        List<String> unrestrictedEnforcementTypes = List.of(
+                Handhevingstype.NOTSET.name(),
+                Handhevingstype.FREEALL.name(),
+                Handhevingstype.FREEEDU.name(),
+                Handhevingstype.FREESTUDENT.name());
         return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }
