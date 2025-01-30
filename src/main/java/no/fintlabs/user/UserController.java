@@ -86,23 +86,30 @@ public class UserController {
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
 
-        Page<ResourceAssignmentUser> resourceAssignments
-                = assignmentUserService.findResourceAssignmentUsersForResourceId(
-                        id,
-                        userType,
-                        orgUnits,
-                        orgUnitsInScope,
-                        userIds,
-                        search,
-                        page,
-                        size
-                );
-        if (resourceAssignments == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Fetching users assigned to resource " + id +" resources returned no users"
+        try {
+            Page<ResourceAssignmentUser> resourceAssignments
+                    = assignmentUserService.findResourceAssignmentUsersForResourceId(
+                    id,
+                    userType,
+                    orgUnits,
+                    orgUnitsInScope,
+                    userIds,
+                    search,
+                    page,
+                    size
             );
+
+            if (resourceAssignments == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Fetching users assigned to resource " + id + " resources returned no users"
+                );
+            }
+            return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
         }
-        return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
+        catch (Exception e) {
+            log.error("Fetching users assigned to resource {} resources returned no users .Failed with error message: {}", id, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something went wrong when fetching users assigned to resource");
+        }
     }
 }
