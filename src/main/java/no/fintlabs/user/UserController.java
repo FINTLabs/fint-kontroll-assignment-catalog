@@ -98,6 +98,7 @@ public class UserController {
                     page,
                     size
             );
+            log.info("Resource assignment users returned from assignmentUserService");
 
             if (resourceAssignments == null) {
                 throw new ResponseStatusException(

@@ -102,8 +102,10 @@ public class AssignmentUserService {
             resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
             resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
             resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-            //resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment, resource, objectType));
             resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment, resource, orgUnitsInScope));
+
+            log.info("resourceAssignmentUser {} has set direct and deletable fields", flattenedAssignment.getId());
+
             if (user != null) {
                 resourceAssignmentUser.setAssigneeUsername(user.getUserName());
                 resourceAssignmentUser.setAssigneeRef(user.getId());
@@ -121,10 +123,16 @@ public class AssignmentUserService {
             String assignerDisplayName = (assignerFirstName != null && assignerLastName != null) ? assignerFirstName + " " + assignerLastName : null;
             resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
+            log.info("resourceAssignmentUser {} has set assignerDisplayName {}",flattenedAssignment.getId(), assignerDisplayName);
+
             if (resourceAssignmentUser.getAssigneeFirstName() == null && resourceAssignmentUser.getAssigneeLastName() == null) {
                 resourceAssignmentUser.setAssigneeFirstName(assignment.getUserFirstName());
                 resourceAssignmentUser.setAssigneeLastName(assignment.getUserLastName());
-
+                log.info("resourceAssignmentUser {} has set assignee names {} {}",
+                        flattenedAssignment.getId(),
+                        resourceAssignmentUser.getAssigneeFirstName(),
+                        resourceAssignmentUser.getAssigneeLastName()
+                        );
             }
             return resourceAssignmentUser;
         });
