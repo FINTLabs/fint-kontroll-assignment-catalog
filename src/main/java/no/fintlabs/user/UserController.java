@@ -87,7 +87,7 @@ public class UserController {
         log.info("Org units returned from scope: {}", orgUnitsInScope);
 
         Page<ResourceAssignmentUser> resourceAssignments
-                = assignmentUserService.findResourceAssignmentUsers(
+                = assignmentUserService.findResourceAssignmentUsersForResourceId(
                         id,
                         userType,
                         orgUnits,

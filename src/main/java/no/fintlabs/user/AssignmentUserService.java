@@ -49,11 +49,16 @@ public class AssignmentUserService {
                 });
     }
 
-    public Page<ResourceAssignmentUser> findResourceAssignmentUsers(Long resourceId, String userType, List<String> orgUnits,
-                                                                    List<String> orgUnitsInScope,
-                                                                    List<Long> userIds, String search,
-                                                                    int page, int size) {
-
+    public Page<ResourceAssignmentUser> findResourceAssignmentUsersForResourceId(
+            Long resourceId,
+            String userType,
+            List<String> orgUnits,
+            List<String> orgUnitsInScope,
+            List<Long> userIds,
+            String search,
+            int page,
+            int size
+    ) {
         List<String> orgUnitsToFilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
 
         Pageable pageable = PageRequest.of(page, size);
@@ -90,15 +95,15 @@ public class AssignmentUserService {
             Role role = (Role) result[4];
             String assignerFirstName = (String) result[5];
             String assignerLastName = (String) result[6];
-            String objectType = (String) result[7];
+            //String objectType = (String) result[7];
 
             ResourceAssignmentUser resourceAssignmentUser = new ResourceAssignmentUser();
             resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
             resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
             resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
             resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-            resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment, resource, objectType));
-
+            //resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment, resource, objectType));
+            resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment, resource, orgUnitsInScope));
             if (user != null) {
                 resourceAssignmentUser.setAssigneeUsername(user.getUserName());
                 resourceAssignmentUser.setAssigneeRef(user.getId());
@@ -128,18 +133,39 @@ public class AssignmentUserService {
     private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
         return flattenedAssignment.getAssignmentViaRoleRef() == null;
     }
-    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
-        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
-        return (objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
-                && (flattenedAssignment.getResourceConsumerOrgUnitId() != null &&orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
-                || isResourceUnrestricted(resource));
+    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, List<String> orgUnitsInScope) {
+        try {
+            log.info("Checking if flattened assignment {} is deletable for this scope {}",
+                    flattenedAssignment.getId(),
+                    orgUnitsInScope.toString());
+
+            boolean isDirectAssignment= isDirectAssignment(flattenedAssignment);
+            log.info("isDirectAssignment is {}", isDirectAssignment);
+
+            boolean isResourceUnrestricted = isResourceUnrestricted(resource);
+            log.info("isResourceUnrestricted is {}", isResourceUnrestricted);
+
+            boolean isResourceConsumerInScope =
+                    flattenedAssignment.getResourceConsumerOrgUnitId() != null &&
+                            orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId());
+            log.info("isResourceConsumerInScope is {}", isResourceConsumerInScope);
+
+            return isDirectAssignment && (isResourceUnrestricted || isResourceConsumerInScope);
+        }
+        catch (Exception e)
+        {
+           log.error("Calculation of isDeletableAssignment failed with error {}", e.getMessage());
+           return false;
+        }
     }
+
     private boolean isResourceUnrestricted(Resource resource) {
         //TODO: temporary solution, should be replaced with a proper check
         if (resource.getLicenseEnforcement() == null) {
-            return false;
+            return true;
         }
         List<String> unrestrictedEnforcementTypes = List.of(
+                Handhevingstype.NOTSPECIFIED.name(),
                 Handhevingstype.NOTSET.name(),
                 Handhevingstype.FREEALL.name(),
                 Handhevingstype.FREEEDU.name(),

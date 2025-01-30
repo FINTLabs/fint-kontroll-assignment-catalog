@@ -6,5 +6,6 @@ public enum Handhevingstype {
     FREEALL,
     FREESTUDENT,
     FREEEDU,
-    NOTSET
+    NOTSET,
+    NOTSPECIFIED
 }

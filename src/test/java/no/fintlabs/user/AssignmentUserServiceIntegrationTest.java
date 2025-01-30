@@ -90,7 +90,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
     @Test
     void givenUserWithMiddlename_whenSearchStringContainsMiddleName_thenReturnUser() {
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
@@ -103,7 +103,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
     @Test
     void givenUserWithMiddlename_whenSearchStringDoesNotContainsMiddleName_thenReturnUser() {
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
@@ -116,7 +116,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
     @Test
     void givenUser_whenSearchStringContainsPartOfLastName_thenReturnUser() {
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
@@ -129,7 +129,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
     @Test
     void givenUser_whenSearchStringNotContainsLastName_thenReturnUser() {
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
@@ -164,7 +164,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .build();
         flattenedAssignmentRepository.save(flattenedAssignment2);
 
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
@@ -199,7 +199,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .build();
         flattenedAssignmentRepository.save(flattenedAssignment2);
 
-        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsers(
+        Page<ResourceAssignmentUser> resourceAssignmentUserPage = assignmentUserService.findResourceAssignmentUsersForResourceId(
                 456L,
                 "ALLTYPES",
                 allOrgUnitsAsList,
