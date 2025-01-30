@@ -2,6 +2,7 @@ package no.fintlabs.resource;
 
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
@@ -11,11 +12,13 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
+import no.fintlabs.kodeverk.Handhevingstype;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -30,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Testcontainers
@@ -47,15 +51,22 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private AssignmentRepository assignmentRepository;
+
+    @MockBean
+    private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
+    @MockBean
+    private AuthorizationUtil authorizationUtil;
 
     @Autowired
     private ResourceRepository resourceRepository;
@@ -72,9 +83,353 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     @Autowired
     private TestEntityManager testEntityManager;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    private final String varfk = "varfk";
+    private final String kompavd = "kompavd";
 
+    private final List<String> kompavdList = List.of(kompavd);
+
+    private final String zip = "zip";
+    private final String adobek12 = "adobek12";
+    private final String student = "Student";
+    private final String allTypes = "ALLTYPES";
+
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndResourceConsumerOrgUnitIdIsInScope() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
+
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        Role role = Role.builder()
+                .id(1L)
+                .roleType(allTypes)
+                .roleName("Test role")
+                .organisationUnitId(kompavd)
+                .build();
+
+        Role savedRole = roleRepository.saveAndFlush(role);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(savedRole.getId())
+                .userRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(null)
+                .assignmentViaRoleRef(savedRole.getId())
+                .resourceRef(savedResourceAdobek12.getId())
+                .resourceConsumerOrgUnitId(kompavd)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToFalseWhenCalledByRoleAndRestrictedResourceNotInScope() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
+
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        Role role = Role.builder()
+                .id(1L)
+                .roleType(allTypes)
+                .roleName("Test role")
+                .organisationUnitId(kompavd)
+                .build();
+
+        Role savedRole = roleRepository.saveAndFlush(role);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(savedRole.getId())
+                .userRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(null)
+                .assignmentViaRoleRef(savedRole.getId())
+                .resourceRef(savedResourceAdobek12.getId())
+                .resourceConsumerOrgUnitId(varfk)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByRoleAndUnrestrictedResourceNotInScope() {
+        Resource resource = Resource.builder()
+                .id(2L)
+                .resourceId(zip)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
+                .build();
+        Resource savedResource = resourceRepository.saveAndFlush(resource);
+
+        Role role = Role.builder()
+                .id(1L)
+                .roleType(allTypes)
+                .roleName("Test role")
+                .organisationUnitId(kompavd)
+                .build();
+        Role savedRole = roleRepository.saveAndFlush(role);
+
+        Assignment assignment = Assignment.builder()
+                .roleRef(savedRole.getId())
+                .userRef(null)
+                .resourceRef(savedResource.getId())
+                .build();
+        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedRole.getId())
+                .assignmentViaRoleRef(1L)
+                .resourceRef(savedResource.getId())
+                .resourceConsumerOrgUnitId(varfk)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndResourceConsumerOrgUnitIdIsInScope() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
+
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+                .resourceConsumerOrgUnitId(kompavd)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
+
+    @Test
+    public void shouldSetIsDeletableAssignmentToFalseWhenCalledByUserAndRestrictedResourceNotInScope() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
+
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+                .resourceConsumerOrgUnitId(varfk)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserAndUnrestrictedResourceNotInScope() {
+        Resource resource = Resource.builder()
+                .id(2L)
+                .resourceId(zip)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
+                .build();
+
+        Resource savedResource = resourceRepository.saveAndFlush(resource);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignment = Assignment.builder()
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .resourceRef(savedResource.getId())
+                .build();
+
+        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(null)
+                .resourceRef(savedResource.getId())
+                .resourceConsumerOrgUnitId(varfk)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToFalseForUnrestrictedResourceNotInScopeAndIndirectlyAssigned() {
+        Resource resource = Resource.builder()
+                .id(2L)
+                .resourceId(zip)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
+                .build();
+
+        Resource savedResource = resourceRepository.saveAndFlush(resource);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Role role = Role.builder()
+                .id(1L)
+                .roleType(allTypes)
+                .roleName("Test role")
+                .organisationUnitId(kompavd)
+                .build();
+        Role savedRole = roleRepository.saveAndFlush(role);
+
+        Assignment assignment = Assignment.builder()
+                .roleRef(role.getId())
+                .userRef(null)
+                .resourceRef(savedResource.getId())
+                .build();
+
+        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+
+        FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
+                .assignmentId(savedAssignment.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(1L)
+                .resourceRef(savedResource.getId())
+                .resourceConsumerOrgUnitId(varfk)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
+    }
     @Test
     public void shouldFindUserResourcesNotDeleted() {
         Resource resource = Resource.builder()
@@ -159,6 +514,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("1")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -189,11 +545,13 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
+                .resourceConsumerOrgUnitId(varfk)
                 .build();
         FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
 
         testEntityManager.flush();
         testEntityManager.clear();
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(List.of("555"));
 
         List<Long> resourceIds = List.of(savedResource.getId());
 
@@ -221,6 +579,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResourceIndirect = resourceRepository.saveAndFlush(resource);
@@ -230,6 +589,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResourceDirect = resourceRepository.saveAndFlush(resource2);
@@ -329,6 +689,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -338,6 +699,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource2 = resourceRepository.saveAndFlush(resource2);

@@ -41,6 +41,7 @@ public class Resource {
     private UUID identityProviderGroupObjectId;
     private String resourceName;
     private String resourceType;
+    private String licenseEnforcement;
 
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
@@ -71,11 +72,11 @@ public class Resource {
         final Resource resource = (Resource) o;
         return Objects.equals(id, resource.id) && Objects.equals(resourceId, resource.resourceId) && Objects.equals(groupObjectId, resource.groupObjectId) &&
                Objects.equals(identityProviderGroupObjectId, resource.identityProviderGroupObjectId) && Objects.equals(resourceName, resource.resourceName) &&
-               Objects.equals(resourceType, resource.resourceType);
+               Objects.equals(resourceType, resource.resourceType) && Objects.equals(licenseEnforcement, resource.licenseEnforcement);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, resourceId, groupObjectId, identityProviderGroupObjectId, resourceName, resourceType);
+        return Objects.hash(id, resourceId, groupObjectId, identityProviderGroupObjectId, resourceName, resourceType, licenseEnforcement);
     }
 }
