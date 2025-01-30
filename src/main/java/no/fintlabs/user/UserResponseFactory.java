@@ -1,5 +1,6 @@
 package no.fintlabs.user;
 
+import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.role.AssignmentRole;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
 
+@Slf4j
 public class UserResponseFactory {
     public static ResponseEntity<Map<String, Object>> assignmentUsersToResponseEntity(Page<AssignmentUser> assignmentUserPage) {
 
@@ -22,6 +24,11 @@ public class UserResponseFactory {
     }
 
     public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<ResourceAssignmentUser> resourceAssignmentUsersPagable) {
+        log.info("users: {}", resourceAssignmentUsersPagable.getContent());
+        log.info("currentPage: {}", resourceAssignmentUsersPagable.getNumber());
+        log.info("totalPages: {}", resourceAssignmentUsersPagable.getTotalPages());
+        log.info("size: {}", resourceAssignmentUsersPagable.getSize());
+        log.info("totalItems: {}", resourceAssignmentUsersPagable.getTotalElements());
 
         return new ResponseEntity<>(
                 Map.of( "users", resourceAssignmentUsersPagable.getContent(),

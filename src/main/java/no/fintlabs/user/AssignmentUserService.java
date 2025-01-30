@@ -128,6 +128,7 @@ public class AssignmentUserService {
             if (resourceAssignmentUser.getAssigneeFirstName() == null && resourceAssignmentUser.getAssigneeLastName() == null) {
                 resourceAssignmentUser.setAssigneeFirstName(assignment.getUserFirstName());
                 resourceAssignmentUser.setAssigneeLastName(assignment.getUserLastName());
+
                 log.info("resourceAssignmentUser {} has set assignee names {} {}",
                         flattenedAssignment.getId(),
                         resourceAssignmentUser.getAssigneeFirstName(),
