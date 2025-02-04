@@ -17,6 +17,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.audit.AuditEntity;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -29,11 +30,12 @@ import java.util.UUID;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="AssignmentResources")
+@Table(name = "AssignmentResources")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
-public class Resource {
+public class Resource extends AuditEntity {
+
     @Id
     private Long id;
     private String resourceId;
@@ -46,7 +48,7 @@ public class Resource {
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
-    @JsonManagedReference(value="resource-assignment")
+    @JsonManagedReference(value = "resource-assignment")
     @JsonIgnore
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();

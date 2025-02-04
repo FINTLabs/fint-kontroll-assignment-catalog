@@ -1,4 +1,4 @@
-package no.fintlabs.applicationResourceLocation;
+package no.fintlabs.applicationresourcelocation;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

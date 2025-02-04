@@ -1,7 +1,7 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;

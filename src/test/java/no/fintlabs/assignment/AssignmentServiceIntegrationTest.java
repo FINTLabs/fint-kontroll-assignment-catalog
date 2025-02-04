@@ -2,7 +2,7 @@ package no.fintlabs.assignment;
 
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
