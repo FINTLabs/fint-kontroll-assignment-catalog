@@ -48,8 +48,8 @@ logging:
     root: INFO
     org.apache.kafka: WARN
     no.fintlabs.assignment: INFO
-    org.hibernate.SQL: INFO
-    no.fintlabs.cache.ehcache: WARN
+#    org.hibernate.SQL: INFO
+#    no.fintlabs.cache.ehcache: WARN
 
 springdoc:
   swagger-ui:

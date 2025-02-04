@@ -6,6 +6,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -71,7 +72,7 @@ public class AssignmentResourceService {
                                                                           List<String> orgUnitsInScope, List<Long> resourceIds, String search, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
-        log.info("Fetching flattenedassignments for role with Id: " + roleId);
+        log.info("Fetching flattened assignments for role with Id: " + roleId);
 
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByRoleAndResourceTypeAndSearch(roleId, resourceType, resourceIds, search, pageable);
 
@@ -82,7 +83,7 @@ public class AssignmentResourceService {
                                                                           List<String> orgUnitsInScope, List<Long> resourceIds, String search, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
-        log.info("Fetching flattenedassignments for user with Id: " + userId);
+        log.info("Fetching flattened assignments for user with Id: " + userId);
 
         Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByUserAndResourceTypeAndSearch(userId, resourceType, resourceIds, search, pageable);
 
@@ -127,7 +128,7 @@ public class AssignmentResourceService {
     private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
         List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
         return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
-                && (orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
+                && (flattenedAssignment.getResourceConsumerOrgUnitId() != null && orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
                 || isResourceUnrestricted(resource)));
     }
     private boolean isResourceUnrestricted(Resource resource) {
@@ -135,7 +136,12 @@ public class AssignmentResourceService {
         if (resource.getLicenseEnforcement() == null) {
             return false;
         }
-        List<String> unrestrictedEnforcementTypes = List.of("NOT-SET", "FREE-ALL", "FREE-EDU", "FREE-STUDENT");
+        List<String> unrestrictedEnforcementTypes = List.of(
+                Handhevingstype.NOTSPECIFIED.name(),
+                Handhevingstype.NOTSET.name(),
+                Handhevingstype.FREEALL.name(),
+                Handhevingstype.FREEEDU.name(),
+                Handhevingstype.FREESTUDENT.name());
         return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }

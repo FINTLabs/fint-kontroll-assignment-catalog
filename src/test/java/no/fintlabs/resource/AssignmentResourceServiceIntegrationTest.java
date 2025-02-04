@@ -13,6 +13,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
@@ -90,8 +91,6 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String zip = "zip";
     private final String adobek12 = "adobek12";
     private final String student = "Student";
-    private final String freeAll = "FREE-ALL";
-    private final String hardStop = "HARDSTOP";
     private final String allTypes = "ALLTYPES";
 
     @Test
@@ -100,7 +99,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(1L)
                 .resourceId(adobek12)
                 .resourceType(allTypes)
-                .licenseEnforcement(hardStop)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
@@ -146,7 +145,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(1L)
                 .resourceId(adobek12)
                 .resourceType(allTypes)
-                .licenseEnforcement(hardStop)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
@@ -192,7 +191,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(2L)
                 .resourceId(zip)
                 .resourceType(allTypes)
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
         Resource savedResource = resourceRepository.saveAndFlush(resource);
 
@@ -235,7 +234,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(1L)
                 .resourceId(adobek12)
                 .resourceType(allTypes)
-                .licenseEnforcement(hardStop)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
@@ -286,7 +285,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(1L)
                 .resourceId(adobek12)
                 .resourceType(allTypes)
-                .licenseEnforcement(hardStop)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
@@ -334,7 +333,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(2L)
                 .resourceId(zip)
                 .resourceType(allTypes)
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -382,7 +381,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .id(2L)
                 .resourceId(zip)
                 .resourceType(allTypes)
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -515,7 +514,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("1")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -580,7 +579,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResourceIndirect = resourceRepository.saveAndFlush(resource);
@@ -590,7 +589,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResourceDirect = resourceRepository.saveAndFlush(resource2);
@@ -690,7 +689,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("111")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource")
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
@@ -700,7 +699,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceId("222")
                 .resourceType("ALLTYPES")
                 .resourceName("Test resource 222")
-                .licenseEnforcement(freeAll)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
                 .build();
 
         Resource savedResource2 = resourceRepository.saveAndFlush(resource2);
