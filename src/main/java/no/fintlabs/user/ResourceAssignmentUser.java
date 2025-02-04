@@ -21,6 +21,7 @@ public class ResourceAssignmentUser {
     private String assigneeOrganisationUnitName;
     private Long assignmentRef;
     private boolean directAssignment;
+    private boolean deletableAssignment;
     private Long assignmentViaRoleRef;
     private String assignmentViaRoleName;
     private String assignerUsername;
