@@ -1,4 +1,4 @@
-package no.fintlabs.applicationResourceLocation;
+package no.fintlabs.applicationresourcelocation;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -25,9 +25,9 @@ public class ApplicationResourceLocationConsumerConfiguration {
 
         return entityConsumerFactoryService.createFactory(
                         ApplicationResourceLocation.class,
-                        (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) ->{
+                        (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) -> {
                             log.debug("Processing applicationResourceLocation with id: {} - for applicationResource: {}",
-                                    consumerRecord.value().id,consumerRecord.value().resourceId);
+                                      consumerRecord.value().id, consumerRecord.value().resourceId);
                             applicationResourceLocationService.save(consumerRecord.value());
                         })
                 .createContainer(entityTopicNameParameters);

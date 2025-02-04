@@ -1,4 +1,4 @@
-package no.fintlabs.applicationResourceLocation;
+package no.fintlabs.applicationresourcelocation;
 
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.orgunitdistance.OrgUnitDistance;
@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
 import java.util.Optional;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 
 @DataJpaTest
@@ -19,6 +21,7 @@ public class ApplicationResourceLocationServiceIntegrationTest extends DatabaseI
 
     @Autowired
     private ApplicationResourceLocationService applicationResourceLocationService;
+
     @Autowired
     private OrgUnitDistanceService orgUnitDistanceService;
 

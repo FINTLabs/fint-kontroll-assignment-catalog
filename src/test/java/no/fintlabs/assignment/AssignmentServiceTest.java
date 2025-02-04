@@ -1,7 +1,6 @@
 package no.fintlabs.assignment;
 
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationRepository;
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.N;
 
 import java.util.List;
 import java.util.Optional;

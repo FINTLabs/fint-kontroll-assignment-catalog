@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.audit.AuditEntity;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
@@ -39,7 +40,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 //@Where(clause = "disabled = 'false'")
-public class Assignment {
+public class Assignment extends AuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -130,7 +131,7 @@ public class Assignment {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null  && azureAdUserId != null;
+        return userRef != null && azureAdUserId != null;
     }
 
     @JsonIgnore
