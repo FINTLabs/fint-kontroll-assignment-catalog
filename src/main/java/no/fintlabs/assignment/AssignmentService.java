@@ -255,7 +255,7 @@ public class AssignmentService {
         }
     }
 
-    public void updateAssignmentWithResourceConsumerOrgUnitId(Set<Long> ids) {
+    public void updateAssignmentsWithResourceConsumerOrgUnitId(Set<Long> ids) {
         ids.forEach(id -> {
             Optional<Assignment> assignment = assignmentRepository.findById(id);
             assignment.ifPresent(foundAssignment -> {
