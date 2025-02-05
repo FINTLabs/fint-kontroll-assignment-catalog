@@ -1,6 +1,5 @@
 package no.fintlabs;
 
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocation;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.cache.FintCacheManager;
 import no.fintlabs.membership.Membership;

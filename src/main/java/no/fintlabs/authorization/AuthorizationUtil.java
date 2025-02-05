@@ -3,9 +3,7 @@ package no.fintlabs.authorization;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.model.Scope;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-
 
 import java.util.Collection;
 import java.util.List;

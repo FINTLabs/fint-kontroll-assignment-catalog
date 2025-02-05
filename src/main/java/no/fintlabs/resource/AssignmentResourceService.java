@@ -5,6 +5,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
@@ -14,7 +15,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import no.fintlabs.authorization.AuthorizationUtil;
 
 import java.util.List;
 

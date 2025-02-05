@@ -1,7 +1,7 @@
 package no.fintlabs.role;
 
 import no.fintlabs.DatabaseIntegrationTest;
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;

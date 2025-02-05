@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.audit.AuditEntity;
 
 import java.util.Date;
 import java.util.Objects;
@@ -21,10 +22,11 @@ import java.util.UUID;
 //@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name="Assignment_memberships")
+@Table(name = "Assignment_memberships")
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
-public class Membership {
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
+public class Membership extends AuditEntity {
+
     @Id
     private String id;
     private Long roleId;

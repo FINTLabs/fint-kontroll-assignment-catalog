@@ -2,7 +2,7 @@ package no.fintlabs.assignment;
 
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
-import no.fintlabs.applicationResourceLocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
@@ -13,7 +13,6 @@ import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
-import no.fintlabs.resource.UserAssignmentResource;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.AssignmentUser;
