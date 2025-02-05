@@ -17,6 +17,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.audit.AuditEntity;
 import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.Date;
@@ -34,7 +35,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
-public class Role {
+public class Role extends AuditEntity {
 
     @Id
     //@GeneratedValue(strategy = GenerationType.IDENTITY)
