@@ -22,6 +22,11 @@ public class ApplicationResourceLocationService {
     }
     public Optional<String> getNearestResourceConsumerForOrgUnit(Long resourceRef, String orgUnitId) {
         log.info("Getting nearest resource consumer for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
-        return applicationResourceLocationRepository.findNearestResourceConsumerForOrgUnit(resourceRef, orgUnitId);
+        Optional<String> nearestResourceConsumer = applicationResourceLocationRepository.findNearestResourceConsumerForOrgUnit(resourceRef, orgUnitId);
+
+        if (nearestResourceConsumer.isEmpty()) {
+            log.warn("No resource consumer found for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
+        }
+        return nearestResourceConsumer;
     }
 }
