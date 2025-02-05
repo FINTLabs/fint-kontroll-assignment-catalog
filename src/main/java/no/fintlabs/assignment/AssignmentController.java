@@ -265,7 +265,7 @@ public class AssignmentController {
         if (!ids.isEmpty()) {
             log.info("Updating {} assignments missing resource consumer org unit id", ids.size());
 
-            assignmentService.updateAssignmentWithResourceConsumerOrgUnitId(ids);
+            assignmentService.updateAssignmentsWithResourceConsumerOrgUnitId(ids);
 
             log.info("Done updating {} assignments missing resource consumer org unit id", ids.size());
         }
