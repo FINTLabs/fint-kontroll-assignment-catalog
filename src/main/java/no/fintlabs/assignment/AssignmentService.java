@@ -258,10 +258,10 @@ public class AssignmentService {
     public void updateAssignmentWithResourceConsumerOrgUnitId(Set<Long> ids) {
         ids.forEach(id -> {
             Optional<Assignment> assignment = assignmentRepository.findById(id);
-            assignment.ifPresent(value -> {
-                value.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
-                        value.getResourceRef(), value.getOrganizationUnitId()).orElse(null));
-                assignmentRepository.save(value);
+            assignment.ifPresent(foundAssignment -> {
+                foundAssignment.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
+                        foundAssignment.getResourceRef(), foundAssignment.getOrganizationUnitId()).orElse(null));
+                assignmentRepository.save(foundAssignment);
             });
         });
     }
