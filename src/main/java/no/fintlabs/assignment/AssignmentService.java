@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -252,6 +253,17 @@ public class AssignmentService {
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
                     });
         }
+    }
+
+    public void updateAssignmentWithResourceConsumerOrgUnitId(Set<Long> ids) {
+        ids.forEach(id -> {
+            Optional<Assignment> assignment = assignmentRepository.findById(id);
+            assignment.ifPresent(value -> {
+                value.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
+                        value.getResourceRef(), value.getOrganizationUnitId()).orElse(null));
+                assignmentRepository.saveAndFlush(value);
+            });
+        });
     }
 }
 

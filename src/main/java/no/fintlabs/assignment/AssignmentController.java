@@ -27,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -240,6 +241,37 @@ public class AssignmentController {
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/updateassignmentsmissingresourceconsumerorgunitid")
+    public ResponseEntity<HttpStatus> updateAssignmentsMissingResourceConsumerOrgUnitId(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Start updating all assignments missing resource consumer org unit id)");
+
+        Set<Long> ids = assignmentService.getAssignments()
+                .stream()
+                .filter(assignment -> assignment.getResourceConsumerOrgUnitId() == null)
+                .map(Assignment::getId)
+                .collect(Collectors.toSet());
+
+        log.info("Found {} assignments missing resource consumer org unit id", ids.size());
+
+        if (!ids.isEmpty()) {
+            log.info("Updating {} assignments missing resource consumer org unit id", ids.size());
+
+            assignmentService.updateAssignmentWithResourceConsumerOrgUnitId(ids);
+
+            log.info("Done updating {} assignments missing resource consumer org unit id", ids.size());
+        }
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to update {} assignments missing resource consumer org unit id: {} ms", ids.size(), end - start);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
