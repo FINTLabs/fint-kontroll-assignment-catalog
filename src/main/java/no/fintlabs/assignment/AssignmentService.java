@@ -261,7 +261,7 @@ public class AssignmentService {
             assignment.ifPresent(value -> {
                 value.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
                         value.getResourceRef(), value.getOrganizationUnitId()).orElse(null));
-                assignmentRepository.saveAndFlush(value);
+                assignmentRepository.save(value);
             });
         });
     }
