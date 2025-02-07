@@ -1,0 +1,2 @@
+alter table assignment_resources ADD resource_limit bigint;
+alter table application_resource_location ADD numberofresourcesassigned bigint;
