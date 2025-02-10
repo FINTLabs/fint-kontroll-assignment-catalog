@@ -21,7 +21,7 @@ public class FlattenedAssignmentReportService {
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Oslo") // Every day at midnight
     @Transactional
-    public void generateReport() {
+    public void generateStatisticsReport() {
         log.info("Publishing data for statistics report");
 
         try (Stream<FlattenedAssignmentReport> allFlattenedStream = flattenedAssignmentRepository.streamAllFlattenedAssignmentsForReport()) {

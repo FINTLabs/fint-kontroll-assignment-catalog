@@ -1,7 +1,6 @@
 package no.fintlabs.opa;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.opa.model.OrgUnitType;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,7 +14,7 @@ public class OpaUtils {
         }
         log.info("OrgUnits parameter list: {}", orgUnits);
 
-        if (orgUnitsInScope.contains(OrgUnitType.ALLORGUNITS.name())) {
+        if (orgUnitsInScope.contains("ALLORGUNITS")) {
             return orgUnits;
         }
         List<String> filteredOrgUnits = orgUnits.stream()

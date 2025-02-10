@@ -5,10 +5,8 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaUtils;
-import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import org.apache.commons.lang3.StringUtils;
@@ -28,13 +26,11 @@ public class AssignmentUserService {
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
-    private final AuthorizationUtil authorizationUtil;
 
-    public AssignmentUserService(UserRepository userRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository, AuthorizationUtil authorizationUtil) {
+    public AssignmentUserService(UserRepository userRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-        this.authorizationUtil = authorizationUtil;
     }
 
     public Page<AssignmentUser> findBySearchCriteria(Long resourceId, Specification<User> spec, Pageable page) {
@@ -65,7 +61,7 @@ public class AssignmentUserService {
 
         log.info("Fetching flattened assignments for resource with Id: {}",  resourceId);
 
-        if(orgUnitsToFilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+        if(orgUnitsToFilter.contains("ALLORGUNITS")) {
             orgUnitsToFilter = null;
         }
         String fullName = null;
