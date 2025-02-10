@@ -10,7 +10,12 @@ public abstract class DatabaseIntegrationTest {
     public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("test")
             .withUsername("user")
-            .withPassword("password");
+            .withPassword("password")
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+                    .withMemory(512 * 1024 * 1024L)
+                    .withCpuQuota(50000L)
+                    .withCpuPeriod(100000L)
+            );
 
     @DynamicPropertySource
     static void registerPgProperties(DynamicPropertyRegistry registry) {

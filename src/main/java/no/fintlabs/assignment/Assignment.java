@@ -62,7 +62,10 @@ public class Assignment extends AuditEntity {
     private String resourceName;
     private UUID azureAdGroupId;
     private String organizationUnitId;
-    private String resourceConsumerOrgUnitId;
+    @Column(name = "resource_consumer_org_unit_id")
+    private String applicationResourceLocationOrgUnitId;
+    @Column(name = "resource_consumer_org_unit_name")
+    private String applicationResourceLocationOrgUnitName;
     private Long assignerRef;
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;

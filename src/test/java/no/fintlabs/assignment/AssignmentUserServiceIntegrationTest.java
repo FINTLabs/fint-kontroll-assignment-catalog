@@ -249,7 +249,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
 
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndResourceConsumerOrgUnitIdIsInScope() {
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndApplicationResourceLocationOrgUnitIdIsInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -283,7 +283,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(kompavd)
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -340,7 +340,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -396,7 +396,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -419,7 +419,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
 
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserAndRestrictedResourceNotInScopeWithNoResourceConsumer() {
+    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserAndRestrictedResourceNotInScopeWithNoApplicationResourceLocation() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)

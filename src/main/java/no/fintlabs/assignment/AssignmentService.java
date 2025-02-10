@@ -2,6 +2,7 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
@@ -188,8 +189,14 @@ public class AssignmentService {
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
             assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
-            assignment.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
-                    resourceRef, assignment.getOrganizationUnitId()).orElse(null));
+
+            Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
+                    resourceRef, assignment.getOrganizationUnitId());
+
+            nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
+                assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
+                assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
+            });
         }, () -> {
             throw new ResourceNotFoundException(resourceRef.toString());
         });

@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
@@ -225,7 +226,9 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
-        given(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(1L, "orgid1")).willReturn(Optional.of("orgid1"));
+
+        NearestResourceLocationDto nearestResourceLocationDto = new NearestResourceLocationDto("orgid1", "OrgUnit no 1");
+        given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.of(nearestResourceLocationDto));
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 

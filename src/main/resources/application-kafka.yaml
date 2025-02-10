@@ -8,4 +8,10 @@ spring:
   kafka:
     consumer:
       group-id: ${fint.application-id}
+    producer:
+      acks: 1
+      batch-size: 32768        # Increase batch size (default is 16KB)
+      linger-ms: 10            # Wait up to 10ms before sending batch to improve batching
+      buffer-memory: 67108864  # Increase buffer memory to 64MB
+      compression-type: lz4    # Use LZ4 compression for fast throughput
 
