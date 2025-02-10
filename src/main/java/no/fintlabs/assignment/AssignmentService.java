@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenceEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
@@ -33,6 +34,7 @@ public class AssignmentService {
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
     private final AssignmentEnforcementService assignmentEnforcementService;
+    private final LicenceEnforcementService licenceEnforcementService;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
@@ -41,7 +43,7 @@ public class AssignmentService {
             RoleRepository roleRepository,
             FlattenedAssignmentService flattenedAssignmentService,
             ApplicationResourceLocationService applicationResourceLocationService,
-            OpaService opaService, AssignmentEnforcementService assignmentEnforcementService
+            OpaService opaService, AssignmentEnforcementService assignmentEnforcementService, LicenceEnforcementService licenceEnforcementService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.resourceRepository = resourceRepository;
@@ -51,6 +53,7 @@ public class AssignmentService {
         this.applicationResourceLocationService = applicationResourceLocationService;
         this.opaService = opaService;
         this.assignmentEnforcementService = assignmentEnforcementService;
+        this.licenceEnforcementService = licenceEnforcementService;
     }
 
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
@@ -73,6 +76,8 @@ public class AssignmentService {
         }
 
         enrichByResource(assignment, resourceRef);
+
+        licenceEnforcementService.updateAssignedLicenses(assignment,resourceRef);
 
         assignmentEnforcementService.calculateNumberOfResourcesAssigned(assignment,resourceRef);
 
