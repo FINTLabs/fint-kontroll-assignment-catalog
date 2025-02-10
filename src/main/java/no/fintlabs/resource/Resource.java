@@ -41,6 +41,7 @@ public class Resource extends AuditEntity {
     private String licenseEnforcement;
     @Column(name="number_of_resources_assigned")
     private Long numberOfResourcesAssigned;
+    private Long resourceLimit;
 
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
