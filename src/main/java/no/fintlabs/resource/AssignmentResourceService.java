@@ -128,7 +128,7 @@ public class AssignmentResourceService {
     private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
         List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
         return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
-                && (flattenedAssignment.getResourceConsumerOrgUnitId() != null && orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId())
+                && (flattenedAssignment.getApplicationResourceLocationOrgUnitId() != null && orgUnitsInScope.contains(flattenedAssignment.getApplicationResourceLocationOrgUnitId())
                 || isResourceUnrestricted(resource)));
     }
     private boolean isResourceUnrestricted(Resource resource) {

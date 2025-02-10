@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @EnableFintFilter
 @EnableScheduling
@@ -47,8 +48,7 @@ public class Application {
                                             .name("Authorization"))
                 )
                 .addSecurityItem(new SecurityRequirement()
-                                         .addList("bearer-jwt"))
-                ;
+                                         .addList("bearer-jwt"));
     }
 
     @Bean
@@ -58,7 +58,10 @@ public class Application {
         executor.setMaxPoolSize(30);
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("assigcat-");
-        executor.setKeepAliveSeconds(160);
+        executor.setKeepAliveSeconds(300);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy()); // Prevent task loss
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(300);
         executor.initialize();
         return executor;
     }

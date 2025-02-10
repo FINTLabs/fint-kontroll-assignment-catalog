@@ -154,12 +154,12 @@ public class AssignmentUserService {
             boolean isResourceUnrestricted = isResourceUnrestricted(resource);
             log.info("isResourceUnrestricted is {}", isResourceUnrestricted);
 
-            boolean isResourceConsumerInScope =
-                    flattenedAssignment.getResourceConsumerOrgUnitId() != null &&
-                            orgUnitsInScope.contains(flattenedAssignment.getResourceConsumerOrgUnitId());
-            log.info("isResourceConsumerInScope is {}", isResourceConsumerInScope);
+            boolean isApplicationResourceLocationInScope =
+                    flattenedAssignment.getApplicationResourceLocationOrgUnitId() != null &&
+                    orgUnitsInScope.contains(flattenedAssignment.getApplicationResourceLocationOrgUnitId());
+            log.info("isApplicationResourceLocationInScope is {}", isApplicationResourceLocationInScope);
 
-            return isDirectAssignment && (isResourceUnrestricted || isResourceConsumerInScope);
+            return isDirectAssignment && (isResourceUnrestricted || isApplicationResourceLocationInScope);
         }
         catch (Exception e)
         {

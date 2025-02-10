@@ -94,7 +94,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String allTypes = "ALLTYPES";
 
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndResourceConsumerOrgUnitIdIsInScope() {
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndApplicationResourceLocationOrgUnitIdIsInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -126,7 +126,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(kompavd)
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -172,7 +172,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -215,7 +215,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedRole.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -229,7 +229,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndResourceConsumerOrgUnitIdIsInScope() {
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndApplicationResourceLocationOrgUnitIdIsInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -263,7 +263,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(kompavd)
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -314,7 +314,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -362,7 +362,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -417,7 +417,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -545,7 +545,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
         FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
 
