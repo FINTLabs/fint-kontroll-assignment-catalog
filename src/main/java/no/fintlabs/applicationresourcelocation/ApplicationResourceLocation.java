@@ -33,4 +33,6 @@ public class ApplicationResourceLocation {
     String orgUnitName;
     @Column(name = "resourcelimit")
     Long resourceLimit;
+    @Column(name="numberofresourcesassigned")
+    Long numberOfResourcesAssigned;
 }
