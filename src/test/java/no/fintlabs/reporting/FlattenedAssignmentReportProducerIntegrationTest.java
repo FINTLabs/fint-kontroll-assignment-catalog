@@ -97,7 +97,7 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
         // 2. Measure time for report generation
         long startReportTime = System.nanoTime();
-        flattenedAssignmentReportService.generateReport();
+        flattenedAssignmentReportService.generateStatisticsReport();
         long endReportTime = System.nanoTime();
         long reportDurationMillis = TimeUnit.NANOSECONDS.toMillis(endReportTime - startReportTime);
         System.out.println("Time taken to generate and publish report: " + reportDurationMillis + " ms");
