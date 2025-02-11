@@ -27,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -240,6 +241,37 @@ public class AssignmentController {
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
+    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Start updating all assignments missing application resource location org unit)");
+
+        Set<Long> ids = assignmentService.getAssignments()
+                .stream()
+                .filter(assignment -> assignment.getApplicationResourceLocationOrgUnitId() == null)
+                .map(Assignment::getId)
+                .collect(Collectors.toSet());
+
+        log.info("Found {} assignments missing application resource location org unit", ids.size());
+
+        if (!ids.isEmpty()) {
+            log.info("Updating {} assignments missing application resource location org unit", ids.size());
+
+            int numberOfAssignmentsUpdated = assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
+
+            log.info("Done updating. Updated {} of {} assignments missing application resource location org unit", numberOfAssignmentsUpdated, ids.size());
+        }
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to update {} assignments missing application resource location org unit: {} ms", ids.size(), end - start);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

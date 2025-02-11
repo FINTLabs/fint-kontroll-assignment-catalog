@@ -105,8 +105,8 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setResourceName(resource.getResourceName());
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
-        resourceAssignmentUser.setDirectAssignment(isDirectAssignment(flattenedAssignment));
-        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(flattenedAssignment,resource, objectType));
+        resourceAssignmentUser.setDirectAssignment(isDirectAssignment(assignment));
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(assignment,resource, objectType));
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
@@ -122,13 +122,13 @@ public class AssignmentResourceService {
         return resourceAssignmentUser;
     }
 
-    private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
-        return flattenedAssignment.getAssignmentViaRoleRef() == null;
+    private boolean isDirectAssignment(Assignment assignment) {
+        return assignment.isUserAssignment();
     }
-    private boolean isDeletableAssignment(FlattenedAssignment flattenedAssignment, Resource resource, String objectType) {
+    private boolean isDeletableAssignment(Assignment assignment, Resource resource, String objectType) {
         List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
-        return ((objectType.equals("user") && isDirectAssignment(flattenedAssignment) || objectType.equals("role"))
-                && (flattenedAssignment.getApplicationResourceLocationOrgUnitId() != null && orgUnitsInScope.contains(flattenedAssignment.getApplicationResourceLocationOrgUnitId())
+        return ((objectType.equals("user") && isDirectAssignment(assignment) || objectType.equals("role"))
+                && (assignment.getApplicationResourceLocationOrgUnitId() != null && orgUnitsInScope.contains(assignment.getApplicationResourceLocationOrgUnitId())
                 || isResourceUnrestricted(resource)));
     }
     private boolean isResourceUnrestricted(Resource resource) {
