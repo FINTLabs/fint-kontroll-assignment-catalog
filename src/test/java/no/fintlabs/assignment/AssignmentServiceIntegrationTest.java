@@ -3,12 +3,14 @@ package no.fintlabs.assignment;
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -25,8 +27,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -118,4 +123,62 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
         assertThat(simpleAssignments).isEmpty();
     }
+
+    @Transactional
+    @Test
+    public void shouldUpdateAssignmentMissingResourceConsumerWhenNearestResourceConsumerExists () {
+
+        Resource resource = Resource.builder()
+                .id(1L)
+                .resourceName("Adobe Creative Cloud")
+                .build();
+
+        resourceRepository.save(resource);
+
+        Assignment assignment = Assignment.builder()
+                .assignmentId("123")
+                .resourceRef(1L)
+                .organizationUnitId("realfagavd")
+                .build();
+
+        Long assignmentId = assignmentRepository.save(assignment).getId();
+
+        when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "realfagavd"))
+                .thenReturn(Optional.of(new NearestResourceLocationDto("vgmidt", "Vg midt")));
+
+        assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnit(Set.of(assignmentId));
+        Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
+
+        assertEquals("vgmidt", updatedAssignment.getApplicationResourceLocationOrgUnitId());
+    }
+
+    @Test
+    public void shouldNotUpdateAssignmentMissingResourceConsumerWhenNoResourceConsumerExists () {
+
+        Resource resource = Resource.builder()
+                .id(2L)
+                .resourceName("Adobe Creative Cloud")
+                .build();
+
+        resourceRepository.saveAndFlush(resource);
+
+        Assignment assignment = Assignment.builder()
+                .assignmentId("123")
+                .resourceRef(2L)
+                .organizationUnitId("realfagavd")
+                .build();
+
+        Long assignmentId = assignmentRepository.save(assignment).getId();
+
+        when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "realfagavd"))
+                .thenReturn(Optional.empty());
+
+        assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnit(Set.of(assignmentId));
+        Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
+
+        assertNull(updatedAssignment.getApplicationResourceLocationOrgUnitId());
+    }
 }
+
+
+

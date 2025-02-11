@@ -23,8 +23,13 @@ public class ApplicationResourceLocationService {
     public Optional<NearestResourceLocationDto> getNearestApplicationResourceLocationForOrgUnit(Long resourceRef, String orgUnitId) {
         log.info("Getting nearest resource location for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
 
-        return applicationResourceLocationRepository.findNearestApplicationResourceLocationForOrgUnit(resourceRef, orgUnitId)
+        Optional<NearestResourceLocationDto> resourceLocation = applicationResourceLocationRepository.findNearestApplicationResourceLocationForOrgUnit(resourceRef, orgUnitId)
                 .stream()
                 .findFirst();
+
+        if (resourceLocation.isEmpty()) {
+            log.warn("No resource consumer found for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
+        }
+        return resourceLocation;
     }
 }
