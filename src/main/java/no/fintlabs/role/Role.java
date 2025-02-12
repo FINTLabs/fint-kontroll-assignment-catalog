@@ -49,6 +49,7 @@ public class Role extends AuditEntity {
     @ColumnTransformer(write = "LOWER(?)")
     private String roleStatus;
     private Date roleStatusChanged;
+    private Long noOfMembers;
 
     @OneToMany(mappedBy = "role",
             fetch = FetchType.LAZY,
@@ -80,11 +81,12 @@ public class Role extends AuditEntity {
         final Role role = (Role) o;
         return Objects.equals(id, role.id) && Objects.equals(roleObjectId, role.roleObjectId) && Objects.equals(roleName, role.roleName) &&
                Objects.equals(roleType, role.roleType) && Objects.equals(organisationUnitId, role.organisationUnitId) &&
-               Objects.equals(organisationUnitName, role.organisationUnitName) && Objects.equals(roleStatus, role.roleStatus);
+               Objects.equals(organisationUnitName, role.organisationUnitName) && Objects.equals(roleStatus, role.roleStatus) &&
+                Objects.equals(noOfMembers, role.noOfMembers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, roleObjectId, roleName, roleType, organisationUnitId, organisationUnitName, roleStatus);
+        return Objects.hash(id, roleObjectId, roleName, roleType, organisationUnitId, organisationUnitName, roleStatus, noOfMembers);
     }
 }
