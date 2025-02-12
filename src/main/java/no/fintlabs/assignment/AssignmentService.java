@@ -33,7 +33,6 @@ public class AssignmentService {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
-    private final AssignmentEnforcementService assignmentEnforcementService;
     private final LicenceEnforcementService licenceEnforcementService;
 
     public AssignmentService(
@@ -43,7 +42,8 @@ public class AssignmentService {
             RoleRepository roleRepository,
             FlattenedAssignmentService flattenedAssignmentService,
             ApplicationResourceLocationService applicationResourceLocationService,
-            OpaService opaService, AssignmentEnforcementService assignmentEnforcementService, LicenceEnforcementService licenceEnforcementService
+            OpaService opaService,
+            LicenceEnforcementService licenceEnforcementService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.resourceRepository = resourceRepository;
@@ -52,7 +52,6 @@ public class AssignmentService {
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.applicationResourceLocationService = applicationResourceLocationService;
         this.opaService = opaService;
-        this.assignmentEnforcementService = assignmentEnforcementService;
         this.licenceEnforcementService = licenceEnforcementService;
     }
 
@@ -77,9 +76,7 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
-        licenceEnforcementService.updateAssignedLicenses(assignment,resourceRef);
-
-        assignmentEnforcementService.calculateNumberOfResourcesAssigned(assignment,resourceRef);
+        boolean licesnceAssignedIsUpdated = licenceEnforcementService.updateAssignedLicenses(assignment,resourceRef);
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
