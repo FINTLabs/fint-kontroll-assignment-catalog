@@ -14,4 +14,9 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     Optional< String> findNearestResourceConsumerForOrgUnit(Long resourceRef, String orgUnitId);
 
     Optional<ApplicationResourceLocation> findByResourceIdAndOrgUnitId(String resourceId, String orgUnitId);
+
+    @Query("select a from ApplicationResourceLocation a where a.applicationResourceId = ?1 and a.orgUnitId = ?2")
+    Optional<ApplicationResourceLocation> findByApplicationResourceIdAndOrgUnitId(Long applicationResourceId, String orgUnitId);
 }
+
+
