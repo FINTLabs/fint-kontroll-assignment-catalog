@@ -64,9 +64,11 @@ public class LicenceEnforcementService {
 
         applicationResourceLocation.setNumberOfResourcesAssigned(numberOfResourcesAssignedToApplicationResourceLocation + requestedNumberOfLicences);
         applicationResourceLocationRepository.save(applicationResourceLocation);
+        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources", resourceRef, numberOfResourcesAssignedToApplicationResourceLocation);
 
         resource.setNumberOfResourcesAssigned(numberOfResourcesAssignedToResource + requestedNumberOfLicences);
         resourceRepository.save(resource);
+        log.info("Total assign resources for resource {} has been updated to {}", resourceRef, numberOfResourcesAssignedToResource + requestedNumberOfLicences);
 
         return true;
     }
