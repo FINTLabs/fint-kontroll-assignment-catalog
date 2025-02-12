@@ -28,7 +28,7 @@ public class ApplicationResourceLocationService {
                 .findFirst();
 
         if (resourceLocation.isEmpty()) {
-            log.warn("No resource consumer found for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
+            log.warn("No application resource location found for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
         }
         return resourceLocation;
     }
