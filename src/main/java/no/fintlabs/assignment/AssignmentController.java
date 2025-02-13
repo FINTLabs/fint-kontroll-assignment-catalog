@@ -1,6 +1,9 @@
 package no.fintlabs.assignment;
 
 import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
@@ -245,8 +248,15 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class UpdateAllResourceLocationOrgUnits {
+        private Boolean updateAllResourceLocationOrgUnits;
+    }
+
     @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -256,7 +266,12 @@ public class AssignmentController {
 
         Set<Long> ids = assignmentService.getAssignments()
                 .stream()
-                .filter(assignment -> assignment.getApplicationResourceLocationOrgUnitId() == null)
+                .filter(assignment -> {
+                    if (!updateAll.updateAllResourceLocationOrgUnits) {
+                        return false;
+                    }
+                    return assignment.getApplicationResourceLocationOrgUnitId() == null;
+                })
                 .map(Assignment::getId)
                 .collect(Collectors.toSet());
 

@@ -150,6 +150,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
 
         assertEquals("vgmidt", updatedAssignment.getApplicationResourceLocationOrgUnitId());
+        assertEquals("Vg midt", updatedAssignment.getApplicationResourceLocationOrgUnitName());
     }
 
     @Test
