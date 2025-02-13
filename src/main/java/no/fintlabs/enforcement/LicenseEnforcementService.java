@@ -13,16 +13,15 @@ import no.fintlabs.role.RoleRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Slf4j
-public class LicenceEnforcementService {
+public class LicenseEnforcementService {
     private final ResourceRepository resourceRepository;
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
     private final RoleRepository roleRepository;
 
-    public LicenceEnforcementService(ResourceRepository resourceRepository, ApplicationResourceLocationRepository applicationResourceLocationRepository, RoleRepository roleRepository) {
+    public LicenseEnforcementService(ResourceRepository resourceRepository, ApplicationResourceLocationRepository applicationResourceLocationRepository, RoleRepository roleRepository) {
         this.resourceRepository = resourceRepository;
         this.applicationResourceLocationRepository = applicationResourceLocationRepository;
         this.roleRepository = roleRepository;

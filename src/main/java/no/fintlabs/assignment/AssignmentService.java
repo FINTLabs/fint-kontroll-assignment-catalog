@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.enforcement.LicenceEnforcementService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
@@ -33,7 +33,7 @@ public class AssignmentService {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
-    private final LicenceEnforcementService licenceEnforcementService;
+    private final LicenseEnforcementService licenseEnforcementService;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
@@ -43,7 +43,7 @@ public class AssignmentService {
             FlattenedAssignmentService flattenedAssignmentService,
             ApplicationResourceLocationService applicationResourceLocationService,
             OpaService opaService,
-            LicenceEnforcementService licenceEnforcementService
+            LicenseEnforcementService licenseEnforcementService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.resourceRepository = resourceRepository;
@@ -52,7 +52,7 @@ public class AssignmentService {
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.applicationResourceLocationService = applicationResourceLocationService;
         this.opaService = opaService;
-        this.licenceEnforcementService = licenceEnforcementService;
+        this.licenseEnforcementService = licenseEnforcementService;
     }
 
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
@@ -76,7 +76,7 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
-        boolean licesnceAssignedIsUpdated = licenceEnforcementService.updateAssignedLicenses(assignment,resourceRef);
+        boolean licesnceAssignedIsUpdated = licenseEnforcementService.updateAssignedLicenses(assignment,resourceRef);
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
