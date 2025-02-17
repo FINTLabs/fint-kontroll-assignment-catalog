@@ -155,7 +155,7 @@ class LicenseEnforcementServiceTest {
         assertThat(licenseUpdated).isTrue();
     }
 
-    @DisplayName("Test for role assignment. Resource has hardstop")
+    @DisplayName("Test for role assignment. Resource has freeforall")
     @Test
     public void incrementAssignLicensesFreeAllForRole() {
         given(resourceRepository.findById(2L)).willReturn(Optional.ofNullable(resourceFree));
