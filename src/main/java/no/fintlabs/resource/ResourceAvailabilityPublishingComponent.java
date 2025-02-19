@@ -20,7 +20,7 @@ public class ResourceAvailabilityPublishingComponent {
 
     public void updateResourceAvailability(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
 
-        ResourceConsumerAssignments resourceConsumerAssignment = ResourceConsumerAssignments.builder()
+        ResourceConsumerAssignment resourceConsumerAssignment = ResourceConsumerAssignment.builder()
                 .orgUnitId(applicationResourceLocation.getOrgUnitId())
                 .assignedResources(applicationResourceLocation.getNumberOfResourcesAssigned())
                 .build();
@@ -28,7 +28,7 @@ public class ResourceAvailabilityPublishingComponent {
         ResourceAvailability resourceAvailability = ResourceAvailability.builder()
                 .resourceId(resource.getResourceId())
                 .assignedResources(resource.getNumberOfResourcesAssigned())
-                .resourceConsumerAssignments(List.of(resourceConsumerAssignment))
+                .resourceConsumerAssignment(resourceConsumerAssignment)
                 .build();
 
         resourceAvailabilityProducerService.publish(resourceAvailability);
