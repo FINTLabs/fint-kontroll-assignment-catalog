@@ -5,6 +5,7 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationReposi
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
@@ -32,6 +33,9 @@ class LicenseEnforcementServiceTest {
 
     @Mock
     private RoleRepository roleRepository;
+
+    @Mock
+    private ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
 
     @InjectMocks
     private LicenseEnforcementService licenseEnforcementService;

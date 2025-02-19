@@ -7,6 +7,7 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationReposi
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
@@ -20,11 +21,13 @@ public class LicenseEnforcementService {
     private final ResourceRepository resourceRepository;
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
     private final RoleRepository roleRepository;
+    private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
 
-    public LicenseEnforcementService(ResourceRepository resourceRepository, ApplicationResourceLocationRepository applicationResourceLocationRepository, RoleRepository roleRepository) {
+    public LicenseEnforcementService(ResourceRepository resourceRepository, ApplicationResourceLocationRepository applicationResourceLocationRepository, RoleRepository roleRepository, ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent) {
         this.resourceRepository = resourceRepository;
         this.applicationResourceLocationRepository = applicationResourceLocationRepository;
         this.roleRepository = roleRepository;
+        this.resourceAvailabilityPublishingComponent = resourceAvailabilityPublishingComponent;
     }
 
     public boolean updateAssignedLicenses(Assignment assignment, Long resourceRef) {
@@ -46,9 +49,12 @@ public class LicenseEnforcementService {
             return false;
         }
 
-        Long numberOfResourcesAssignedToApplicationResourceLocation = applicationResourceLocation.getNumberOfResourcesAssigned() == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned();
-        Long applicationResourceResourceLimit = applicationResourceLocation.getResourceLimit() == null ? 0L : applicationResourceLocation.getResourceLimit();
-        Long numberOfResourcesAssignedToResource = resource.getNumberOfResourcesAssigned() == null ? 0L : resource.getNumberOfResourcesAssigned();
+        Long numberOfResourcesAssignedToApplicationResourceLocation =
+                applicationResourceLocation.getNumberOfResourcesAssigned() == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned();
+        Long applicationResourceResourceLimit =
+                applicationResourceLocation.getResourceLimit() == null ? 0L : applicationResourceLocation.getResourceLimit();
+        Long numberOfResourcesAssignedToResource =
+                resource.getNumberOfResourcesAssigned() == null ? 0L : resource.getNumberOfResourcesAssigned();
         Long resourceResourceLimit = resource.getResourceLimit() == null ? 0L : resource.getResourceLimit();
 
         if (numberOfResourcesAssignedToApplicationResourceLocation + requestedNumberOfLicences > applicationResourceResourceLimit && isHardStop(resource)) {
@@ -63,11 +69,15 @@ public class LicenseEnforcementService {
 
         applicationResourceLocation.setNumberOfResourcesAssigned(numberOfResourcesAssignedToApplicationResourceLocation + requestedNumberOfLicences);
         applicationResourceLocationRepository.save(applicationResourceLocation);
-        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources", resourceRef, numberOfResourcesAssignedToApplicationResourceLocation);
+        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
+                resourceRef, numberOfResourcesAssignedToApplicationResourceLocation);
 
         resource.setNumberOfResourcesAssigned(numberOfResourcesAssignedToResource + requestedNumberOfLicences);
         resourceRepository.save(resource);
-        log.info("Total assign resources for resource {} has been updated to {}", resourceRef, numberOfResourcesAssignedToResource + requestedNumberOfLicences);
+        log.info("Total assign resources for resource {} has been updated to {}",
+                resourceRef, numberOfResourcesAssignedToResource + requestedNumberOfLicences);
+
+        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
 
         return true;
     }
