@@ -76,7 +76,7 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
-        boolean licesnceAssignedIsUpdated = licenseEnforcementService.updateAssignedLicenses(assignment,resourceRef);
+        boolean licenseAssignedIsUpdated = licenseEnforcementService.updateAssignedLicenses(assignment,resourceRef);
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
