@@ -1,6 +1,7 @@
 package no.fintlabs.resource;
 
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
 public class ResourceAvailability {
     private Long id;
     private String resourceId;
