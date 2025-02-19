@@ -9,6 +9,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
@@ -62,6 +63,9 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
 
     @Test
     public void shouldFindRoleResourcesNotDeleted() {
