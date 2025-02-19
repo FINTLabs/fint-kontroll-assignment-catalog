@@ -11,7 +11,6 @@ import java.util.List;
 @Setter
 @Builder
 public class ResourceAvailability {
-    private Long id;
     private String resourceId;
     private Long assignedResources;
     private List<ResourceConsumerAssignments> resourceConsumerAssignments;
