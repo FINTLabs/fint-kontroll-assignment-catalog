@@ -124,7 +124,6 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         assertThat(simpleAssignments).isEmpty();
     }
 
-    @Transactional
     @Test
     public void shouldUpdateAssignmentMissingResourceConsumerWhenNearestResourceConsumerExists () {
 
