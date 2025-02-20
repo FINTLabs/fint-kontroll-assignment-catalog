@@ -3,6 +3,8 @@ package no.fintlabs.reporting;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.stream.Stream;
@@ -18,7 +20,8 @@ public class FlattenedAssignmentReportService {
         this.flattenedAssignmentReportProducer = flattenedAssignmentReportProducer;
     }
 
-//    @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Oslo") // Every day at midnight //TODO: activate when testet in production as ok
+    @Async
+    @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Oslo") // Every day at midnight
     @Transactional
     public void generateStatisticsReport() {
         log.info("Publishing data for statistics report");

@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
@@ -15,6 +16,7 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -262,27 +265,49 @@ public class AssignmentService {
         }
     }
 
-    public int updateAssignmentsWithApplicationResourceLocationOrgUnit(Set<Long> ids) {
-        int updated = 0;
+    @Async
+    @Transactional
+    public void updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(Set<Long> ids) {
+        updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
+    }
 
-        for (Long id : ids) {
-            Optional<Assignment> assignment = assignmentRepository.findById(id);
+    @Transactional
+    public void updateAssignmentsWithApplicationResourceLocationOrgUnit(Set<Long> ids) {
+        log.info("Updating {} assignments missing application resource location org unit", ids.size());
 
-            if (assignment.isPresent()) {
-                Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto =
-                        applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
-                                assignment.get().getResourceRef(), assignment.get().getOrganizationUnitId());
+        List<Assignment> updatedAssignments = ids.stream()
+                .map(assignmentRepository::findById)
+                .flatMap(Optional::stream)
+                .map(this::updateAssignmentWithNearestResource)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toList());
 
-                if (nearestApplicationResourceLocationDto.isPresent()) {
-                    assignment.get().setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocationDto.get().orgUnitId());
-                    assignment.get().setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocationDto.get().orgUnitName());
-                    assignmentRepository.save(assignment.get());
-                    updated++;
-                }
+        if (!updatedAssignments.isEmpty()) {
+            int batchSize = 800;
+
+            for (int i = 0; i < updatedAssignments.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, updatedAssignments.size());
+                List<Assignment> batch = updatedAssignments.subList(i, end);
+                assignmentRepository.saveAll(batch);
             }
         }
 
-        return updated;
+        assignmentRepository.flush();
+
+        log.info("Done updating. Updated {} of {} assignments missing application resource location org unit",
+                 updatedAssignments.size(), ids.size());
+    }
+
+    private Optional<Assignment> updateAssignmentWithNearestResource(Assignment assignment) {
+        return applicationResourceLocationService
+                .getNearestApplicationResourceLocationForOrgUnit(
+                        assignment.getResourceRef(),
+                        assignment.getOrganizationUnitId())
+                .map(nearest -> {
+                    assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
+                    assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
+                    return assignment;
+                });
     }
 }
 

@@ -278,11 +278,7 @@ public class AssignmentController {
         log.info("Found {} assignments missing application resource location org unit", ids.size());
 
         if (!ids.isEmpty()) {
-            log.info("Updating {} assignments missing application resource location org unit", ids.size());
-
-            int numberOfAssignmentsUpdated = assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
-
-            log.info("Done updating. Updated {} of {} assignments missing application resource location org unit", numberOfAssignmentsUpdated, ids.size());
+            assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(ids);
         }
 
         long end = System.currentTimeMillis();
