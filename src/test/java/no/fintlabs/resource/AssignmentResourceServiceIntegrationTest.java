@@ -31,6 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -92,9 +93,10 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String adobek12 = "adobek12";
     private final String student = "Student";
     private final String allTypes = "ALLTYPES";
+    private final UUID azureUserId = UUID.randomUUID();
 
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndResourceConsumerOrgUnitIdIsInScope() {
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndApplicationResourceLocationOrgUnitIdIsInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -117,6 +119,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -126,7 +129,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(kompavd)
+//                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -163,6 +166,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -172,7 +176,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(varfk)
+//                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -207,6 +211,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResource.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
 
@@ -215,7 +220,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedRole.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+//                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -229,7 +234,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndResourceConsumerOrgUnitIdIsInScope() {
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndApplicationResourceLocationOrgUnitIdIsInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -253,7 +258,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -263,7 +270,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(kompavd)
+//                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -304,7 +311,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -314,7 +323,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .resourceConsumerOrgUnitId(varfk)
+//                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -352,7 +361,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
                 .resourceRef(savedResource.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -362,7 +373,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+//                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -408,6 +419,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .roleRef(role.getId())
                 .userRef(null)
                 .resourceRef(savedResource.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -417,7 +429,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+//                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -536,6 +548,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -545,7 +558,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .resourceConsumerOrgUnitId(varfk)
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
         FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
 
@@ -616,28 +629,39 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Role savedRole = roleRepository.saveAndFlush(role);
 
-        Assignment assignment = Assignment.builder()
+        Assignment roleAssignment = Assignment.builder()
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
-        Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
+        Assignment savedRoleAssignment = assignmentRepository.saveAndFlush(roleAssignment);
 
         FlattenedAssignment flattenedAssignmentIndirect = FlattenedAssignment.builder()
-                .assignmentId(savedAssignment.getId())
+                .assignmentId(savedRoleAssignment.getId())
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
         FlattenedAssignment savedFlattenedAssignmentInDirect = flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentIndirect);
 
+        Assignment userAssignment = Assignment.builder()
+                .assignerUserName("test@test.no")
+                .assignmentRemovedDate(null)
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
+                .resourceRef(savedResourceIndirect.getId())
+                .build();
+        Assignment savedUserAssignment = assignmentRepository.saveAndFlush(userAssignment);
+
         FlattenedAssignment flattenedAssignmentDirect = FlattenedAssignment.builder()
-                .assignmentId(savedAssignment.getId())
+                .assignmentId(savedUserAssignment.getId())
                 .userRef(savedUser.getId())
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
+
         FlattenedAssignment savedFlattenedAssignmentDirect = flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentDirect);
 
         testEntityManager.flush();
@@ -654,8 +678,8 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         assertThat(foundResourceIndirect.getAssigneeRef()).isEqualTo(savedUser.getId());
         assertThat(foundResourceIndirect.getAssignmentRef()).isEqualTo(savedFlattenedAssignmentInDirect.getAssignmentId());
-        assertThat(foundResourceIndirect.getAssignerUsername()).isEqualTo(savedAssignment.getAssignerUserName());
-        assertThat(foundResourceIndirect.getAssignmentViaRoleRef()).isEqualTo(savedAssignment.getRoleRef());
+        assertThat(foundResourceIndirect.getAssignerUsername()).isEqualTo(savedRoleAssignment.getAssignerUserName());
+        assertThat(foundResourceIndirect.getAssignmentViaRoleRef()).isEqualTo(savedRoleAssignment.getRoleRef());
         assertThat(foundResourceIndirect.isDirectAssignment()).isFalse();
 
         assertThat(foundResourceIndirect.getAssignmentViaRoleName()).isNotEmpty();
@@ -668,7 +692,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         assertThat(foundResourceDirect.getAssigneeRef()).isEqualTo(savedUser.getId());
         assertThat(foundResourceDirect.getAssignmentRef()).isEqualTo(savedFlattenedAssignmentDirect.getAssignmentId());
-        assertThat(foundResourceDirect.getAssignerUsername()).isEqualTo(savedAssignment.getAssignerUserName());
+        assertThat(foundResourceDirect.getAssignerUsername()).isEqualTo(savedRoleAssignment.getAssignerUserName());
         assertThat(foundResourceDirect.getAssignmentViaRoleRef()).isNull();
         assertThat(foundResourceDirect.isDirectAssignment()).isTrue();
 

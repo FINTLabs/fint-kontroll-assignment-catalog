@@ -1,7 +1,9 @@
 package no.fintlabs.assignment;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.opa.OpaService;
@@ -14,12 +16,15 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -188,8 +193,14 @@ public class AssignmentService {
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
             assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
-            assignment.setResourceConsumerOrgUnitId(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(
-                    resourceRef, assignment.getOrganizationUnitId()).orElse(null));
+
+            Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
+                    resourceRef, assignment.getOrganizationUnitId());
+
+            nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
+                assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
+                assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
+            });
         }, () -> {
             throw new ResourceNotFoundException(resourceRef.toString());
         });
@@ -252,6 +263,51 @@ public class AssignmentService {
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
                     });
         }
+    }
+
+    @Async
+    @Transactional
+    public void updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(Set<Long> ids) {
+        updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
+    }
+
+    @Transactional
+    public void updateAssignmentsWithApplicationResourceLocationOrgUnit(Set<Long> ids) {
+        log.info("Updating {} assignments missing application resource location org unit", ids.size());
+
+        List<Assignment> updatedAssignments = ids.stream()
+                .map(assignmentRepository::findById)
+                .flatMap(Optional::stream)
+                .map(this::updateAssignmentWithNearestResource)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toList());
+
+        if (!updatedAssignments.isEmpty()) {
+            int batchSize = 800;
+
+            for (int i = 0; i < updatedAssignments.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, updatedAssignments.size());
+                List<Assignment> batch = updatedAssignments.subList(i, end);
+                assignmentRepository.saveAll(batch);
+            }
+        }
+
+        assignmentRepository.flush();
+
+        log.info("Done updating. Updated {} of {} assignments missing application resource location org unit",
+                 updatedAssignments.size(), ids.size());
+    }
+
+    private Optional<Assignment> updateAssignmentWithNearestResource(Assignment assignment) {
+        return applicationResourceLocationService
+                .getNearestApplicationResourceLocationForOrgUnit(
+                        assignment.getResourceRef(),
+                        assignment.getOrganizationUnitId())
+                .map(nearest -> {
+                    assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
+                    assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
+                    return assignment;
+                });
     }
 }
 
