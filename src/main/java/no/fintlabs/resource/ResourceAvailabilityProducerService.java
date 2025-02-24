@@ -11,14 +11,14 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class ResourceAvailabilityProducerService {
-    private final EntityProducer<ResourceAvailability> entityProducer;
+    private final EntityProducer<ResourceAvailabilityDTO> entityProducer;
     private final EntityTopicNameParameters topicNameParameters;
 
     public ResourceAvailabilityProducerService(
             EntityProducerFactory entityProducerFactory,
             EntityTopicService entityTopicService) {
 
-        entityProducer = entityProducerFactory.createProducer(ResourceAvailability.class);
+        entityProducer = entityProducerFactory.createProducer(ResourceAvailabilityDTO.class);
         topicNameParameters = EntityTopicNameParameters
                 .builder()
                 .resource("resourceavailability")
@@ -26,14 +26,14 @@ public class ResourceAvailabilityProducerService {
         entityTopicService.ensureTopic(topicNameParameters, 0);
     }
 
-    public void publish(ResourceAvailability resourceAvailability) {
-        String key = resourceAvailability.getResourceId();
+    public void publish(ResourceAvailabilityDTO resourceAvailabilityDTO) {
+        String key = resourceAvailabilityDTO.getResourceId();
 
         entityProducer.send(
-                EntityProducerRecord.<ResourceAvailability>builder()
+                EntityProducerRecord.<ResourceAvailabilityDTO>builder()
                         .topicNameParameters(topicNameParameters)
                         .key(key)
-                        .value(resourceAvailability)
+                        .value(resourceAvailabilityDTO)
                         .build()
         );
     }
