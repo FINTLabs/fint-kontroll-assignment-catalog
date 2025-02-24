@@ -17,6 +17,17 @@ public class FlattenedAssignmentMapper {
             return Optional.of(originalAssignment);
         }
 
+        List<FlattenedAssignment> notDeletedAssignments = existingAssignments.stream()
+                .filter(FlattenedAssignment::isIdentityProviderGroupMembershipDeletionConfirmed)
+                .toList();
+
+        if (notDeletedAssignments.isEmpty()) {
+            log.info("All existing assignments are deleted. No need to check for existing assignments. Original, user: {}, role: {}", originalAssignment.getUserRef(),
+                     originalAssignment.getAssignmentViaRoleRef());
+
+            return Optional.of(originalAssignment);
+        }
+
         for (FlattenedAssignment existingAssignment : existingAssignments) {
             if (Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
                 Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId())) {
