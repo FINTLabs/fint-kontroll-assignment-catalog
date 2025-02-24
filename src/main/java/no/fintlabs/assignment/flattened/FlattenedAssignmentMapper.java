@@ -18,7 +18,7 @@ public class FlattenedAssignmentMapper {
         }
 
         List<FlattenedAssignment> notDeletedAssignments = existingAssignments.stream()
-                .filter(FlattenedAssignment::isIdentityProviderGroupMembershipDeletionConfirmed)
+                .filter(existing -> !existing.isIdentityProviderGroupMembershipDeletionConfirmed())
                 .toList();
 
         if (notDeletedAssignments.isEmpty()) {
