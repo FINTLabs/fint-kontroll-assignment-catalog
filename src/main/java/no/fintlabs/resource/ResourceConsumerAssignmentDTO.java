@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class ResourceConsumerAssignment {
+public class ResourceConsumerAssignmentDTO {
     private String orgUnitId;
     private Long assignedResources;
 

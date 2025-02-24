@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @Slf4j
 public class ResourceAvailabilityPublishingComponent {
@@ -20,17 +18,17 @@ public class ResourceAvailabilityPublishingComponent {
 
     public void updateResourceAvailability(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
 
-        ResourceConsumerAssignment resourceConsumerAssignment = ResourceConsumerAssignment.builder()
+        ResourceConsumerAssignmentDTO resourceConsumerAssignmentDTO = ResourceConsumerAssignmentDTO.builder()
                 .orgUnitId(applicationResourceLocation.getOrgUnitId())
                 .assignedResources(applicationResourceLocation.getNumberOfResourcesAssigned())
                 .build();
 
-        ResourceAvailability resourceAvailability = ResourceAvailability.builder()
+        ResourceAvailabilityDTO resourceAvailabilityDTO = ResourceAvailabilityDTO.builder()
                 .resourceId(resource.getResourceId())
                 .assignedResources(resource.getNumberOfResourcesAssigned())
-                .resourceConsumerAssignment(resourceConsumerAssignment)
+                .resourceConsumerAssignmentDTO(resourceConsumerAssignmentDTO)
                 .build();
 
-        resourceAvailabilityProducerService.publish(resourceAvailability);
+        resourceAvailabilityProducerService.publish(resourceAvailabilityDTO);
     }
 }

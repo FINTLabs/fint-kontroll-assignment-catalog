@@ -8,10 +8,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class ResourceAvailability {
+public class ResourceAvailabilityDTO {
     private String resourceId;
     private Long assignedResources;
-    private ResourceConsumerAssignment resourceConsumerAssignment;
+    private ResourceConsumerAssignmentDTO resourceConsumerAssignmentDTO;
 
 
     @Override
@@ -19,7 +19,7 @@ public class ResourceAvailability {
         return "ResourceAvailability{" +
                 "resourceId='" + resourceId + '\'' +
                 ", assignedResources=" + assignedResources +
-                ", resourceConsumerAssignment=" + resourceConsumerAssignment +
+                ", resourceConsumerAssignment=" + resourceConsumerAssignmentDTO +
                 '}';
     }
 }
