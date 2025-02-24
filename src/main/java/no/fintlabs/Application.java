@@ -54,11 +54,11 @@ public class Application {
     @Bean
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(30);
-        executor.setQueueCapacity(200);
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(500);
         executor.setThreadNamePrefix("assigcat-");
-        executor.setKeepAliveSeconds(300);
+        executor.setKeepAliveSeconds(120);
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy()); // Prevent task loss
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(300);
