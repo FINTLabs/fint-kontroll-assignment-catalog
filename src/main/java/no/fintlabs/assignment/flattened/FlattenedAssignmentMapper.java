@@ -17,24 +17,13 @@ public class FlattenedAssignmentMapper {
             return Optional.of(originalAssignment);
         }
 
-        List<FlattenedAssignment> notDeletedAssignments = existingAssignments.stream()
-                .filter(existing -> !existing.isIdentityProviderGroupMembershipDeletionConfirmed())
-                .toList();
-
-        if (notDeletedAssignments.isEmpty()) {
-            log.info("All existing assignments are deleted. No need to check for existing assignments. Original, user: {}, role: {}", originalAssignment.getUserRef(),
-                     originalAssignment.getAssignmentViaRoleRef());
-
-            return Optional.of(originalAssignment);
-        }
-
         for (FlattenedAssignment existingAssignment : existingAssignments) {
             if (Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
                 Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId())) {
 
                 if (isSync) {
                     if (hasNoChanges(originalAssignment, existingAssignment)) {
-                        return Optional.empty();
+                        continue; // No changes, skip
                     }
 
                     log.info(
@@ -56,8 +45,7 @@ public class FlattenedAssignmentMapper {
 
                     log.info("Is manual sync (false), already terminated. Skipping. FlattenedId: {}, assignmentid: {}, user: {}, role: {}", existingAssignment.getId(),
                              existingAssignment.getAssignmentId(), existingAssignment.getUserRef(), existingAssignment.getAssignmentViaRoleRef());
-
-                    return Optional.empty();
+                    continue;
                 }
             } else {
                 log.info("Original flattened userobjectid not equal to existing. User: {}, Original userobjectid: {}, existing: {}. Original groupobjectid: {}, existing groupobjectid: {}",
