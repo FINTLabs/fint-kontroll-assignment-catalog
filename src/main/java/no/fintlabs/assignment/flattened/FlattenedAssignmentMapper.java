@@ -37,15 +37,24 @@ public class FlattenedAssignmentMapper {
                     return Optional.of(originalAssignment);
                 } else {
                     if (existingAssignment.getAssignmentTerminationDate() == null) {
-                        log.info("Is manual sync (false), not terminated, returning. FlattenedId: {}, assignmentid: {}", existingAssignment.getId(), existingAssignment.getAssignmentId());
+                        log.info("Is manual sync (false), not terminated, returning. FlattenedId: {}, assignmentid: {}, user: {}, role: {}", existingAssignment.getId(),
+                                 existingAssignment.getAssignmentId(), existingAssignment.getUserRef(), existingAssignment.getAssignmentViaRoleRef());
                         mapWithExisting(originalAssignment, existingAssignment);
                         return Optional.of(originalAssignment);
                     }
 
-                    log.info("Is manual sync (false), already terminated. Skipping. FlattenedId: {}, assignmentid: {}", existingAssignment.getId(), existingAssignment.getAssignmentId());
+                    log.info("Is manual sync (false), already terminated. Skipping. FlattenedId: {}, assignmentid: {}, user: {}, role: {}", existingAssignment.getId(),
+                             existingAssignment.getAssignmentId(), existingAssignment.getUserRef(), existingAssignment.getAssignmentViaRoleRef());
 
                     return Optional.empty();
                 }
+            } else {
+                log.info("Original flattened userobjectid not equal to existing. User: {}, Original userobjectid: {}, existing: {}. Original groupobjectid: {}, existing groupobjectid: {}",
+                         originalAssignment.getUserRef(),
+                         originalAssignment.getIdentityProviderUserObjectId(),
+                         existingAssignment.getIdentityProviderUserObjectId(),
+                         originalAssignment.getIdentityProviderGroupObjectId(),
+                         existingAssignment.getIdentityProviderGroupObjectId());
             }
         }
 
