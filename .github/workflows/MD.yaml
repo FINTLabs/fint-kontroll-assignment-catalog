@@ -28,6 +28,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   CLUSTER_NAME: ${{ inputs.cluster }}
   ORG: ${{ inputs.org }}
+  JAVA-VERSION: "21"
+  JAVA-DISTRIBUTION: "zulu"
 
 jobs:
   cd:
