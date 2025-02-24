@@ -37,9 +37,12 @@ public class FlattenedAssignmentMapper {
                     return Optional.of(originalAssignment);
                 } else {
                     if (existingAssignment.getAssignmentTerminationDate() == null) {
+                        log.info("Is manual sync (false), not terminated, returning. FlattenedId: {}, assignmentid: {}", existingAssignment.getId(), existingAssignment.getAssignmentId());
                         mapWithExisting(originalAssignment, existingAssignment);
                         return Optional.of(originalAssignment);
                     }
+
+                    log.info("Is manual sync (false), already terminated. Skipping. FlattenedId: {}, assignmentid: {}", existingAssignment.getId(), existingAssignment.getAssignmentId());
 
                     return Optional.empty();
                 }
