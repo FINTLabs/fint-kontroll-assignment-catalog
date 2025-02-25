@@ -230,13 +230,13 @@ class AssignmentServiceTest {
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(1L, "orgid1")).willReturn(Optional.of("orgid1"));
-        given(licenseEnforcementService.updateAssignedLicenses(isA(Assignment.class) ,isA(Long.class))).willReturn(true);
+        given(licenseEnforcementService.incrementAssignedLicenses(isA(Assignment.class) ,isA(Long.class))).willReturn(true);
 
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(licenseEnforcementService,times(1)).updateAssignedLicenses(isA(Assignment.class) ,isA(Long.class));
+        verify(licenseEnforcementService,times(1)).incrementAssignedLicenses(isA(Assignment.class) ,isA(Long.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
         verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
     }
