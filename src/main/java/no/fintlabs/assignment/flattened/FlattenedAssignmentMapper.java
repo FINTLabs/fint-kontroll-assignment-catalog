@@ -23,7 +23,7 @@ public class FlattenedAssignmentMapper {
 
                 if (isSync) {
                     if (hasNoChanges(originalAssignment, existingAssignment)) {
-                        continue; // No changes, skip
+                        return Optional.empty(); // No changes, skip
                     }
 
                     log.info(
@@ -37,8 +37,13 @@ public class FlattenedAssignmentMapper {
                     return Optional.of(originalAssignment);
                 } else {
                     if (existingAssignment.getAssignmentTerminationDate() == null) {
+                        if (hasNoChanges(originalAssignment, existingAssignment)) {
+                            return Optional.empty(); // No changes, skip
+                        }
+
                         log.info("Is manual sync (false), not terminated, returning. FlattenedId: {}, assignmentid: {}, user: {}, role: {}", existingAssignment.getId(),
                                  existingAssignment.getAssignmentId(), existingAssignment.getUserRef(), existingAssignment.getAssignmentViaRoleRef());
+
                         mapWithExisting(originalAssignment, existingAssignment);
                         return Optional.of(originalAssignment);
                     }
@@ -47,23 +52,13 @@ public class FlattenedAssignmentMapper {
                              existingAssignment.getAssignmentId(), existingAssignment.getUserRef(), existingAssignment.getAssignmentViaRoleRef());
                     continue;
                 }
-            } else {
-                log.info("Original flattened userobjectid not equal to existing. User: {}, Original userobjectid: {}, existing: {}. Original groupobjectid: {}, existing groupobjectid: {}",
-                         originalAssignment.getUserRef(),
-                         originalAssignment.getIdentityProviderUserObjectId(),
-                         existingAssignment.getIdentityProviderUserObjectId(),
-                         originalAssignment.getIdentityProviderGroupObjectId(),
-                         existingAssignment.getIdentityProviderGroupObjectId());
             }
         }
 
-        log.info(
-                "Flattened assignment already exist. Skipping flattenedassignment with id: {}, assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, " +
-                "azureadgroupid: {}",
-                originalAssignment.getId(), originalAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(),
-                originalAssignment.getIdentityProviderUserObjectId(), originalAssignment.getIdentityProviderGroupObjectId());
+        log.info("No existing flattened assignment. Should create new, id: {}, assignmentId: {}, userref: {}, roleref: {}",
+                originalAssignment.getId(), originalAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef());
 
-        return Optional.empty();
+        return Optional.of(originalAssignment);
     }
 
     private boolean hasNoChanges(FlattenedAssignment originalAssignment, FlattenedAssignment existingAssignment) {
