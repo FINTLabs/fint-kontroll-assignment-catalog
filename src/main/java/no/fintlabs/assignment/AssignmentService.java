@@ -76,7 +76,9 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
-        boolean licenseAssignedIsUpdated = licenseEnforcementService.updateAssignedLicenses(assignment,resourceRef);
+        log.info("Incremented license for assignment {} : {}",
+                assignment.getId(), licenseEnforcementService.incrementAssignedLicenses(assignment,resourceRef) ? "Success" : "Failure" );
+
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -256,6 +258,9 @@ public class AssignmentService {
                         assignment.setAssignmentRemovedDate(new Date());
                         assignmentRepository.saveAndFlush(assignment);
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
+                        log.info("Removing license from assignment {}", assignment.getId());
+                        log.info("Removed license from assignment {} : {}",
+                                assignment.getId(),licenseEnforcementService.removeAssignedLicense(assignment)? "Success" : "Failure");
                     });
         }
     }

@@ -11,8 +11,11 @@ import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
+import no.fintlabs.user.User;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -30,25 +33,105 @@ public class LicenseEnforcementService {
         this.resourceAvailabilityPublishingComponent = resourceAvailabilityPublishingComponent;
     }
 
-    public boolean updateAssignedLicenses(Assignment assignment, Long resourceRef) {
+    public boolean incrementAssignedLicenses(Assignment assignment, Long resourceRef) {
         String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
         Long requestedNumberOfLicences;
         if (userOrGroup.equals("group")) {
             requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L);
         } else { requestedNumberOfLicences = 1L;}
 
-        Resource resource = resourceRepository.findById(resourceRef).orElse(null);
+        Resource resource = getResource(resourceRef);
         if (resource == null) {
-            log.info("No resource found for ref {}", resourceRef);
-            return false;
-        }
-        ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationRepository
-                .findByApplicationResourceIdAndOrgUnitId(resource.getId(), assignment.getResourceConsumerOrgUnitId()).orElse(null);
-        if (applicationResourceLocation == null) {
-            log.info("No application resource found for ref {}", resourceRef);
             return false;
         }
 
+        ApplicationResourceLocation applicationResourceLocation = getApplicationResourceLocation(assignment);
+        if (applicationResourceLocation == null) {
+            return false;
+        }
+
+        Map<String,Long> licenseCounters = getLicenseCounters(applicationResourceLocation,resource);
+
+        if (licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences > licenseCounters.get("applicationResourceResourceLimit") && isHardStop(resource)) {
+            log.info("Application resource limit exceeded for ref {}", resourceRef);
+            return false;
+        }
+
+        if (licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences > licenseCounters.get("resourceResourceLimit") && isHardStop(resource)) {
+            log.info("Resource limit exceeded for ref {}", resourceRef);
+            return false;
+        }
+
+        applicationResourceLocation.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences);
+        applicationResourceLocationRepository.saveAndFlush(applicationResourceLocation);
+        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
+                resourceRef, licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences);
+
+        resource.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences);
+        resourceRepository.saveAndFlush(resource);
+        log.info("Total assign resources for resource {} has been updated to {}",
+                resourceRef, licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences);
+
+        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
+
+        return true;
+    }
+
+
+    public boolean removeAssignedLicense(Assignment assignment) {
+        Resource resource = getResource(assignment.getResourceRef());
+        if (resource == null) {
+            return false;
+        }
+
+        ApplicationResourceLocation applicationResourceLocation = getApplicationResourceLocation(assignment);
+        if (applicationResourceLocation == null) {
+            return false;
+        }
+
+        Map<String,Long> licenseCounters = getLicenseCounters(applicationResourceLocation,resource);
+        applicationResourceLocation
+                .setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") - 1);
+        applicationResourceLocationRepository.saveAndFlush(applicationResourceLocation);
+        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
+                resource.getResourceId(), licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") -1);
+        resource.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToResource") - 1);
+        resourceRepository.saveAndFlush(resource);
+        log.info("Total assign resources for resource {} has been updated to {}",
+                resource.getResourceId(), licenseCounters.get("numberOfResourcesAssignedToResource") - 1);
+
+        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
+
+        return true;
+    }
+
+
+    public boolean isHardStop(Resource resource) {
+        return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
+    }
+
+    public Resource getResource(Long resourceRef) {
+        Resource resource = resourceRepository.findById(resourceRef).orElse(null);
+        if (resource == null) {
+            log.info("No resource found for ref {}", resourceRef);
+            return null;
+        }
+        return resource;
+    }
+
+    public ApplicationResourceLocation getApplicationResourceLocation(Assignment assignment) {
+        ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationRepository
+                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getResourceConsumerOrgUnitId()).orElse(null);
+        if (applicationResourceLocation == null) {
+            log.info("No application resource found for ref {}", assignment.getResourceRef());
+            return null;
+        }
+        return applicationResourceLocation;
+    }
+
+
+    public Map<String,Long> getLicenseCounters(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
+        Map<String,Long> counters = new HashMap<>();
         Long numberOfResourcesAssignedToApplicationResourceLocation =
                 applicationResourceLocation.getNumberOfResourcesAssigned() == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned();
         Long applicationResourceResourceLimit =
@@ -57,34 +140,12 @@ public class LicenseEnforcementService {
                 resource.getNumberOfResourcesAssigned() == null ? 0L : resource.getNumberOfResourcesAssigned();
         Long resourceResourceLimit = resource.getResourceLimit() == null ? 0L : resource.getResourceLimit();
 
-        if (numberOfResourcesAssignedToApplicationResourceLocation + requestedNumberOfLicences > applicationResourceResourceLimit && isHardStop(resource)) {
-            log.info("Application resource limit exceeded for ref {}", resourceRef);
-            return false;
-        }
+        counters.put("numberOfResourcesAssignedToApplicationResourceLocation", numberOfResourcesAssignedToApplicationResourceLocation);
+        counters.put("applicationResourceResourceLimit", applicationResourceResourceLimit);
+        counters.put("numberOfResourcesAssignedToResource", numberOfResourcesAssignedToResource);
+        counters.put("resourceResourceLimit", resourceResourceLimit);
+        return counters;
 
-        if (numberOfResourcesAssignedToResource + requestedNumberOfLicences > resourceResourceLimit && isHardStop(resource)) {
-            log.info("Resource limit exceeded for ref {}", resourceRef);
-            return false;
-        }
-
-        applicationResourceLocation.setNumberOfResourcesAssigned(numberOfResourcesAssignedToApplicationResourceLocation + requestedNumberOfLicences);
-        applicationResourceLocationRepository.save(applicationResourceLocation);
-        log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
-                resourceRef, numberOfResourcesAssignedToApplicationResourceLocation);
-
-        resource.setNumberOfResourcesAssigned(numberOfResourcesAssignedToResource + requestedNumberOfLicences);
-        resourceRepository.save(resource);
-        log.info("Total assign resources for resource {} has been updated to {}",
-                resourceRef, numberOfResourcesAssignedToResource + requestedNumberOfLicences);
-
-        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
-
-        return true;
-    }
-
-
-    private boolean isHardStop(Resource resource) {
-        return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
     }
 
 }
