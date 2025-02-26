@@ -8,7 +8,12 @@ import no.fintlabs.membership.Membership;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 
@@ -104,7 +109,11 @@ public class FlattenedAssignmentService {
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
-            flattenedAssignmentRepository.saveAll(batch);
+            List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
+
+            savedFlattened.forEach(flattenedAssignment -> {
+                log.info("Saved flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
+            });
 
             if (!isSync) {
                 log.info("Publishing {} new flattened assignments to azure", batch.size());
@@ -133,7 +142,7 @@ public class FlattenedAssignmentService {
         Date deactivationDate = new Date();
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentIds
                 .stream()
-                .map(flattenedAssignmentRepository::findById)                
+                .map(flattenedAssignmentRepository::findById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
