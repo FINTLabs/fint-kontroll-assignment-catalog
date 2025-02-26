@@ -68,11 +68,13 @@ public class RoleConsumer {
         if (!existingRole.equals(incomingRole)) {
             log.info("Role id: {} already exists but has changes, updating role. Existing: {}, Incoming: {}", incomingRole.getId(), existingRole, incomingRole);
 
+            //TODO: legge til sjekk på status active/inactive
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
             }
 
             roleRepository.saveAndFlush(incomingRole);
+            //TODO: Legge oppdatering av lisensantall her
         }
     }
 

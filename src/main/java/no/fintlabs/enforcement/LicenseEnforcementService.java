@@ -130,6 +130,7 @@ public class LicenseEnforcementService {
     }
 
 
+    //TODO: benytte classe/record for å holde verdiene i stedet for Map
     public Map<String,Long> getLicenseCounters(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
         Map<String,Long> counters = new HashMap<>();
         Long numberOfResourcesAssignedToApplicationResourceLocation =
