@@ -132,7 +132,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncflattenedassignment/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -150,7 +150,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncflattenedassignment/user/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -168,7 +168,7 @@ public class AssignmentController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable Long id) {
+    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
         log.info("Deleting assignment with id {}", id);
         try {
             assignmentService.deleteAssignment(id);
@@ -181,7 +181,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -195,7 +195,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
