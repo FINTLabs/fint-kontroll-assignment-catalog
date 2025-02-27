@@ -10,6 +10,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.kodeverk.Handhevingstype;
+import no.fintlabs.kodeverk.ScopeType;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
@@ -84,8 +85,10 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     private final String varfk = "varfk";
     private final String kompavd = "kompavd";
+    private final String allorgunits = "ALLORGUNITS";
 
     private final List<String> kompavdList = List.of(kompavd);
+    private final List<String> allorgunitsList = List.of(allorgunits);
 
     private final String zip = "zip";
     private final String adobek12 = "adobek12";
@@ -419,7 +422,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     }
 
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserAndRestrictedResourceNotInScopeWithNoApplicationResourceLocation() {
+    public void shouldSetIsDeletableAssignmentToFalseWhenCalledByUserAndRestrictedResourceNotInScopeWithNoApplicationResourceLocation() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -472,7 +475,60 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
     }
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserWithAllOrgUnitsInScopeWithNoApplicationResourceLocation() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
 
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(allorgunitsList);
+
+        Page<ResourceAssignmentUser> resourceAssignmentUsers
+                = assignmentUserService.findResourceAssignmentUsersForResourceId(
+                1L,
+                allTypes,
+                allorgunitsList,
+                allorgunitsList,
+                null,
+                null,
+                0,
+                20);
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
     private Resource createResource(Long id, String resourceId, String resourceType, String resourceName) {
         Resource resource = Resource.builder()
                 .id(id)
