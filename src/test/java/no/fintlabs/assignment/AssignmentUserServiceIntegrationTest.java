@@ -274,6 +274,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -283,7 +284,6 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -331,6 +331,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
@@ -340,7 +341,6 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -387,6 +387,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .resourceRef(savedResource.getId())
+                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -396,7 +397,6 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-                .applicationResourceLocationOrgUnitId(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
