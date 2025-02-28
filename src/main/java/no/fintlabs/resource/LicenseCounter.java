@@ -1,15 +1,13 @@
 package no.fintlabs.resource;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class LicenseCounter {
     Long numberOfResourcesAssignedToApplicationResourceLocation;
     Long applicationResourceResourceLimit;

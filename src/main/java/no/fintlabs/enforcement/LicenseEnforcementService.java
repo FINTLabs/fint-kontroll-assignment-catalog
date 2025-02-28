@@ -6,16 +6,14 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.kodeverk.Handhevingstype;
+import no.fintlabs.resource.LicenseCounter;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
-import no.fintlabs.user.User;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -50,27 +48,30 @@ public class LicenseEnforcementService {
             return false;
         }
 
-        Map<String,Long> licenseCounters = getLicenseCounters(applicationResourceLocation,resource);
+        LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation,resource);
 
-        if (licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences > licenseCounters.get("applicationResourceResourceLimit") && isHardStop(resource)) {
+        if (licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences
+                > licenseCounter.getApplicationResourceResourceLimit() && isHardStop(resource)) {
             log.info("Application resource limit exceeded for ref {}", resourceRef);
             return false;
         }
 
-        if (licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences > licenseCounters.get("resourceResourceLimit") && isHardStop(resource)) {
+        if (licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences
+                > licenseCounter.getResourceResourceLimit() && isHardStop(resource)) {
             log.info("Resource limit exceeded for ref {}", resourceRef);
             return false;
         }
 
-        applicationResourceLocation.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences);
+        applicationResourceLocation.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation()
+                + requestedNumberOfLicences);
         applicationResourceLocationRepository.saveAndFlush(applicationResourceLocation);
         log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
-                resourceRef, licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") + requestedNumberOfLicences);
+                resourceRef, licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences);
 
-        resource.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences);
+        resource.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
         resourceRepository.saveAndFlush(resource);
         log.info("Total assign resources for resource {} has been updated to {}",
-                resourceRef, licenseCounters.get("numberOfResourcesAssignedToResource") + requestedNumberOfLicences);
+                resourceRef,licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
 
         resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
 
@@ -89,16 +90,17 @@ public class LicenseEnforcementService {
             return false;
         }
 
-        Map<String,Long> licenseCounters = getLicenseCounters(applicationResourceLocation,resource);
+        LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation,resource);
+
         applicationResourceLocation
-                .setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") - 1);
+                .setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() - 1);
         applicationResourceLocationRepository.saveAndFlush(applicationResourceLocation);
         log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
-                resource.getResourceId(), licenseCounters.get("numberOfResourcesAssignedToApplicationResourceLocation") -1);
-        resource.setNumberOfResourcesAssigned(licenseCounters.get("numberOfResourcesAssignedToResource") - 1);
+                resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() -1);
+        resource.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToResource() - 1);
         resourceRepository.saveAndFlush(resource);
         log.info("Total assign resources for resource {} has been updated to {}",
-                resource.getResourceId(), licenseCounters.get("numberOfResourcesAssignedToResource") - 1);
+                resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToResource() - 1);
 
         resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
 
@@ -116,8 +118,10 @@ public class LicenseEnforcementService {
             log.info("No resource found for ref {}", resourceRef);
             return null;
         }
+
         return resource;
     }
+
 
     public ApplicationResourceLocation getApplicationResourceLocation(Assignment assignment) {
         ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationRepository
@@ -126,27 +130,35 @@ public class LicenseEnforcementService {
             log.info("No application resource found for ref {}", assignment.getResourceRef());
             return null;
         }
+
         return applicationResourceLocation;
     }
 
 
-    //TODO: benytte classe/record for å holde verdiene i stedet for Map
-    public Map<String,Long> getLicenseCounters(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
-        Map<String,Long> counters = new HashMap<>();
-        Long numberOfResourcesAssignedToApplicationResourceLocation =
-                applicationResourceLocation.getNumberOfResourcesAssigned() == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned();
-        Long applicationResourceResourceLimit =
-                applicationResourceLocation.getResourceLimit() == null ? 0L : applicationResourceLocation.getResourceLimit();
-        Long numberOfResourcesAssignedToResource =
-                resource.getNumberOfResourcesAssigned() == null ? 0L : resource.getNumberOfResourcesAssigned();
-        Long resourceResourceLimit = resource.getResourceLimit() == null ? 0L : resource.getResourceLimit();
+    public LicenseCounter getLicenseCounters(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
 
-        counters.put("numberOfResourcesAssignedToApplicationResourceLocation", numberOfResourcesAssignedToApplicationResourceLocation);
-        counters.put("applicationResourceResourceLimit", applicationResourceResourceLimit);
-        counters.put("numberOfResourcesAssignedToResource", numberOfResourcesAssignedToResource);
-        counters.put("resourceResourceLimit", resourceResourceLimit);
-        return counters;
-
+        return LicenseCounter.builder()
+                .numberOfResourcesAssignedToApplicationResourceLocation(applicationResourceLocation.getNumberOfResourcesAssigned()
+                        == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned())
+                .applicationResourceResourceLimit(applicationResourceLocation.getResourceLimit()
+                        == null ? 0L : applicationResourceLocation.getResourceLimit())
+                .numberOfResourcesAssignedToResource(resource.getNumberOfResourcesAssigned()
+                        == null ? 0L : resource.getNumberOfResourcesAssigned())
+                .resourceResourceLimit(resource.getResourceLimit() == null ? 0L : resource.getResourceLimit())
+                .build();
     }
-
 }
+
+
+//
+//Long numberOfResourcesAssignedToApplicationResourceLocation =
+//        applicationResourceLocation.getNumberOfResourcesAssigned() == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned();
+//Long applicationResourceResourceLimit =
+//        applicationResourceLocation.getResourceLimit() == null ? 0L : applicationResourceLocation.getResourceLimit();
+//Long numberOfResourcesAssignedToResource =
+//        resource.getNumberOfResourcesAssigned() == null ? 0L : resource.getNumberOfResourcesAssigned();
+//Long resourceResourceLimit = resource.getResourceLimit() == null ? 0L : resource.getResourceLimit();
+//counters.put("numberOfResourcesAssignedToApplicationResourceLocation", numberOfResourcesAssignedToApplicationResourceLocation);
+//        counters.put("applicationResourceResourceLimit", applicationResourceResourceLimit);
+//        counters.put("numberOfResourcesAssignedToResource", numberOfResourcesAssignedToResource);
+//        counters.put("resourceResourceLimit", resourceResourceLimit);
