@@ -95,8 +95,10 @@ public class AssignmentUserService {
 
             boolean isDirectAssignment = isDirectAssignment(flattenedAssignment);
             boolean isDeletableAssignment = isDirectAssignment &&
-                    (isResourceUnrestricted(resource) || isResourceLocationInScope(assignment, orgUnitsInScope)
-                    || isAllOrgUnitsInScope(orgUnitsInScope));
+                    (isAllOrgUnitsInScope(orgUnitsInScope) ||
+                            isResourceUnrestricted(resource) ||
+                            isResourceLocationInScope(assignment, orgUnitsInScope)
+                    );
 
             ResourceAssignmentUser resourceAssignmentUser = new ResourceAssignmentUser();
             resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
@@ -104,8 +106,6 @@ public class AssignmentUserService {
             resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
             resourceAssignmentUser.setDirectAssignment(isDirectAssignment);
             resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment);
-
-            //log.info("resourceAssignmentUser {} has set isdirect and isdeletable fields", flattenedAssignment.getId());
 
             if (user != null) {
                 resourceAssignmentUser.setAssigneeUsername(user.getUserName());
@@ -124,17 +124,9 @@ public class AssignmentUserService {
             String assignerDisplayName = (assignerFirstName != null && assignerLastName != null) ? assignerFirstName + " " + assignerLastName : null;
             resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
-            //log.info("resourceAssignmentUser {} has set assignerDisplayName {}",flattenedAssignment.getId(), assignerDisplayName);
-
             if (resourceAssignmentUser.getAssigneeFirstName() == null && resourceAssignmentUser.getAssigneeLastName() == null) {
                 resourceAssignmentUser.setAssigneeFirstName(assignment.getUserFirstName());
                 resourceAssignmentUser.setAssigneeLastName(assignment.getUserLastName());
-
-//                log.info("resourceAssignmentUser {} has set assignee names {} {}",
-//                        flattenedAssignment.getId(),
-//                        resourceAssignmentUser.getAssigneeFirstName(),
-//                        resourceAssignmentUser.getAssigneeLastName()
-//                        );
             }
             log.info("Returning resource assignment user from flattened assignement {} - resource id: {} assignment id: {} user id: {} is direct: {} via role id: {} is deletable: {} ",
                     flattenedAssignment.getAssignmentId(),
@@ -186,7 +178,9 @@ public class AssignmentUserService {
                 Handhevingstype.FREEALL.name(),
                 Handhevingstype.FREEEDU.name(),
                 Handhevingstype.FREESTUDENT.name());
-        return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
+        boolean isResourceUnrestricted = unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
+        log.info("Resource {} is unrestricted: {}", resource.getId(), isResourceUnrestricted);
+        return isResourceUnrestricted;
     }
     private boolean isAllOrgUnitsInScope(List<String> orgUnitsInScope) {
         boolean isAllOrgUnitsInScope = orgUnitsInScope.stream()
