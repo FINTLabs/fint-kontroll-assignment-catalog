@@ -189,8 +189,10 @@ public class AssignmentUserService {
         return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
     private boolean isAllOrgUnitsInScope(List<String> orgUnitsInScope) {
-        return orgUnitsInScope.stream()
+        boolean isAllOrgUnitsInScope = orgUnitsInScope.stream()
                 .anyMatch(ScopeType.ALLORGUNITS.name()::equals);
+        log.info("Scope contains {}: {}", ScopeType.ALLORGUNITS.name(), isAllOrgUnitsInScope);
+        return isAllOrgUnitsInScope;
     }
 }
 
