@@ -230,9 +230,6 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
-        given(applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(1L, "orgid1")).willReturn(Optional.of("orgid1"));
-        given(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(isA(Assignment.class) )).willReturn(true);
-
 
         NearestResourceLocationDto nearestResourceLocationDto = new NearestResourceLocationDto("orgid1", "OrgUnit no 1");
         given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.of(nearestResourceLocationDto));
