@@ -144,7 +144,7 @@ public class LicenseEnforcementService {
 
     public ApplicationResourceLocation getApplicationResourceLocation(Assignment assignment) {
         ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationRepository
-                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getResourceConsumerOrgUnitId()).orElse(null);
+                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId()).orElse(null);
         if (applicationResourceLocation == null) {
             log.info("No application resource found for ref {}", assignment.getResourceRef());
             return null;
