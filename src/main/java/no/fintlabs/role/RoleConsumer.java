@@ -77,7 +77,7 @@ public class RoleConsumer {
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
 
             } else {
-                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesForRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
+                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesWhenChangesInRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
             }
 
             roleRepository.saveAndFlush(incomingRole);
