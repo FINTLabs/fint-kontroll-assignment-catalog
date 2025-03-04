@@ -81,7 +81,7 @@ public class ApplicationResourceLocationServiceIntegrationTest extends DatabaseI
 
     }
     @Test
-    public void shouldFindNearestResourceConsumerForOrgUnit() {
+    public void shouldFindNearestApplicationResourceLocationForOrgUnit() {
         ApplicationResourceLocation applicationResourceLocation = ApplicationResourceLocation
                 .builder()
                 .id(1L)
@@ -120,10 +120,13 @@ public class ApplicationResourceLocationServiceIntegrationTest extends DatabaseI
                 .build();
         orgUnitDistanceService.save(orgUnitDistance2);
 
-        String nearestResourceConsumer = applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(100L, "org1").get();
-        assertThat(nearestResourceConsumer).isEqualTo("org1");
-        String nearestResourceConsumer1 = applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(100L, "org2").get();
-        assertThat(nearestResourceConsumer1).isEqualTo("org1");
+        NearestResourceLocationDto nearestApplicationResourceLocation = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(100L, "org1").get();
+        assertThat(nearestApplicationResourceLocation.orgUnitId()).isEqualTo("org1");
+        assertThat(nearestApplicationResourceLocation.orgUnitName()).isEqualTo("OrgUnit no 1");
+
+        NearestResourceLocationDto nearestApplicationResourceLocation1 = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(100L, "org2").get();
+        assertThat(nearestApplicationResourceLocation1.orgUnitId()).isEqualTo("org1");
+        assertThat(nearestApplicationResourceLocation1.orgUnitName()).isEqualTo("OrgUnit no 1");
 
         ApplicationResourceLocation applicationResourceLocation1 = ApplicationResourceLocation
                 .builder()
@@ -136,7 +139,8 @@ public class ApplicationResourceLocationServiceIntegrationTest extends DatabaseI
                 .build();
         applicationResourceLocationService.save(applicationResourceLocation1);
 
-        String nearestResourceConsumer2 = applicationResourceLocationService.getNearestResourceConsumerForOrgUnit(100L, "org2").get();
-        assertThat(nearestResourceConsumer2).isEqualTo("org2");
+        NearestResourceLocationDto nearestApplicationResourceLocation2 = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(100L, "org2").get();
+        assertThat(nearestApplicationResourceLocation2.orgUnitId()).isEqualTo("org2");
+        assertThat(nearestApplicationResourceLocation2.orgUnitName()).isEqualTo("OrgUnit no 2");
     }
 }

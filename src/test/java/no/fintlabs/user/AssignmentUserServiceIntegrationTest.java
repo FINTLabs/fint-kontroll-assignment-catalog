@@ -7,7 +7,6 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
-import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +55,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         //        assignmentRepository.deleteAll();
         //        flattenedAssignmentRepository.deleteAll();
 
-        allOrgUnitsAsList = List.of(OrgUnitType.ALLORGUNITS.name());
+        allOrgUnitsAsList = List.of("ALLORGUNITS");
 
         User user1 = User.builder()
                 .id(123L)
