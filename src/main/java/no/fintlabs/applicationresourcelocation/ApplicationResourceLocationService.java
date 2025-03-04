@@ -20,8 +20,16 @@ public class ApplicationResourceLocationService {
         log.info("Saving applicationResourceLocation with id: {} - for resource: {}", resourceLocation.id, resourceLocation.resourceId);
         applicationResourceLocationRepository.save(resourceLocation);
     }
-    public Optional<String> getNearestResourceConsumerForOrgUnit(Long resourceRef, String orgUnitId) {
-        log.info("Getting nearest resource consumer for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
-        return applicationResourceLocationRepository.findNearestResourceConsumerForOrgUnit(resourceRef, orgUnitId);
+    public Optional<NearestResourceLocationDto> getNearestApplicationResourceLocationForOrgUnit(Long resourceRef, String orgUnitId) {
+        log.info("Getting nearest resource location for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
+
+        Optional<NearestResourceLocationDto> resourceLocation = applicationResourceLocationRepository.findNearestApplicationResourceLocationForOrgUnit(resourceRef, orgUnitId)
+                .stream()
+                .findFirst();
+
+        if (resourceLocation.isEmpty()) {
+            log.warn("No application resource location found for resource: {} and user/role belonging to orgunit: {}", resourceRef, orgUnitId);
+        }
+        return resourceLocation;
     }
 }

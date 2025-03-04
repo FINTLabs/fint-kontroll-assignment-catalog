@@ -1,5 +1,6 @@
 package no.fintlabs.assignment.flattened;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -42,7 +43,8 @@ public class FlattenedAssignment extends AuditEntity {
     private UUID identityProviderUserObjectId;
     private Long resourceRef;
     //private String licenseEnforcement;
-    private String resourceConsumerOrgUnitId;
+    @Column(name = "resource_consumer_org_unit_id")
+    private String applicationResourceLocationOrgUnitId;
     private UUID identityProviderGroupObjectId;
     @Builder.Default
     private boolean identityProviderGroupMembershipConfirmed = false;

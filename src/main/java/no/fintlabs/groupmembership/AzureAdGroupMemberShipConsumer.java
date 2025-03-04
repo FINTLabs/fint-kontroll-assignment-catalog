@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,15 +36,18 @@ public class AzureAdGroupMemberShipConsumer {
             EntityConsumerFactoryService entityConsumerFactoryService
     ) {
 
-        return entityConsumerFactoryService.createFactory(
+        ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> container = entityConsumerFactoryService.createFactory(
                         AzureAdGroupMembership.class,
                         this::processGroupMembership)
                 .createContainer(EntityTopicNameParameters
                                          .builder()
                                          .resource("azuread-resource-group-membership")
                                          .build());
+        container.setConcurrency(5);
+        return container;
     }
 
+    @Async
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 

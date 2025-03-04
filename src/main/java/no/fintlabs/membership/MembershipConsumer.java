@@ -7,6 +7,7 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -29,14 +30,17 @@ public class MembershipConsumer {
     public ConcurrentMessageListenerContainer<String, Membership> membershipConsumerConfiguration(
             EntityConsumerFactoryService entityConsumerFactoryService
     ) {
-        return entityConsumerFactoryService.createFactory(
+        ConcurrentMessageListenerContainer<String, Membership> container = entityConsumerFactoryService.createFactory(
                         Membership.class,
                         this::processMemberships)
                 .createContainer(EntityTopicNameParameters.builder()
                                          .resource("role-catalog-membership")
                                          .build());
+        container.setConcurrency(5);
+        return container;
     }
 
+    @Async
     void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
         Membership incomingMembership = consumerRecord.value();
 
@@ -76,7 +80,7 @@ public class MembershipConsumer {
 
     private boolean shouldDeactivateMembership(Membership incomingMembership, Membership existingMembership) {
         String existingStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
-        log.info("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
+        log.debug("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
                 existingMembership.getId(),
                 existingStatus,
                 incomingMembership.getMemberStatus());

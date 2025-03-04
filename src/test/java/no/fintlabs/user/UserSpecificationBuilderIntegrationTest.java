@@ -3,10 +3,8 @@ package no.fintlabs.user;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.opa.model.OrgUnitType;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
-import static org.assertj.core.api.BDDAssumptions.given;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 @Testcontainers
@@ -36,7 +33,7 @@ class UserSpecificationBuilderIntegrationTest extends DatabaseIntegrationTest {
             .userType("EMPLOYEESTAFF")
             .build();
 
-    List<String> allOrgUnitsAsList = List.of(OrgUnitType.ALLORGUNITS.name());
+    List<String> allOrgUnitsAsList = List.of("ALLORGUNITS");
 
     Assignment assignment = Assignment.builder()
             .id(1L)

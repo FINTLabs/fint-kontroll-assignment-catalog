@@ -6,7 +6,6 @@ import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.opa.OpaUtils;
-import no.fintlabs.opa.model.OrgUnitType;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public class UserSpecificationBuilder {
             );
         };
 
-        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+        if (!orgUnitsTofilter.contains("ALLORGUNITS")) {
             spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
         }
         if (!userType.equals("ALLTYPES")) {

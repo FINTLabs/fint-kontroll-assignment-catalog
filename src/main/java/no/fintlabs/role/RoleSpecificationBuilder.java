@@ -4,7 +4,6 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.opa.OpaUtils;
-import no.fintlabs.opa.model.OrgUnitType;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
@@ -39,7 +38,7 @@ public class RoleSpecificationBuilder {
             );
         };
 
-        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
+        if (!orgUnitsTofilter.contains("ALLORGUNITS")) {
             spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
         }
 

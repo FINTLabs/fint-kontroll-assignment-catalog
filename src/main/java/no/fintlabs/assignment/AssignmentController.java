@@ -1,6 +1,9 @@
 package no.fintlabs.assignment;
 
 import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
@@ -27,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -128,7 +132,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncflattenedassignment/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -146,7 +150,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncflattenedassignment/user/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -164,7 +168,7 @@ public class AssignmentController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable Long id) {
+    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
         log.info("Deleting assignment with id {}", id);
         try {
             assignmentService.deleteAssignment(id);
@@ -177,7 +181,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -191,7 +195,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long assignmentId) {
+    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -240,6 +244,45 @@ public class AssignmentController {
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class UpdateAllResourceLocationOrgUnits {
+        private Boolean updateAllResourceLocationOrgUnits;
+    }
+
+    @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
+    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        long start = System.currentTimeMillis();
+        log.info("Start updating all assignments missing application resource location org unit)");
+
+        Set<Long> ids = assignmentService.getAssignments()
+                .stream()
+                .filter(assignment -> {
+                    if (!updateAll.updateAllResourceLocationOrgUnits) {
+                        return false;
+                    }
+                    return assignment.getApplicationResourceLocationOrgUnitId() == null;
+                })
+                .map(Assignment::getId)
+                .collect(Collectors.toSet());
+
+        log.info("Found {} assignments missing application resource location org unit", ids.size());
+
+        if (!ids.isEmpty()) {
+            assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(ids);
+        }
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to update {} assignments missing application resource location org unit: {} ms", ids.size(), end - start);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
