@@ -3,6 +3,7 @@ package no.fintlabs.role;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,11 +17,13 @@ public class RoleConsumer {
     private final RoleRepository roleRepository;
     private final AssignmentService assignmentService;
     private final FintCache<Long, Role> roleCache;
+    private final LicenseEnforcementService licenseEnforcementService;
 
-    public RoleConsumer(RoleRepository roleRepository, AssignmentService assignmentService, FintCache<Long, Role> roleCache) {
+    public RoleConsumer(RoleRepository roleRepository, AssignmentService assignmentService, FintCache<Long, Role> roleCache, LicenseEnforcementService licenseEnforcementService) {
         this.roleRepository = roleRepository;
         this.assignmentService = assignmentService;
         this.roleCache = roleCache;
+        this.licenseEnforcementService = licenseEnforcementService;
     }
 
     @Bean
@@ -70,11 +73,15 @@ public class RoleConsumer {
 
             //TODO: legge til sjekk på status active/inactive
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
+                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.removeAllAssignedResourcesForRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
+
+            } else {
+                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesForRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
             }
 
             roleRepository.saveAndFlush(incomingRole);
-            //TODO: Legge oppdatering av lisensantall her
+
         }
     }
 
