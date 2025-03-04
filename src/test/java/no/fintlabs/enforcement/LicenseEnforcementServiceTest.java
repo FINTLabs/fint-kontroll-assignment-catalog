@@ -138,7 +138,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationHardstop));
 
-        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToUserHardstop, resourceHardstop.getId());
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
         assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(101);
         assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(31L);
@@ -154,7 +154,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToRoleHardstop.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationHardstop));
 
-        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToRoleHardstop, resourceHardstop.getId());
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToRoleHardstop);
 
         assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(110);
         assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(40L);
@@ -170,7 +170,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(resourceFree.getId(), assignmentToRoleFree.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationFreeall));
 
-        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToUserFree, resourceFree.getId());
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserFree);
 
         assertThat(resourceFree.getNumberOfResourcesAssigned()).isEqualTo(1001);
         assertThat(applicationResourceLocationFreeall.getNumberOfResourcesAssigned()).isEqualTo(1001L);
@@ -186,7 +186,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(assignmentToRoleFree.getResourceRef(), assignmentToRoleFree.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationFreeall));
 
-        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToRoleFree, resourceFree.getId());
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToRoleFree);
 
         assertThat(resourceFree.getNumberOfResourcesAssigned()).isEqualTo(1010);
         assertThat(applicationResourceLocationFreeall.getNumberOfResourcesAssigned()).isEqualTo(1010L);
@@ -202,7 +202,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationHardstop));
 
-        boolean lisensUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToUserHardstop, resourceHardstop.getId());
+        boolean lisensUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
         assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(100L);
         assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(30L);
@@ -218,7 +218,7 @@ class LicenseEnforcementServiceTest {
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getResourceConsumerOrgUnitId()))
                 .willReturn(Optional.ofNullable(applicationResourceLocationHardstop));
 
-        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicenses(assignmentToUserHardstop, resourceHardstop.getId());
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
         assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(100L);
         assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(30L);

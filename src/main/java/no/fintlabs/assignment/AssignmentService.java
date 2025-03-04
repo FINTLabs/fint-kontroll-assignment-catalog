@@ -77,7 +77,7 @@ public class AssignmentService {
         enrichByResource(assignment, resourceRef);
 
         log.info("Incremented license for assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.incrementAssignedLicenses(assignment,resourceRef) ? "Success" : "Failure" );
+                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure" );
 
 
         log.info("Saving assignment {}", assignment);
@@ -111,6 +111,10 @@ public class AssignmentService {
 
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
+
+        log.info("Removed license from assignment {} : {}",
+                assignment.getId(),licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment)? "Success" : "Failure");
+
 
         userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
 
@@ -215,10 +219,6 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
     }
 
-    public List<Assignment> getAssignmentsByRole(Long roleId) {
-        return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
-    }
-
     public List<Long> getAssignmentsByRoleAndUser(Long roleId, Long userId) {
         return assignmentRepository.findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(roleId, userId);
     }
@@ -260,9 +260,13 @@ public class AssignmentService {
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
                         log.info("Removing license from assignment {}", assignment.getId());
                         log.info("Removed license from assignment {} : {}",
-                                assignment.getId(),licenseEnforcementService.removeAssignedLicense(assignment)? "Success" : "Failure");
+                                assignment.getId(),licenseEnforcementService.updateAssignedLicense(assignment, -1L)? "Success" : "Failure");
                     });
         }
+    }
+
+    public List<Assignment> getAssignmentsByRole(Long roleId) {
+        return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 }
 
