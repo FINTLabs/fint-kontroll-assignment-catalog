@@ -24,11 +24,11 @@ public class UserResponseFactory {
     }
 
     public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<ResourceAssignmentUser> resourceAssignmentUsersPagable) {
-        log.info("users: {}", resourceAssignmentUsersPagable.getContent());
-        log.info("currentPage: {}", resourceAssignmentUsersPagable.getNumber());
-        log.info("totalPages: {}", resourceAssignmentUsersPagable.getTotalPages());
-        log.info("size: {}", resourceAssignmentUsersPagable.getSize());
-        log.info("totalItems: {}", resourceAssignmentUsersPagable.getTotalElements());
+//        log.info("users: {}", resourceAssignmentUsersPagable.getContent());
+//        log.info("currentPage: {}", resourceAssignmentUsersPagable.getNumber());
+//        log.info("totalPages: {}", resourceAssignmentUsersPagable.getTotalPages());
+//        log.info("size: {}", resourceAssignmentUsersPagable.getSize());
+//        log.info("totalItems: {}", resourceAssignmentUsersPagable.getTotalElements());
 
         return new ResponseEntity<>(
                 Map.of( "users", resourceAssignmentUsersPagable.getContent(),
