@@ -31,6 +31,10 @@ spec:
       value: "vigo.no"
     - name: spring.kafka.consumer.group-id
       value: 'fint-kontroll-assignment-catalog'
+    - name: slack.enabled
+      value: 'false'
+    - name: slack.url
+      value: ''
   envFrom:
     - configMapRef:
         name: fint-kontroll-access-management-config

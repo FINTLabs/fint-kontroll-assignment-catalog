@@ -24,6 +24,9 @@ fint:
       authorized-org-id: 'vigo.no'
 
 spring:
+  devtools:
+    restart:
+      enabled: false
   security:
     oauth2:
       resourceserver:
@@ -50,3 +53,8 @@ management:
     web:
       exposure:
         include: "prometheus,health,info"
+
+slack:
+  url: 
+#  url: http://localhost/
+  enabled: true
