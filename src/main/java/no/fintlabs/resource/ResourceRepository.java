@@ -11,4 +11,6 @@ import org.springframework.stereotype.Repository;
 public interface ResourceRepository  extends JpaRepository<Resource, Long>, JpaSpecificationExecutor<Resource> {
 
     Resource findResourcesById(Long id);
+
+
 }

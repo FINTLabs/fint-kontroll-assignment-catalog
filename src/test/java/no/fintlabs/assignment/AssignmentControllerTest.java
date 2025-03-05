@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.Resource;
@@ -69,6 +70,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private AuthManager authManagerMock;
+
+    @MockBean
+    private UpdateAssignedResourcesService updateAssignedResourcesServiceMock;
 
     @Autowired
     private WebApplicationContext context;
