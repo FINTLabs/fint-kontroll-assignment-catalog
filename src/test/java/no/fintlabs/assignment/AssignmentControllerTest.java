@@ -8,6 +8,7 @@ import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.slack.SlackMessenger;
 import no.fintlabs.user.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private AuthManager authManagerMock;
+
+    @MockBean
+    private SlackMessenger slackMessengerMock;
 
     @Autowired
     private WebApplicationContext context;

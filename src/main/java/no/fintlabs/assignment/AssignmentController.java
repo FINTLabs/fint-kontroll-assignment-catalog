@@ -287,6 +287,11 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @GetMapping("/test")
+    public void test() throws Exception{
+        throw new Exception("test");
+    }
+
     private void validateResource(NewAssignmentRequest request) {
         if (request.resourceRef == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");

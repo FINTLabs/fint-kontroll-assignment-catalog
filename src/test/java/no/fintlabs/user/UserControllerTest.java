@@ -2,6 +2,7 @@ package no.fintlabs.user;
 
 import jakarta.servlet.ServletException;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.slack.SlackMessenger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,18 +47,9 @@ public class UserControllerTest {
 
     @MockBean
     private OpaService opaServiceMock;
-//
-//    @MockBean
-//    private AssignmentResponseFactory assignmentResponseFactoryMock;
-//
-//    @MockBean
-//    private FlattenedAssignmentService flattenedAssignmentServiceMock;
-//
-//    @MockBean
-//    private AssigmentEntityProducerService assigmentEntityProducerServiceMock;
-//
-//    @MockBean
-//    private AuthManager authManagerMock;
+
+    @MockBean
+    private SlackMessenger slackMessengerMock;
 
     @Autowired
     private WebApplicationContext context;
@@ -84,7 +76,7 @@ public class UserControllerTest {
         when(assigmentUserServiceMock.findResourceAssignmentUsersForResourceId(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isNull(), isA(Integer.class), isA(Integer.class)))
                 .thenReturn(new PageImpl<>(List.of(resourceAssignmentUser)));
 
-        mockMvc.perform(get("/api/assignments/v2/resource/1/users")
+        mockMvc.perform(get("/api/assignments/v2/resource/{id}/users", 1L)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isNotEmpty())
