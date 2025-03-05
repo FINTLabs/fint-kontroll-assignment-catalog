@@ -8,13 +8,13 @@ import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.opa.RestTemplateOpaProvider;
+import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.securityconfig.FintKontrollSecurityConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +65,9 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private AssignmentPublishingComponent assignmentPublishingComponent;
+
+    @MockBean
+    private ResourceAvailabilityProducerService resourceAvailabilityProducerService;
 
     @MockBean
     private AuthorizationUtil authorizationUtil;
