@@ -65,7 +65,7 @@ public class UserController {
 
     @GetMapping("/v2/resource/{id}/users")
     public ResponseEntity<?> getUsersByResourceId2(@AuthenticationPrincipal Jwt jwt,
-                                                   @PathVariable Long id,
+                                                   @PathVariable("id") Long id,
                                                    @RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
                                                                                 ".pagesize:20}")

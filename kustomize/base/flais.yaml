@@ -33,7 +33,9 @@ spec:
       value: 'fint-kontroll-assignment-catalog'
   envFrom:
     - configMapRef:
-        name: fint-kontroll-access-management-config
+        name: fint-kontroll-assignment-catalog-config
+    - secretRef:
+        name: fint-kontroll-slack-secrets
 
   observability:
     metrics:
