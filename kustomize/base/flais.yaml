@@ -35,7 +35,7 @@ spec:
     - configMapRef:
         name: fint-kontroll-assignment-catalog-config
     - secretRef:
-        name: fint-kontroll-assigncat-secrets
+        name: fint-kontroll-slack-secrets
 
   observability:
     metrics:
