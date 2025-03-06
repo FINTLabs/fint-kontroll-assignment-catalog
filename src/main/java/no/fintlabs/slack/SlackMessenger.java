@@ -9,10 +9,10 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class SlackMessenger {
 
-    @Value("${slack.url}")
+    @Value("${fint.kontroll.slack.url}")
     private String slackUrl;
 
-    @Value("${slack.enabled}")
+    @Value("${fint.kontroll.slack.enabled}")
     private Boolean slackEnabled;
 
     @Value("${fint.kontroll.authorization.authorized-org-id:vigo.no}")

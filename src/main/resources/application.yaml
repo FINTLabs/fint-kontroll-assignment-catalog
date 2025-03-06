@@ -15,7 +15,9 @@ fint:
       deletion:
           initial-delay: 2
           fixed-delay: 48
-
+    slack:
+      url: http://localhost/
+      enabled: false
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
@@ -53,8 +55,3 @@ management:
     web:
       exposure:
         include: "prometheus,health,info"
-
-slack:
-  url: 
-#  url: http://localhost/
-  enabled: true
