@@ -38,13 +38,7 @@ public class SlackMessenger {
 
     private boolean isBeta() {
         log.info("Environment is: {}", baseUrl);
-
-        if (baseUrl.contains("beta")) {
-            log.info("Auth: Is beta");
-            return true;
-        }
-
-        return false;
+        return baseUrl.contains("localhost") || baseUrl.contains("beta");
     }
 
     private String getChannel(String channel) {
@@ -54,8 +48,8 @@ public class SlackMessenger {
     public boolean sendMessage(SlackMessage slackMessage) {
         log.info("Sending Slack message {}", slackMessage.text());
 
-        log.info("Slack url: {}", slackUrl);
-        log.info("Slack enabled: {}", slackEnabled);
+        log.debug("Slack url: {}", slackUrl);
+        log.debug("Slack enabled: {}", slackEnabled);
 
         if (slackEnabled) {
             try {
