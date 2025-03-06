@@ -9,11 +9,11 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class SlackMessenger {
 
-    @Value("${fint.kontroll.slack.url}")
+    @Value("${fint.kontroll.slack.url:http://localhost}")
     private String slackUrl;
 
-    @Value("${fint.kontroll.slack.enabled}")
-    private Boolean slackEnabled;
+    @Value("${fint.kontroll.slack.enabled:false}")
+    private boolean slackEnabled;
 
     @Value("${fint.kontroll.authorization.authorized-org-id:vigo.no}")
     private String authorizedOrgId;
@@ -53,6 +53,10 @@ public class SlackMessenger {
 
     public boolean sendMessage(SlackMessage slackMessage) {
         log.info("Sending Slack message {}", slackMessage.text());
+
+        log.info("Slack url: {}", slackUrl);
+        log.info("Slack enabled: {}", slackEnabled);
+
         if (slackEnabled) {
             try {
                 restTemplate.postForLocation(slackUrl, slackMessage);
