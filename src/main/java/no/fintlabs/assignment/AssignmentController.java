@@ -263,9 +263,9 @@ public class AssignmentController {
 
     @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
     public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+//        if (!validateIsAdmin(jwt)) {
+//            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+//        }
 
         long start = System.currentTimeMillis();
         log.info("Start updating all assignments missing application resource location org unit)");

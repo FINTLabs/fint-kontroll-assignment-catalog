@@ -42,7 +42,7 @@ public class UpdateAssignedResourcesService {
 
         for (Resource resource : resources) {
             List<Assignment> assignments = resource.getAssignments().stream()
-                    .filter(assignment -> assignment.getAssignmentRemovedDate() != null)
+                    .filter(assignment -> assignment.getAssignmentRemovedDate() == null)
                     .toList();
             for (Assignment assignment : assignments) {
                 String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
