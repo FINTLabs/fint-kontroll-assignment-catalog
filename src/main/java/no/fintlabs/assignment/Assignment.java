@@ -76,6 +76,7 @@ public class Assignment extends AuditEntity {
     private Date assignmentDate;
     private Date validFrom;
     private Date validTo;
+
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})
     @JoinColumn(

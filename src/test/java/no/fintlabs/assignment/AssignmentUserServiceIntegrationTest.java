@@ -9,6 +9,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.kodeverk.ScopeType;
 import no.fintlabs.opa.OpaService;
@@ -81,6 +82,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private TestEntityManager testEntityManager;
+
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
 
 
     private final String varfk = "varfk";

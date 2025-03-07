@@ -8,6 +8,7 @@ import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.opa.RestTemplateOpaProvider;
+import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.securityconfig.FintKontrollSecurityConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -64,6 +65,9 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private AssignmentPublishingComponent assignmentPublishingComponent;
+
+    @MockBean
+    private ResourceAvailabilityProducerService resourceAvailabilityProducerService;
 
     @MockBean
     private AuthorizationUtil authorizationUtil;
