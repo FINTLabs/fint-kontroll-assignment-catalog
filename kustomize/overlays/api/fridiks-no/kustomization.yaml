@@ -61,7 +61,7 @@ patches:
   - patch: |-
       - op: replace
         path: "/spec/itemPath"
-        value: "vaults/aks-api-vault/items/kontroll-slack-fridiks-no"
+        value: "vaults/aks-api-vault/items/kontroll-slack-frid-iks-no"
     target:
       kind: OnePasswordItem
       name: fint-kontroll-slack-secrets
