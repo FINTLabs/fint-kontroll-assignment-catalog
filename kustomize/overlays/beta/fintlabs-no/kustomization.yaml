@@ -20,3 +20,10 @@ patches:
       kind: Application
       name: fint-kontroll-assignment-catalog
 
+  - patch: |-
+      - op: replace
+        path: "/spec/itemPath"
+        value: "vaults/aks-beta-vault/items/kontroll-slack-beta-fintlabs-no"
+    target:
+      kind: OnePasswordItem
+      name: fint-kontroll-slack-secrets

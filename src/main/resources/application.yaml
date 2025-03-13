@@ -15,7 +15,9 @@ fint:
       deletion:
           initial-delay: 2
           fixed-delay: 48
-
+    slack:
+      url: http://localhost/
+      enabled: false
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
@@ -24,6 +26,9 @@ fint:
       authorized-org-id: 'vigo.no'
 
 spring:
+  devtools:
+    restart:
+      enabled: false
   security:
     oauth2:
       resourceserver:
