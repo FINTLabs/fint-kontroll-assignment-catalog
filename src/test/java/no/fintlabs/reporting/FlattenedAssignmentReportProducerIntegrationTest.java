@@ -5,11 +5,14 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.AssignmentPublishingComponent;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.common.AsyncConfig;
+import no.fintlabs.common.GlobalAsyncExceptionHandler;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.opa.RestTemplateOpaProvider;
 import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.securityconfig.FintKontrollSecurityConfig;
+import no.fintlabs.slack.SlackMessenger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -80,6 +83,15 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private FintKontrollSecurityConfig fintKontrollSecurityConfig;
+
+    @MockBean
+    private AsyncConfig asyncConfig;
+
+    @MockBean
+    private GlobalAsyncExceptionHandler globalAsyncExceptionHandler;
+
+    @MockBean
+    private SlackMessenger slackMessenger;
 
     private static final String topic = "testorg.testdomain.entity.flattened-assignment-reporting";
 

@@ -58,3 +58,10 @@ patches:
       kind: Application
       name: fint-kontroll-assignment-catalog
 
+  - patch: |-
+      - op: replace
+        path: "/spec/itemPath"
+        value: "vaults/aks-api-vault/items/kontroll-slack-bfk-no"
+    target:
+      kind: OnePasswordItem
+      name: fint-kontroll-slack-secrets

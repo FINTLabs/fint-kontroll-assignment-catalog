@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: fint-kontroll-access-management-config
+  name: fint-kontroll-assignment-catalog-config
 data:
   # Set correct url for OPA
   fint.kontroll.opa.url: 'http://fint-kontroll-opa:8181/v1/data/accessmanagement'

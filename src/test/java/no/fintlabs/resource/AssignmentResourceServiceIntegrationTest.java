@@ -133,7 +133,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-//                .applicationResourceLocationOrgUnitId(kompavd)
+//                .licenseConsumerOrgUnitRef(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -180,7 +180,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(null)
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceAdobek12.getId())
-//                .applicationResourceLocationOrgUnitId(varfk)
+//                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -224,7 +224,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedRole.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-//                .applicationResourceLocationOrgUnitId(varfk)
+//                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -274,7 +274,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-//                .applicationResourceLocationOrgUnitId(kompavd)
+//                .licenseConsumerOrgUnitRef(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -327,7 +327,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-//                .applicationResourceLocationOrgUnitId(varfk)
+//                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -377,7 +377,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResource.getId())
-//                .applicationResourceLocationOrgUnitId(varfk)
+//                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
@@ -433,7 +433,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(1L)
                 .resourceRef(savedResource.getId())
-//                .applicationResourceLocationOrgUnitId(varfk)
+//                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
