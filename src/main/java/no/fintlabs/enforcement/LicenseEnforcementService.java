@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -91,11 +92,12 @@ public class LicenseEnforcementService {
             return false;
         }
 
-        ApplicationResourceLocation applicationResourceLocation = getApplicationResourceLocation(assignment);
-        if (applicationResourceLocation == null) {
+        Optional <ApplicationResourceLocation> applicationResourceLocationOptional = getApplicationResourceLocation(assignment);
+        if (applicationResourceLocationOptional.isEmpty()) {
             return false;
         }
 
+        ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
         LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation,resource);
 
         if (licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + numberOfAssignments
@@ -142,15 +144,9 @@ public class LicenseEnforcementService {
     }
 
 
-    public ApplicationResourceLocation getApplicationResourceLocation(Assignment assignment) {
-        ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationRepository
-                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId()).orElse(null);
-        if (applicationResourceLocation == null) {
-            log.info("No application resource found for ref {}", assignment.getResourceRef());
-            return null;
-        }
-
-        return applicationResourceLocation;
+    public Optional<ApplicationResourceLocation> getApplicationResourceLocation(Assignment assignment) {
+        return applicationResourceLocationRepository
+                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId());
     }
 
 

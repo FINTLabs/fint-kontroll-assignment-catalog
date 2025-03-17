@@ -14,6 +14,7 @@ import no.fintlabs.role.RoleRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -51,10 +52,16 @@ public class UpdateAssignedResourcesService {
                     requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L);
                 } else { requestedNumberOfLicences = 1L;}
 
-                ApplicationResourceLocation applicationResourceLocation = licenseEnforcementService
+                Optional <ApplicationResourceLocation> applicationResourceLocationOptional = licenseEnforcementService
                         .getApplicationResourceLocation(assignment);
+                if (applicationResourceLocationOptional.isEmpty()) {
+                    log.warn("No application resource location found for assignment {}", assignment);
+                    return;
+                }
 
+                ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
                 LicenseCounter licenseCounter = licenseEnforcementService.getLicenseCounters(applicationResourceLocation,resource);
+
 
                 applicationResourceLocation
                         .setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences);
