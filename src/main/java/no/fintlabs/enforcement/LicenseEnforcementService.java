@@ -4,6 +4,7 @@ package no.fintlabs.enforcement;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
+import no.fintlabs.applicationresourcelocation.MultipleApplicationResourceLocationObjectsException;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.kodeverk.Handhevingstype;
@@ -145,8 +146,21 @@ public class LicenseEnforcementService {
 
 
     public Optional<ApplicationResourceLocation> getApplicationResourceLocation(Assignment assignment) {
-        return applicationResourceLocationRepository
-                .findByApplicationResourceIdAndOrgUnitId(assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId());
+        return applicationResourceLocationRepository.findByApplicationResourceIdAndOrgUnitId(
+                assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId())
+                .flatMap(locations -> {
+                    if (locations.size() > 1) {
+                        log.warn("Found multiple applicationResourceLocation Object for orgId: {} with resourceId: {}",
+                                assignment.getApplicationResourceLocationOrgUnitId(),assignment.getResourceRef().toString());
+                        return Optional.empty();
+                    } else if (locations.isEmpty()) {
+                        log.warn("No applicationsResourceLocation object found for resource with resourceId: {}",assignment.getResourceRef().toString());
+                        return Optional.empty();
+                    }
+                    return Optional.of(locations.get(0));
+                });
+
+
     }
 
 
