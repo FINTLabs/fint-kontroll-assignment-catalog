@@ -8,9 +8,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
+import java.util.Optional;
+
 @Slf4j
 @Configuration
 public class ApplicationResourceLocationConsumerConfiguration {
+    private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
+
+    public ApplicationResourceLocationConsumerConfiguration(ApplicationResourceLocationRepository applicationResourceLocationRepository) {
+        this.applicationResourceLocationRepository = applicationResourceLocationRepository;
+    }
 
 
     @Bean
@@ -26,10 +33,27 @@ public class ApplicationResourceLocationConsumerConfiguration {
         return entityConsumerFactoryService.createFactory(
                         ApplicationResourceLocation.class,
                         (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) -> {
-                            log.debug("Processing applicationResourceLocation with id: {} - for applicationResource: {}",
+                            ApplicationResourceLocation incomingApplicationResourceLocation = consumerRecord.value();
+                            log.info("Processing applicationResourceLocation with id: {} - for applicationResource: {}",
                                       consumerRecord.value().id, consumerRecord.value().resourceId);
-                            applicationResourceLocationService.save(consumerRecord.value());
+                            Optional<ApplicationResourceLocation> applicationResourceLocationOptional =
+                                    applicationResourceLocationRepository.findById(consumerRecord.value().id);
+                            if (applicationResourceLocationOptional.isPresent()) {
+                                ApplicationResourceLocation existingApplicationResourceLocation = applicationResourceLocationOptional.get();
+                                if (!existingApplicationResourceLocation.equals(incomingApplicationResourceLocation)) {
+                                    applicationResourceLocationRepository.save(incomingApplicationResourceLocation);
+                                } else {
+                                    log.info("ApplicationResourceLocation {} already exists and is equal to the incoming resource. Skipping update",
+                                            incomingApplicationResourceLocation.getId());
+                                }
+                            } else {
+                                applicationResourceLocationRepository.save(incomingApplicationResourceLocation);
+                                log.info("ApplicationResourceLocation {} was created", incomingApplicationResourceLocation.getId());
+
+                            }
                         })
                 .createContainer(entityTopicNameParameters);
     }
+
+
 }
