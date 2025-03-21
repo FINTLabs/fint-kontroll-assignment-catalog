@@ -66,23 +66,28 @@ public class UpdateAssignedResourcesService {
                         .getApplicationResourceLocation(assignment);
                 if (applicationResourceLocationOptional.isPresent()) {
                     ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
-                    LicenseCounter licenseCounter = licenseEnforcementService.getLicenseCounters(applicationResourceLocation,resource);
+
+                    Resource resourceCurrentInDB = licenseEnforcementService.getResource(resource.getId());
+                    LicenseCounter licenseCounter = licenseEnforcementService.getLicenseCounters(applicationResourceLocation,resourceCurrentInDB);
+                    log.info(licenseCounter.toString());
+
 
 
                     applicationResourceLocation
                             .setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences);
                     applicationResourceLocationRepository.saveAndFlush(applicationResourceLocation);
-                    log.info("Assigned resources for applicationResourceLocation to resource {} has been updated to {} assigned resources",
+
+                    log.info("Assigned resources for applicationResourceLocation {} to resource {} has been updated to {} assigned resources", applicationResourceLocation.getOrgUnitId(),
                             resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences);
 
-                    resource.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
-                    resourceRepository.saveAndFlush(resource);
+                    resourceCurrentInDB.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
+                    resourceRepository.saveAndFlush(resourceCurrentInDB);
                     log.info("Total assign resources for resource {} has been updated to {}",
                             resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
 
-                    resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
+                    resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resourceCurrentInDB);
                 } else {
-                    log.warn("No application resource location found for assignment {}", assignment.getAssignmentId());
+                    log.warn("No applicationResourceLocation entity found for assignment {}", assignment.getAssignmentId());
                 }
             }
         }

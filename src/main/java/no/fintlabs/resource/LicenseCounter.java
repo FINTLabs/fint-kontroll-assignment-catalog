@@ -13,4 +13,15 @@ public class LicenseCounter {
     Long applicationResourceResourceLimit;
     Long numberOfResourcesAssignedToResource;
     Long resourceResourceLimit;
+
+
+    @Override
+    public String toString() {
+        return "LicenseCounter{" +
+                "numberOfResourcesAssignedToApplicationResourceLocation=" + numberOfResourcesAssignedToApplicationResourceLocation +
+                ", applicationResourceResourceLimit=" + applicationResourceResourceLimit +
+                ", numberOfResourcesAssignedToResource=" + numberOfResourcesAssignedToResource +
+                ", resourceResourceLimit=" + resourceResourceLimit +
+                '}';
+    }
 }

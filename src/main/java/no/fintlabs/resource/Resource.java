@@ -72,8 +72,7 @@ public class Resource extends AuditEntity {
         final Resource resource = (Resource) o;
         return Objects.equals(id, resource.id) && Objects.equals(resourceId, resource.resourceId) && Objects.equals(groupObjectId, resource.groupObjectId) &&
                Objects.equals(identityProviderGroupObjectId, resource.identityProviderGroupObjectId) && Objects.equals(resourceName, resource.resourceName) &&
-               Objects.equals(resourceType, resource.resourceType) && Objects.equals(licenseEnforcement, resource.licenseEnforcement)
-                && Objects.equals(numberOfResourcesAssigned, resource.numberOfResourcesAssigned);
+               Objects.equals(resourceType, resource.resourceType) && Objects.equals(licenseEnforcement, resource.licenseEnforcement);
     }
 
     @Override
