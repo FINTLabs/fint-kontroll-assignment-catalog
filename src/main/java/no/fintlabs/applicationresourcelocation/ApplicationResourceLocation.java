@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Objects;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,4 +37,18 @@ public class ApplicationResourceLocation {
     Long resourceLimit;
     @Column(name="numberofresourcesassigned")
     Long numberOfResourcesAssigned;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        ApplicationResourceLocation that = (ApplicationResourceLocation) o;
+        return Objects.equals(id, that.id) && Objects.equals(applicationResourceId, that.applicationResourceId)
+                && Objects.equals(resourceId, that.resourceId) && Objects.equals(orgUnitId, that.orgUnitId)
+                && Objects.equals(orgUnitName, that.orgUnitName) && Objects.equals(resourceLimit, that.resourceLimit);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, applicationResourceId, resourceId, orgUnitId, orgUnitName, resourceLimit);
+    }
 }
