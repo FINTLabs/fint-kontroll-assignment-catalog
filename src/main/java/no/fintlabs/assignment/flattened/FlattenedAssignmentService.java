@@ -61,7 +61,7 @@ public class FlattenedAssignmentService {
         }
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignmentsBatch(flattenedAssignments, isSync);
+            saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, isSync);
         }
     }
 
@@ -98,12 +98,12 @@ public class FlattenedAssignmentService {
                 );
 
         if (!flattenedAssignments.isEmpty()) {
-            saveFlattenedAssignmentsBatch(flattenedAssignments, false);
+            saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, false);
         }
     }
 
-    public void saveFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
-        log.info("Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
+    public void saveFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
+        log.info("saveFlattened - Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
 
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
@@ -112,18 +112,37 @@ public class FlattenedAssignmentService {
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
 
             savedFlattened.forEach(flattenedAssignment -> {
-                log.info("Saved flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
+                log.info("saveFlattened - Saved flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
+            });
+        }
+
+        flattenedAssignmentRepository.flush();
+
+        log.info("saveFlattened - Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
+    }
+
+    public void saveAndPublishFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
+        log.info("saveAndPublish - {} flattened assignments", flattenedAssignmentsForUpdate.size());
+        int batchSize = 800;
+
+        for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
+            List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
+            List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
+
+            savedFlattened.forEach(flattenedAssignment -> {
+                log.info("saveAndPublish - Flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId());
             });
 
             if (!isSync) {
-                log.info("Publishing {} new flattened assignments to azure", batch.size());
+                log.info("saveAndPublish - Publishing {} new flattened assignments to azure", batch.size());
                 batch.forEach(assigmentEntityProducerService::publish);
             }
         }
 
         flattenedAssignmentRepository.flush();
 
-        log.info("Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
+        log.info("saveAndPublish - Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
 
     @Transactional
