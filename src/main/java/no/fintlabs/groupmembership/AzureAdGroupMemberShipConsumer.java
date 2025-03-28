@@ -72,7 +72,7 @@ public class AzureAdGroupMemberShipConsumer {
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found assignment for deletion: {}", assignment.getAssignmentId());
+                        log.info("Found assignment for deletion. flattenedassignmentId: {}", assignment.getId());
                         assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
                         flattenedAssignmentRepository.saveAndFlush(assignment);
                     });
@@ -81,7 +81,7 @@ public class AzureAdGroupMemberShipConsumer {
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent assignment on deletion, updating and publishing. {}", assignment.getAssignmentId());
+                        log.info("Found inconsistent assignment on deletion, updating and publishing. flattenedassignmentId: {}", assignment.getId());
                         assigmentEntityProducerService.publish(assignment);
                     });
 
@@ -89,7 +89,7 @@ public class AzureAdGroupMemberShipConsumer {
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && assignment.isIdentityProviderGroupMembershipConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent delete, recreating assignment in Azure. Assignmentid: {}", assignment.getAssignmentId());
+                        log.info("Found inconsistent delete, recreating assignment in Azure. flattenedassignmentId: {}", assignment.getId());
                         assigmentEntityProducerService.publish(assignment);
                     });
 
@@ -133,7 +133,7 @@ public class AzureAdGroupMemberShipConsumer {
         List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
                 .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
                 .peek(assignment -> {
-                    log.info("Found inconsistent assignment on update, updating and publishing. Flattenedassignmentid: {}", assignment.getId());
+                    log.info("Found inconsistent assignment on update, updating and publishing. flattenedassignmentId: {}", assignment.getId());
                 })
                 .toList();
 
