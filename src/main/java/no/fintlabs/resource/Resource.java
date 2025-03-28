@@ -1,12 +1,7 @@
 package no.fintlabs.resource;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +39,9 @@ public class Resource extends AuditEntity {
     private String resourceName;
     private String resourceType;
     private String licenseEnforcement;
+    @Column(name="number_of_resources_assigned")
+    private Long numberOfResourcesAssigned;
+    private Long resourceLimit;
 
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,

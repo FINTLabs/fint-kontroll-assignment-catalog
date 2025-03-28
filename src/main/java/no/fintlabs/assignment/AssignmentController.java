@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
+import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
@@ -44,6 +46,7 @@ public class AssignmentController {
     private final AssigmentEntityProducerService assigmentEntityProducerService;
     private final MembershipService membershipService;
     private final ResourceRepository resourceRepository;
+    private final UpdateAssignedResourcesService updateAssignedResourcesService;
 
 
     public AssignmentController(AssignmentService assignmentService,
@@ -52,7 +55,8 @@ public class AssignmentController {
                                 AssigmentEntityProducerService assigmentEntityProducerService,
                                 AuthManager authManager,
                                 MembershipService membershipService,
-                                ResourceRepository resourceRepository) {
+                                ResourceRepository resourceRepository,
+                                UpdateAssignedResourcesService updateAssignedResourcesService) {
 
         this.assignmentService = assignmentService;
         this.assignmentResponseFactory = assignmentResponseFactory;
@@ -61,6 +65,8 @@ public class AssignmentController {
         this.authManager = authManager;
         this.membershipService = membershipService;
         this.resourceRepository = resourceRepository;
+        this.updateAssignedResourcesService = updateAssignedResourcesService;
+
     }
 
     @GetMapping()
@@ -290,6 +296,25 @@ public class AssignmentController {
     @GetMapping("/test")
     public void test() throws Exception{
         throw new Exception("test");
+    }
+
+    @PostMapping("/update-assigned-resources-usage")
+    public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt){
+//        if (!validateIsAdmin(jwt)) {
+//            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+//        }
+
+        long start = System.currentTimeMillis();
+        log.info("Start updating assignedResoursesUsage of assignment");
+
+        updateAssignedResourcesService.updateAssignedResources();
+
+        long end = System.currentTimeMillis();
+        log.info("Time taken to update all resourceAvailability entities for alle resources : {} ms", end - start);
+
+
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     private void validateResource(NewAssignmentRequest request) {
