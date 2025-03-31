@@ -84,7 +84,7 @@ public class AzureAdGroupMemberShipConsumerTest {
         consumer.processGroupMembership(record);
 
         verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
+        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate));
     }
 
     @Test
@@ -109,7 +109,7 @@ public class AzureAdGroupMemberShipConsumerTest {
         verify(assigmentEntityProducerService, times(1)).publishDeletion(groupIdUuid, userIdUuid);
 
         verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(flattenedAssignmentService, times(0)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
+        verify(flattenedAssignmentService, times(0)).saveAndPublishFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
     }
 
 }
