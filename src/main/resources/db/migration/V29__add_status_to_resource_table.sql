@@ -1,0 +1,1 @@
+alter table assignment_resources ADD status varchar(255);
