@@ -119,17 +119,21 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/syncflattenedassignments")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt) {
+    @PostMapping("/syncflattenedassignments/{sync}")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("sync") String sync) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
+
+        boolean isSync;
+
+        isSync = sync == null || sync.isEmpty();
 
         long start = System.currentTimeMillis();
         log.info("Starting to sync all assignments");
 
         List<Assignment> allAssignments = assignmentService.getAssignments();
-        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, isSync));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync all assignments: " + (end - start) + " ms");
