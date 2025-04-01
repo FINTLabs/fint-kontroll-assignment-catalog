@@ -39,8 +39,8 @@ public class UpdateAssignedResourcesService {
     }
 
     public void updateAssignedResources() {
-        List<Resource> resources = resourceRepository.findAll();
-        log.info("Number of resources to update assigned resources: {} resources", resources.size());
+        List<Resource> resources = resourceRepository.findByStatusACTIVE();
+        log.info("Number of ACTIVE resources to update assigned resources: {} resources", resources.size());
 
         for (Resource resource : resources) {
             log.info("Updating assigned resources for {} : {}", resource.getResourceId(), resource.getResourceName());
