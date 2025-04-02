@@ -14,6 +14,7 @@ import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +24,10 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class LicenseEnforcementService {
+
+    @Value("${fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable:true}")
+    private boolean hardstopEnabled;
+
     private final ResourceRepository resourceRepository;
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
     private final RoleRepository roleRepository;
@@ -40,6 +45,7 @@ public class LicenseEnforcementService {
         this.resourceAvailabilityPublishingComponent = resourceAvailabilityPublishingComponent;
         this.assignmentRepository = assignmentRepository;
     }
+
 
     public boolean incrementAssignedLicensesWhenNewAssignment(Assignment assignment) {
         String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
@@ -131,7 +137,10 @@ public class LicenseEnforcementService {
 
 
     public boolean isHardStop(Resource resource) {
-        return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
+        if (hardstopEnabled){
+            return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
+        }
+        return false;
     }
 
     public Resource getResource(Long resourceRef) {
@@ -180,5 +189,10 @@ public class LicenseEnforcementService {
     public List<Assignment> getAssignmentsByRole(Long roleId) {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
+
+    protected void setHardstopEnabled(boolean hardstopEnabled) {
+        this.hardstopEnabled = hardstopEnabled;
+    }
+
 }
 

@@ -203,6 +203,7 @@ class LicenseEnforcementServiceTest {
         given(applicationResourceLocationRepository
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(Optional.of(List.of(applicationResourceLocationHardstop)));
+        licenseEnforcementService.setHardstopEnabled(true);
 
         boolean lisensUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
@@ -219,6 +220,7 @@ class LicenseEnforcementServiceTest {
         given(applicationResourceLocationRepository
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(Optional.of(List.of(applicationResourceLocationHardstop)));
+        licenseEnforcementService.setHardstopEnabled(true);
 
         boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
