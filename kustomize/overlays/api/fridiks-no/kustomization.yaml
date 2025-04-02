@@ -26,6 +26,9 @@ patches:
         path: "/spec/env/2/value"
         value: "fridiks-no-fint-kontroll-assignment-catalog"
       - op: replace
+        path: "/spec/env/3/value"
+        value: "false"
+      - op: replace
         path: "/spec/kafka/acls/0/topic"
         value: "fridiks-no.kontroll.*"
       - op: replace

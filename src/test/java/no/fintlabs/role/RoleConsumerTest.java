@@ -2,6 +2,7 @@ package no.fintlabs.role;
 
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,15 @@ public class RoleConsumerTest {
     @Mock
     private AssignmentService assignmentService;
 
+    @Mock
+    private LicenseEnforcementService licenseEnforcementService;
+
     private RoleConsumer consumer;
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new RoleConsumer(roleRepository, assignmentService, roleCache);
+        consumer = new RoleConsumer(roleRepository, assignmentService, roleCache, licenseEnforcementService);
     }
 
     @Test
