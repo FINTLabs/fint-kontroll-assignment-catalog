@@ -126,7 +126,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @QueryHint(name = AvailableHints.HINT_READ_ONLY, value = "true"),
             @QueryHint(name = AvailableHints.HINT_CACHEABLE, value = "false")
     })
-    @Query("SELECT new no.fintlabs.reporting.FlattenedAssignmentReport(fa.id, CAST(fa.resourceRef AS string), res.resourceName, u.organisationUnitId, u.organisationUnitName, u.userType, a.applicationResourceLocationOrgUnitId, a.applicationResourceLocationOrgUnitName, fa.assignmentCreationDate, fa.assignmentTerminationDate) " +
+    @Query("SELECT new no.fintlabs.reporting.FlattenedAssignmentReport(fa.assignmentId, CAST(fa.resourceRef AS string), res.resourceName, u.organisationUnitId, u.organisationUnitName, u.userType, a.applicationResourceLocationOrgUnitId, a.applicationResourceLocationOrgUnitName, fa.assignmentCreationDate, fa.assignmentTerminationDate) " +
            "FROM FlattenedAssignment fa " +
            "LEFT JOIN User u ON u.id = fa.userRef " +
            "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
