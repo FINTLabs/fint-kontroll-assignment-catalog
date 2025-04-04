@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,7 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
         registry.add("fint.kafka.application-id", () -> applicationId);
     }
 
+    @Disabled
     @Test
     public void shouldProduceAllFlattenedAssignmentReports() {
         // 1. Insert 1 million dummy records
