@@ -190,6 +190,7 @@ public class LicenseEnforcementService {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 
+    //Only for testing - Mockito does not support Spring @Value
     protected void setHardstopEnabled(boolean hardstopEnabled) {
         this.hardstopEnabled = hardstopEnabled;
     }
