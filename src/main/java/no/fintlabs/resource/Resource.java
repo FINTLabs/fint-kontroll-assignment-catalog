@@ -1,12 +1,7 @@
 package no.fintlabs.resource;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +39,10 @@ public class Resource extends AuditEntity {
     private String resourceName;
     private String resourceType;
     private String licenseEnforcement;
+    @Column(name="number_of_resources_assigned")
+    private Long numberOfResourcesAssigned;
+    private Long resourceLimit;
+    private String status;
 
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
@@ -74,11 +73,12 @@ public class Resource extends AuditEntity {
         final Resource resource = (Resource) o;
         return Objects.equals(id, resource.id) && Objects.equals(resourceId, resource.resourceId) && Objects.equals(groupObjectId, resource.groupObjectId) &&
                Objects.equals(identityProviderGroupObjectId, resource.identityProviderGroupObjectId) && Objects.equals(resourceName, resource.resourceName) &&
-               Objects.equals(resourceType, resource.resourceType) && Objects.equals(licenseEnforcement, resource.licenseEnforcement);
+               Objects.equals(resourceType, resource.resourceType) && Objects.equals(licenseEnforcement, resource.licenseEnforcement) &&
+                Objects.equals(status, resource.status);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, resourceId, groupObjectId, identityProviderGroupObjectId, resourceName, resourceType, licenseEnforcement);
+        return Objects.hash(id, resourceId, groupObjectId, identityProviderGroupObjectId, resourceName, resourceType, licenseEnforcement, status);
     }
 }
