@@ -7,6 +7,7 @@ import no.fintlabs.membership.MembershipRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
@@ -45,7 +46,14 @@ public class FlattenedAssignmentMembershipService {
                 mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
                 mappedAssignment.setUserRef(membership.getMemberId());
 
-                flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
+                if (!membership.getMemberStatus().equalsIgnoreCase("active")) {
+                    //TODO: maybe just use new Date()
+                    Date assignmentRemovedDate = membership.getMemberStatusChanged()!=null ? membership.getMemberStatusChanged() : new Date();
+                    log.info("Membership with id {} has non active member status. Flattened assignment removed date is set to {}", membership.getId(), assignmentRemovedDate);
+                    mappedAssignment.setAssignmentTerminationDate(assignmentRemovedDate);
+                }
+
+               flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
                         .ifPresent(flattenedAssignments::add);
             }
 
