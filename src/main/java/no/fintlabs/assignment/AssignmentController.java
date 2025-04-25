@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.ibm.icu.text.PluralRules.Operand.e;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/assignments")
@@ -87,9 +89,11 @@ public class AssignmentController {
             Assignment newAssignment =
                     assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
-        } catch (AssignmentAlreadyExistsException exception) {
+        }
+        catch (AssignmentAlreadyExistsException exception) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Error creating assignment", e);
             return ResponseEntity.badRequest().build();
         }
@@ -123,7 +127,7 @@ public class AssignmentController {
         log.info("Starting to sync all assignments");
 
         List<Assignment> allAssignments = assignmentService.getAssignments();
-        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, true));
+        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync all assignments: " + (end - start) + " ms");
@@ -141,7 +145,7 @@ public class AssignmentController {
         log.info("Starting to sync assignment {}", id);
 
         assignmentService.getAssignmentById(id)
-                .ifPresent(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, false));
+                .ifPresent(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignment {}: " + (end - start) + " ms", id);
@@ -159,7 +163,7 @@ public class AssignmentController {
         log.info("Starting to sync assignment by userid {}", id);
 
         List<Assignment> allAssignments = assignmentService.getAssignmentsByUser(id);
-        allAssignments.forEach(assignment -> flattenedAssignmentService.createFlattenedAssignments(assignment, false));
+        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
 
         long end = System.currentTimeMillis();
         log.info("Time taken to sync assignments by userid {}: " + (end - start) + " ms", id);

@@ -1,6 +1,7 @@
 package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.QueryHint;
+import lombok.NonNull;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
 import org.hibernate.jpa.AvailableHints;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +26,8 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
 
     List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
+
+    List<FlattenedAssignment> findByAssignmentIdAndAssignmentTerminationDateIsNull(Long assignmentId);
 
     Optional<FlattenedAssignment> findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long userRef, Long resourceRef);
 
