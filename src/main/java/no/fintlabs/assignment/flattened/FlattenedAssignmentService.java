@@ -48,13 +48,11 @@ public class FlattenedAssignmentService {
         log.info("Creating flattened assignments for assignment with id {}", assignment.getId());
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
 
-       if (assignment.isUserAssignment()) {
+        if (assignment.isUserAssignment()) {
             flattenedAssignments.add(toFlattenedAssignment(assignment));
-        }
-       else if (assignment.isGroupAssignment()) {
+        } else if (assignment.isGroupAssignment()) {
             flattenedAssignments.addAll(flattenedAssignmentMembershipService.createFlattenedAssignmentsForNewRoleAssignment(assignment));
-        }
-       else {
+        } else {
             log.error("Assignment with id {} is not a user or group assignment, not creating flattened assignment", assignment.getId());
         }
 
@@ -62,6 +60,7 @@ public class FlattenedAssignmentService {
             saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, false);
         }
     }
+
     @Async
     @Transactional
     public void syncFlattenedAssignments(Assignment assignment, boolean isSync) {
@@ -176,8 +175,9 @@ public class FlattenedAssignmentService {
 
         String deactivationReason = "Assosiated assignment removed by user";
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
-        deactivateFlattenedAssignments(flattenedAssignments,deactivationReason, assignment.getAssignmentRemovedDate());
+        deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, assignment.getAssignmentRemovedDate());
     }
+
     @Transactional
     public void deactivateFlattenedAssignments(Set<Long> flattenedAssignmentIds) {
         log.info("Deactivate flattened assignments:  {}", flattenedAssignmentIds);
@@ -232,9 +232,9 @@ public class FlattenedAssignmentService {
         }
         flattenedAssignments.forEach(flattenedAssignment -> {
             log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
-                    flattenedAssignment.getId(),
-                    flattenedAssignment.getAssignmentId(),
-                    deactivationReason
+                     flattenedAssignment.getId(),
+                     flattenedAssignment.getAssignmentId(),
+                     deactivationReason
             );
             flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
             flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
