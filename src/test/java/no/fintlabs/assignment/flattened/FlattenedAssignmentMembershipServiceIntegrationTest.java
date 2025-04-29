@@ -40,32 +40,62 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
 //    private OpaService opaService;
 
     private Membership activeMembership, inactiveMembership;
+    private UUID activeUserObjectId, inactiveUserObjectId, groupObjectId;
     private Assignment assignment;
     private List<FlattenedAssignment> existingAssignments;
 
     @BeforeEach
     public void setUp() {
+
+        activeUserObjectId = UUID.randomUUID();
+        inactiveUserObjectId = UUID.randomUUID();
+        groupObjectId = UUID.randomUUID();
+
         existingAssignments = new ArrayList<>();
         activeMembership = new Membership();
         activeMembership.setId("1_10");
         activeMembership.setRoleId(1L);
         activeMembership.setMemberId(10L);
-        activeMembership.setIdentityProviderUserObjectId(UUID.randomUUID());
+        activeMembership.setIdentityProviderUserObjectId(activeUserObjectId);
         activeMembership.setMemberStatus("ACTIVE");
 
         inactiveMembership = new Membership();
         inactiveMembership.setId("1_20");
         inactiveMembership.setRoleId(1L);
         inactiveMembership.setMemberId(20L);
-        inactiveMembership.setIdentityProviderUserObjectId(UUID.randomUUID());
+        inactiveMembership.setIdentityProviderUserObjectId(inactiveUserObjectId);
         inactiveMembership.setMemberStatus("INACTIVE");
 
         membershipRepository.save(activeMembership);
         membershipRepository.save(inactiveMembership);
 
         assignment = new Assignment();
-        assignment.setId(100L);
+        assignment.setId(1L);
         assignment.setRoleRef(1L);
+        assignment.setResourceRef(15L);
+        assignment.setAzureAdGroupId(groupObjectId);
+
+
+        FlattenedAssignment flattenedAssignment1 = new FlattenedAssignment();
+        flattenedAssignment1.setId(1000L);
+        flattenedAssignment1.setUserRef(10L);
+        flattenedAssignment1.setIdentityProviderUserObjectId(activeUserObjectId);
+        flattenedAssignment1.setIdentityProviderGroupObjectId(groupObjectId);
+        flattenedAssignment1.setAssignmentId(1L);
+        flattenedAssignment1.setResourceRef(15L);
+        flattenedAssignment1.setAssignmentViaRoleRef(1L);
+
+        FlattenedAssignment flattenedAssignment2 = new FlattenedAssignment();
+        flattenedAssignment2.setId(1001L);
+        flattenedAssignment2.setUserRef(20L);
+        flattenedAssignment2.setIdentityProviderUserObjectId(inactiveUserObjectId);
+        flattenedAssignment2.setIdentityProviderGroupObjectId(groupObjectId);
+        flattenedAssignment2.setAssignmentId(1L);
+        flattenedAssignment2.setResourceRef(15L);
+        flattenedAssignment2.setAssignmentViaRoleRef(1L);
+
+        existingAssignments.add(flattenedAssignment1);
+        existingAssignments.add(flattenedAssignment2);
     }
 
     @Test
@@ -78,28 +108,24 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     }
 
     @Test
-    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignment_shouldReturnAllFlattenedAssignments() {
-
-        FlattenedAssignment flattenedAssignment1 = new FlattenedAssignment();
-        flattenedAssignment1.setId(1000L);
-        flattenedAssignment1.setUserRef(10L);
-        flattenedAssignment1.setAssignmentId(1L);
-
-        FlattenedAssignment flattenedAssignment2 = new FlattenedAssignment();
-        flattenedAssignment2.setId(1001L);
-        flattenedAssignment2.setUserRef(20L);
-        flattenedAssignment2.setAssignmentId(1L);
-
-        existingAssignments.add(flattenedAssignment1);
-        existingAssignments.add(flattenedAssignment2);
+    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignmentWithIsSyncTrue_shouldReturnOneFlattenedAssignment() {
 
         List<FlattenedAssignment> flattenedAssignments =
                 flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, true);
 
-        assertThat(flattenedAssignments.size()).isEqualTo(2);
-        assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(10L);
-        assertThat(flattenedAssignments.getFirst().getAssignmentTerminationDate()).isNull();
-        assertThat(flattenedAssignments.get(1).getUserRef()).isEqualTo(20L);
-        assertThat(flattenedAssignments.get(1).getAssignmentTerminationDate()).isNotNull();
+        assertThat(flattenedAssignments.size()).isEqualTo(1);
+        assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(20L);
+        assertThat(flattenedAssignments.getFirst().getAssignmentTerminationDate()).isNotNull();
+    }
+
+    @Test
+    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignmentWithIsSyncFalse_shouldReturnOneFlattenedAssignment() {
+
+        List<FlattenedAssignment> flattenedAssignments =
+                flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+
+        assertThat(flattenedAssignments.size()).isEqualTo(1);
+        assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(20L);
+        assertThat(flattenedAssignments.getFirst().getAssignmentTerminationDate()).isNotNull();
     }
 }

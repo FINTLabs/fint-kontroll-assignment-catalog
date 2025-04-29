@@ -16,7 +16,7 @@ fint:
         initial-delay: 1
         fixed-delay: 3
     authorization:
-      authorized-org-id: 'fintlabs.no'
+      authorized-org-id: 'vigo.no'
 spring:
   kafka:
     bootstrap-servers: localhost:9092

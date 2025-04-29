@@ -26,6 +26,7 @@ public class FlattenedAssignmentMembershipService {
     }
 
     public List<FlattenedAssignment> createFlattenedAssignmentsForNewRoleAssignment(Assignment assignment) {
+        log.info("Creating flattened assignments for new role assignment with id: {}", assignment.getId());
 
         if (assignment.getRoleRef()==null) {
             log.warn("Assignment {} has no roleRef. No flattened assignment saved.", assignment.getAssignmentId());
@@ -43,7 +44,7 @@ public class FlattenedAssignmentMembershipService {
             log.warn("Role (group) has no active memberships. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
         }
         else {
-            log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", activeMemberships.size(), assignment.getRoleRef());
+            log.info("Preparing all {} active memberships to save as flattened assignments for roleref {}", activeMemberships.size(), assignment.getRoleRef());
 
             long start = System.currentTimeMillis();
             flattenedAssignments = mapNewAssignmentToFlattenedAssignments(activeMemberships, assignment);
@@ -59,6 +60,8 @@ public class FlattenedAssignmentMembershipService {
             List<FlattenedAssignment> existingAssignments,
             boolean isSync
     ) {
+        log.info("Creating or updating flattened assignments for existing assignment with id: {}", assignment.getId());
+
         if (assignment.getRoleRef()==null) {
             log.warn("Assignment {} has no roleRef. No flattened assignment saved.", assignment.getAssignmentId());
             return new ArrayList<>();
@@ -71,12 +74,12 @@ public class FlattenedAssignmentMembershipService {
         List<Membership> memberships = membershipRepository.findAll(validMembershipSpecification);
 
         if (memberships.isEmpty()) {
-            log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
+            log.warn("Role (group) has no members. No flattened assignment mapped for roleref: {}", assignment.getRoleRef());
         }
         else {
-            log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
+            log.info("Preparing all {} memberships to be mapped to flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
             long start = System.currentTimeMillis();
-            flattenedAssignments = mapExistingAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments, isSync);
+            flattenedAssignments = mapMembershipsForAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments, isSync);
             long end = System.currentTimeMillis();
             log.info("Time taken {}ms to process {} memberships. Added {} to save", (end - start), memberships.size(), flattenedAssignments.size());
         }
@@ -93,7 +96,7 @@ public class FlattenedAssignmentMembershipService {
         return flattenedAssignments;
     }
 
-    private List<FlattenedAssignment> mapExistingAssignmentToFlattenedAssignments(
+    private List<FlattenedAssignment> mapMembershipsForAssignmentToFlattenedAssignments(
             List<Membership> memberships,
             Assignment assignment,
             List<FlattenedAssignment> existingAssignments,
@@ -103,12 +106,6 @@ public class FlattenedAssignmentMembershipService {
 
         for (Membership membership : memberships) {
             FlattenedAssignment mappedAssignment =mapToFlattenedAssignment(membership, assignment);
-
-            if (!membership.getMemberStatus().equalsIgnoreCase("active")) {
-                Date assignmentRemovedDate =  new Date();
-                log.info("Membership with id {} has non active member status. Flattened assignment removed date is set to {}", membership.getId(), assignmentRemovedDate);
-                mappedAssignment.setAssignmentTerminationDate(assignmentRemovedDate);
-            }
             flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
                     .ifPresent(flattenedAssignments::add);
         }
@@ -116,10 +113,22 @@ public class FlattenedAssignmentMembershipService {
     }
 
     private FlattenedAssignment mapToFlattenedAssignment(Membership membership, Assignment assignment) {
+        boolean isActive = membership.getMemberStatus().equalsIgnoreCase("active");
+
+        log.info("Mapping {} membership {} to flattened assignment for assignment with id {}",
+                isActive ? "active" : "non active",
+                membership.getId(),
+                assignment.getId());
+
         FlattenedAssignment flattenedAssignment = toFlattenedAssignment(assignment);
         flattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
         flattenedAssignment.setUserRef(membership.getMemberId());
 
+        if (!isActive) {
+            Date assignmentRemovedDate = new Date();
+            log.info("Flattened assignment removed date is set to {}", assignmentRemovedDate);
+            flattenedAssignment.setAssignmentTerminationDate(assignmentRemovedDate);
+        }
         return flattenedAssignment;
     }
 }

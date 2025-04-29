@@ -73,14 +73,16 @@ public class FlattenedAssignmentService {
         log.info("Updating flattened assignments for assignment with id {}", assignment.getId());
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
 
-        List<FlattenedAssignment> existingAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
+        List<FlattenedAssignment> existingActiveAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
+
+        log.info("Found {} active flattened assignments for assignment {}", existingActiveAssignments.size(), assignment.getId());
 
         if (assignment.isUserAssignment()) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
+            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingActiveAssignments, isSync)
                     .ifPresent(flattenedAssignments::add);
         } else if (assignment.isGroupAssignment()) {
-            flattenedAssignments.addAll(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, isSync));
+            flattenedAssignments.addAll(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingActiveAssignments, isSync));
         } else {
             log.error("Assignment with id {} is not a user or group assignment, not updating any flattened assignment", assignment.getId());
         }
