@@ -78,10 +78,10 @@ public class FlattenedAssignmentService {
 
         if (assignment.isUserAssignment()) {
             FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingActiveAssignments, isSync)
+            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingActiveAssignments) //, isSync
                     .ifPresent(flattenedAssignments::add);
         } else if (assignment.isGroupAssignment()) {
-            flattenedAssignments.addAll(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingActiveAssignments, isSync));
+            flattenedAssignments.addAll(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingActiveAssignments)); //, isSync
         } else {
             log.error("Assignment with id {} is not a user or group assignment, not updating any flattened assignment", assignment.getId());
         }

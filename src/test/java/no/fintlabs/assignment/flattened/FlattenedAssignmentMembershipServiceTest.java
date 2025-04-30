@@ -53,7 +53,7 @@ public class FlattenedAssignmentMembershipServiceTest {
     void findMembershipsToCreateOrUpdate_shouldReturnEmptyListWhenNoMemberships() {
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(new ArrayList<>());
 
-        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
         assertEquals(0, result.size());
     }
@@ -68,7 +68,7 @@ public class FlattenedAssignmentMembershipServiceTest {
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
 
-        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
         assertEquals(0, result.size());
     }
@@ -88,9 +88,9 @@ public class FlattenedAssignmentMembershipServiceTest {
         flattenedAssignment.setAssignmentTerminationDate(memberStatusChangedDate);
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
-        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any(), anyBoolean())).thenReturn(Optional.of(flattenedAssignment));
+        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any())).thenReturn(Optional.of(flattenedAssignment));//, anyBoolean()
 
-        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
 
         assertEquals(1, result.size());
@@ -111,11 +111,11 @@ public class FlattenedAssignmentMembershipServiceTest {
         mappedAssignment.setUserRef(membership.getMemberId());
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
-        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any(), anyBoolean())).thenReturn(Optional.of(mappedAssignment));
+        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any())).thenReturn(Optional.of(mappedAssignment));//, anyBoolean()
 
-        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+        List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
         assertEquals(1, result.size());
-        verify(flattenedAssignmentMapper, times(1)).mapOriginWithExisting(any(), any(), anyBoolean());
+        verify(flattenedAssignmentMapper, times(1)).mapOriginWithExisting(any(), any());//, anyBoolean()
     }
 }

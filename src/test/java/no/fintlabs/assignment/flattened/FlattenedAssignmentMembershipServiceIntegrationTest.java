@@ -108,10 +108,10 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     }
 
     @Test
-    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignmentWithIsSyncTrue_shouldReturnOneFlattenedAssignment() {
+    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignment_shouldReturnFlattenedAssignmentWithTerminationDateSet() {
 
         List<FlattenedAssignment> flattenedAssignments =
-                flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, true);
+                flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);
 
         assertThat(flattenedAssignments.size()).isEqualTo(1);
         assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(20L);
@@ -119,13 +119,13 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     }
 
     @Test
-    public void testCreateOrUpdateFlattenedAssignmentsForExistingAssignmentWithIsSyncFalse_shouldReturnOneFlattenedAssignment() {
+    public void testCreateOrUpdateFlattenedAssignmentsWithNoExistingAssignments_shouldReturnOneFlattenedAssignmentWithNoTerminationDate() {
 
-        List<FlattenedAssignment> flattenedAssignments =
-                flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, false);
+        List<FlattenedAssignment> emptyAssignmentList = new ArrayList<>();
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, emptyAssignmentList);
 
         assertThat(flattenedAssignments.size()).isEqualTo(1);
-        assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(20L);
-        assertThat(flattenedAssignments.getFirst().getAssignmentTerminationDate()).isNotNull();
+        assertThat(flattenedAssignments.getFirst().getUserRef()).isEqualTo(10L);
+        assertThat(flattenedAssignments.getFirst().getAssignmentTerminationDate()).isNull();
     }
 }

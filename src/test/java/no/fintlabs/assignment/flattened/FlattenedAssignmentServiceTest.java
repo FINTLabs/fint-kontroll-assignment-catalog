@@ -91,7 +91,7 @@ public class FlattenedAssignmentServiceTest {
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
 
         when(flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId())).thenReturn(existingAssignments);
-        when(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments, true)).thenReturn(List.of(flattenedAssignment));
+        when(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments)).thenReturn(List.of(flattenedAssignment));//, true
 
         flattenedAssignmentService.syncFlattenedAssignments(assignment, true);
 
@@ -111,7 +111,7 @@ public class FlattenedAssignmentServiceTest {
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
 
         when(flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId())).thenReturn(existingAssignments);
-        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), anyList(), anyBoolean())).thenReturn(Optional.of(flattenedAssignment));
+        when(flattenedAssignmentMapper.mapOriginWithExisting(any(), anyList())).thenReturn(Optional.of(flattenedAssignment));//, anyBoolean()
 
         flattenedAssignmentService.syncFlattenedAssignments(assignment, true);
 

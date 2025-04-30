@@ -50,8 +50,7 @@ public class FlattenedAssignmentMembershipService {
 
     public List<FlattenedAssignment> createOrUpdateFlattenedAssignmentsForExistingAssignment(
             Assignment assignment,
-            List<FlattenedAssignment> existingAssignments,
-            boolean isSync
+            List<FlattenedAssignment> existingAssignments
     ) {
         log.info("Creating or updating flattened assignments for existing assignment with id: {}", assignment.getId());
 
@@ -68,7 +67,7 @@ public class FlattenedAssignmentMembershipService {
             log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
             return new ArrayList<>();
         } else {
-            return mapMembershipsForAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments, isSync);
+            return mapMembershipsForAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments);
         }
     }
 
@@ -92,8 +91,7 @@ public class FlattenedAssignmentMembershipService {
     private List<FlattenedAssignment> mapMembershipsForAssignmentToFlattenedAssignments(
             List<Membership> memberships,
             Assignment assignment,
-            List<FlattenedAssignment> existingAssignments,
-            boolean isSync
+            List<FlattenedAssignment> existingAssignments
     ) {
         log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
         long start = System.currentTimeMillis();
@@ -102,7 +100,7 @@ public class FlattenedAssignmentMembershipService {
 
         for (Membership membership : memberships) {
             FlattenedAssignment mappedAssignment =mapToFlattenedAssignment(membership, assignment);
-            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments, isSync)
+            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments) //, isSync
                     .ifPresent(flattenedAssignments::add);
         }
 
