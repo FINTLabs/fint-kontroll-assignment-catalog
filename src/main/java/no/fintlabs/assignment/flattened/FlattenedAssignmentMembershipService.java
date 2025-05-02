@@ -67,13 +67,15 @@ public class FlattenedAssignmentMembershipService {
             log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
             return new ArrayList<>();
         } else {
-            return mapMembershipsForAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments);
+            return mapMembershipsForExistingAssignmentToFlattenedAssignments(memberships, assignment, existingAssignments);
         }
     }
 
     private List<FlattenedAssignment> mapNewAssignmentToFlattenedAssignments(List<Membership> memberships, Assignment assignment) {
-        log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
-
+        log.info("Preparing {} memberships from role {} for new assignment {} for flattened assigment creation",
+                memberships.size(),
+                assignment.getRoleRef(),
+                assignment.getId());
         long start = System.currentTimeMillis();
 
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
@@ -88,12 +90,15 @@ public class FlattenedAssignmentMembershipService {
         return flattenedAssignments;
     }
 
-    private List<FlattenedAssignment> mapMembershipsForAssignmentToFlattenedAssignments(
+    private List<FlattenedAssignment> mapMembershipsForExistingAssignmentToFlattenedAssignments(
             List<Membership> memberships,
             Assignment assignment,
             List<FlattenedAssignment> existingAssignments
     ) {
-        log.info("Preparing all {} memberships to save as flattened assignments for roleref {}", memberships.size(), assignment.getRoleRef());
+        log.info("Preparing {} memberships from role {} for existing assignment {} for flattened assigment update/creation",
+                memberships.size(),
+                assignment.getRoleRef(),
+                assignment.getId());
         long start = System.currentTimeMillis();
 
         List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
@@ -105,7 +110,11 @@ public class FlattenedAssignmentMembershipService {
         }
 
         long end = System.currentTimeMillis();
-        log.info("Time taken {} ms to process {} memberships. Added {} to save", (end - start), memberships.size(), flattenedAssignments.size());
+        log.info("Time taken {} ms to process {} memberships for assignment {}. Found {} flattened assignments to be updated"
+                , (end - start),
+                memberships.size(),
+                assignment.getId(),
+                flattenedAssignments.size());
 
         return flattenedAssignments;
     }
