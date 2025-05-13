@@ -71,7 +71,7 @@ public class MembershipService {
             try {
                 flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
             } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
+                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
             }
         });
     }
