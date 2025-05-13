@@ -39,6 +39,11 @@ public class UpdateAssignedResourcesService {
     }
 
     public void updateAssignedResources() {
+        log.info("Start updating assignedResources initiated by api call");
+        log.info("Clearing assignedResources");
+        applicationResourceLocationRepository.clearNumberOfResourcesAssignedInLocations();
+        resourceRepository.clearNumberOfResourcesAssignedInResources();
+
         List<Resource> resources = resourceRepository.findByStatusACTIVE();
         log.info("Number of ACTIVE resources to update assigned resources: {} resources", resources.size());
 

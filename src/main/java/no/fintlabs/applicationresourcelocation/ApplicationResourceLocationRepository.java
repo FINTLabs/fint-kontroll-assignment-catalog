@@ -1,8 +1,10 @@
 package no.fintlabs.applicationresourcelocation;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +30,11 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
             "ORDER BY od.distance ASC")
     List<NearestResourceLocationDto> findNearestApplicationResourceLocationForOrgUnit(@Param("resourceRef") Long resourceRef,
                                                                                       @Param("orgUnitId") String orgUnitId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE application_resource_location SET numberofresourcesassigned = null", nativeQuery = true)
+    void clearNumberOfResourcesAssignedInLocations();
 
 
 }

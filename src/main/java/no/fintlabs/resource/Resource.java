@@ -22,7 +22,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString
-//@RequiredArgsConstructor
 @Slf4j
 @Entity
 @Table(name = "AssignmentResources")
