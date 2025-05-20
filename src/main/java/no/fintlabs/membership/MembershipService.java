@@ -49,14 +49,21 @@ public class MembershipService {
                 flattenedAssignmentIdsByUserAndRoleRef.size(),
                 membership.getId()
         );
+        if (flattenedAssignmentIdsByUserAndRoleRef.isEmpty()) {
+            log.info("No flattened assignments found for deactivation");
+            return;
+        }
         flattenedAssignmentService.deactivateFlattenedAssignments(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
     @Async
     public void syncAssignmentsForMembership(Membership savedMembership) {
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
-            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(),
-                     savedMembership.getId());
+            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}",
+                    savedMembership.getRoleId(),
+                    savedMembership.getMemberId(),
+                    savedMembership.getId()
+            );
             return;
         }
 
@@ -69,7 +76,7 @@ public class MembershipService {
         assignmentsByRole
                 .forEach(assignment -> {
             try {
-                flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
+                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
             } catch (Exception e) {
                 log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
             }

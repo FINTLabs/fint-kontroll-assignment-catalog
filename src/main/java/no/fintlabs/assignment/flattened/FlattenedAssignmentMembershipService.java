@@ -135,6 +135,7 @@ public class FlattenedAssignmentMembershipService {
             Date assignmentRemovedDate = new Date();
             log.info("Flattened assignment removed date is set to {}", assignmentRemovedDate);
             flattenedAssignment.setAssignmentTerminationDate(assignmentRemovedDate);
+            flattenedAssignment.setAssignmentTerminationReason("Role membership deactivated");
         }
         return flattenedAssignment;
     }

@@ -92,7 +92,7 @@ public class FlattenedAssignmentService {
     }
 
     @Transactional
-    public void createFlattenedAssignmentsForMembership(Assignment assignment, Membership membership) {
+    public void createOrUpdateFlattenedAssignmentsForMembership(Assignment assignment, Membership membership) {
         if (assignment.getId() == null) {
             log.error("Assignment id is null. Cannot create or update flattened assignment");
             return;
@@ -103,26 +103,35 @@ public class FlattenedAssignmentService {
         Long userRef = membership.getMemberId();
         Long roleRef = membership.getRoleId();
 
-        flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef)
-                .ifPresentOrElse(flattenedAssignment -> {
-                                     //TODO: sjekk på status endring
-                                     if (membership.getIdentityProviderUserObjectId() != null && !membership.getIdentityProviderUserObjectId().equals(flattenedAssignment.getIdentityProviderUserObjectId())) {
-                                         log.info("Found flattened assignment for role {}, user {} and assignment {}. Updating it", roleRef, userRef, assignment.getId());
-                                         flattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+        Optional<List<FlattenedAssignment>> existingflattenedAssignments =
+                flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef);
 
-                                         flattenedAssignments.add(flattenedAssignment);
-                                     }
-                                 }, () -> {
-                                     log.info("No flattened assignment found for role {}, user {} and assignment {}. Creating new", roleRef, userRef, assignment.getId());
-                                     FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
-                                     mappedAssignment.setUserRef(userRef);
-                                     mappedAssignment.setAssignmentViaRoleRef(roleRef);
-                                     mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
-                                     flattenedAssignments.add(mappedAssignment);
-                                 }
+        if(existingflattenedAssignments.isEmpty()) {
+            log.info("No flattened assignment found for role {}, user {} and assignment {}. Creating new", roleRef, userRef, assignment.getId());
+            FlattenedAssignment mappedFlattenedAssignment = toFlattenedAssignment(assignment);
+            mappedFlattenedAssignment.setUserRef(userRef);
+            mappedFlattenedAssignment.setAssignmentViaRoleRef(roleRef);
+            mappedFlattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
 
-                );
-
+            saveAndPublishNewFlattenedAssignment(mappedFlattenedAssignment, false);
+        }
+        else {
+            existingflattenedAssignments.get().
+                    forEach(existingflattenedAssignment -> {
+                                //TODO: sjekk på status endring
+                                if (membership.getIdentityProviderUserObjectId() != null && !membership.getIdentityProviderUserObjectId().equals(existingflattenedAssignment.getIdentityProviderUserObjectId())) {
+                                    log.info("Found flattened assignment {} for role {}, user {} and assignment {}. Updating it",
+                                            existingflattenedAssignment.getId(),
+                                            roleRef,
+                                            userRef,
+                                            assignment.getId()
+                                    );
+                                    existingflattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+                                    flattenedAssignments.add(existingflattenedAssignment);
+                                }
+                            }
+                    );
+        }
         if (!flattenedAssignments.isEmpty()) {
             saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, false);
         }
@@ -145,6 +154,20 @@ public class FlattenedAssignmentService {
         flattenedAssignmentRepository.flush();
 
         log.info("saveFlattened - Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
+    }
+
+    public void saveAndPublishNewFlattenedAssignment(FlattenedAssignment newflattenedAssignment,boolean isSync ) {
+        log.info("saveAndPublishNewFlattenedAssignment - Saving new flattened assignment with id: {}, assignmentId: {}", newflattenedAssignment.getId(), newflattenedAssignment.getAssignmentId());
+        FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
+
+        log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
+                savedFlattened.getId(),
+                savedFlattened.getAssignmentId());
+
+        if (!isSync) {
+            log.info("saveAndPublishNewFlattenedAssignment - Publishing new flattened assignment to azure");
+            assigmentEntityProducerService.publish(newflattenedAssignment);
+        }
     }
 
     public void saveAndPublishFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
@@ -192,7 +215,29 @@ public class FlattenedAssignmentService {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
+
         deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
+        publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
+    }
+
+    public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedAssignment> flattenedAssignments) {
+        flattenedAssignments.forEach(flattenedAssignment -> {
+            if (notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(flattenedAssignment)) {
+                log.info("User {} and resource {} in deactivated flattened assignment {} has no other active assignment will be published for deletion",
+                        flattenedAssignment.getUserRef(),
+                        flattenedAssignment.getResourceRef(),
+                        flattenedAssignment.getId()
+                );
+                assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+            }
+            else {
+                log.info("User {} and resource {} in deactivated flattened assignment {} has other active assignment, will not be published for deletion",
+                        flattenedAssignment.getUserRef(),
+                        flattenedAssignment.getResourceRef(),
+                        flattenedAssignment.getId()
+                );
+            }
+        });
     }
 
     public List<FlattenedAssignment> getAllFlattenedAssignments() {
@@ -228,20 +273,27 @@ public class FlattenedAssignmentService {
     }
 
     private void deactivateFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
-        if (flattenedAssignments.isEmpty()) {
-            log.info("No flattened assignments found for deactivation");
-            return;
-        }
+
         flattenedAssignments.forEach(flattenedAssignment -> {
-            log.info("Deactivate flattened assignment for with id: {} for assignment id {}, deactivationReason: {}",
+            log.info("Deactivate flattened assignment {}: assignment id {} user {}, resource {}, assigned {}, deactivationReason: {}",
                      flattenedAssignment.getId(),
                      flattenedAssignment.getAssignmentId(),
+                        flattenedAssignment.getUserRef(),
+                        flattenedAssignment.getResourceRef(),
+                        flattenedAssignment.getAssignmentViaRoleRef() == null ? "directly" : "via role " + flattenedAssignment.getAssignmentViaRoleRef(),
                      deactivationReason
             );
             flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
             flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
             flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
-            assigmentEntityProducerService.publishDeletion(flattenedAssignment);
         });
+    }
+
+    private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
+        return flattenedAssignmentRepository.findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                flattenedAssignment.getId(),
+                flattenedAssignment.getUserRef(),
+                flattenedAssignment.getResourceRef()
+        ).isEmpty();
     }
 }
