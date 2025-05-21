@@ -43,16 +43,22 @@ public class MembershipService {
 
     @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
+        log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
+                membership.getId()
+        );
+
         Set<Long> flattenedAssignmentIdsByUserAndRoleRef =
                 flattenedAssignmentService.findFlattenedAssignmentIdsByUserAndRoleRef(membership.getMemberId(), membership.getRoleId());
+
+        if (flattenedAssignmentIdsByUserAndRoleRef.isEmpty()) {
+            log.info("No associated flattened assignments with inactive membership {} found for deactivation",
+                    membership.getId());
+            return;
+        }
         log.info("Deactivating {} flattened assignments assigned via inactive membership {}",
                 flattenedAssignmentIdsByUserAndRoleRef.size(),
                 membership.getId()
         );
-        if (flattenedAssignmentIdsByUserAndRoleRef.isEmpty()) {
-            log.info("No flattened assignments found for deactivation");
-            return;
-        }
         flattenedAssignmentService.deactivateFlattenedAssignments(flattenedAssignmentIdsByUserAndRoleRef);
     }
 

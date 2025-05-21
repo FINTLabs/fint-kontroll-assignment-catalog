@@ -223,7 +223,7 @@ public class FlattenedAssignmentService {
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedAssignment> flattenedAssignments) {
         flattenedAssignments.forEach(flattenedAssignment -> {
             if (notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(flattenedAssignment)) {
-                log.info("User {} and resource {} in deactivated flattened assignment {} has no other active assignment will be published for deletion",
+                log.info("User {} and resource {} in deactivated flattened assignment {} has no other active assignment and will be published for deletion",
                         flattenedAssignment.getUserRef(),
                         flattenedAssignment.getResourceRef(),
                         flattenedAssignment.getId()
@@ -231,7 +231,7 @@ public class FlattenedAssignmentService {
                 assigmentEntityProducerService.publishDeletion(flattenedAssignment);
             }
             else {
-                log.info("User {} and resource {} in deactivated flattened assignment {} has other active assignment, will not be published for deletion",
+                log.info("User {} and resource {} in deactivated flattened assignment {} has other active assignments and will not be published for deletion",
                         flattenedAssignment.getUserRef(),
                         flattenedAssignment.getResourceRef(),
                         flattenedAssignment.getId()
@@ -290,10 +290,24 @@ public class FlattenedAssignmentService {
     }
 
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
-        return flattenedAssignmentRepository.findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+
+        Optional<List<FlattenedAssignment>> otherActiveAssignments = flattenedAssignmentRepository.findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                 flattenedAssignment.getId(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
-        ).isEmpty();
+        );
+
+        if (otherActiveAssignments.isEmpty()) {
+            return true;
+        }
+        otherActiveAssignments.get().forEach(otherAssignment -> {
+            log.info("Found active flattened assignment {} for user {} and resource {} assigned {}",
+                    otherAssignment.getId(),
+                    otherAssignment.getUserRef(),
+                    otherAssignment.getResourceRef(),
+                    otherAssignment.getAssignmentViaRoleRef() == null ? "directly" : "via role " + otherAssignment.getAssignmentViaRoleRef()
+            );
+        });
+        return false;
     }
 }
