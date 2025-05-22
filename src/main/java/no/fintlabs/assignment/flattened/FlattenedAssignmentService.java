@@ -200,7 +200,8 @@ public class FlattenedAssignmentService {
 
         String deactivationReason = "Assosiated assignment removed by user";
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
-        deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, assignment.getAssignmentRemovedDate());
+        saveDeactivatedFlattenedAssignments(flattenedAssignments, deactivationReason, assignment.getAssignmentRemovedDate());
+        publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
     }
 
     @Transactional
@@ -216,7 +217,7 @@ public class FlattenedAssignmentService {
                 .map(Optional::get)
                 .toList();
 
-        deactivateFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
+        saveDeactivatedFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
         publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
     }
 
@@ -272,7 +273,7 @@ public class FlattenedAssignmentService {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
     }
 
-    private void deactivateFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
+    private void saveDeactivatedFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
 
         flattenedAssignments.forEach(flattenedAssignment -> {
             log.info("Deactivate flattened assignment {}: assignment id {} user {}, resource {}, assigned {}, deactivationReason: {}",

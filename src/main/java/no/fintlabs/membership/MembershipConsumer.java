@@ -80,7 +80,7 @@ public class MembershipConsumer {
 
     private boolean shouldDeactivateMembership(Membership incomingMembership, Membership existingMembership) {
         String existingStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
-        log.debug("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
+        log.info("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
                 existingMembership.getId(),
                 existingStatus,
                 incomingMembership.getMemberStatus());
