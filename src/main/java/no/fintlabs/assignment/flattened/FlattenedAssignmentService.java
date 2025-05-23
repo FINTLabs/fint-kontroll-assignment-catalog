@@ -292,8 +292,8 @@ public class FlattenedAssignmentService {
 
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
 
-        Optional<List<FlattenedAssignment>> otherActiveAssignments = flattenedAssignmentRepository.findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                flattenedAssignment.getId(),
+        Optional<List<FlattenedAssignment>> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                flattenedAssignment.getAssignmentViaRoleRef(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
