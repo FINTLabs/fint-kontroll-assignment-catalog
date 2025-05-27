@@ -113,6 +113,7 @@ public class FlattenedAssignmentService {
             mappedFlattenedAssignment.setUserRef(userRef);
             mappedFlattenedAssignment.setAssignmentViaRoleRef(roleRef);
             mappedFlattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+            mappedFlattenedAssignment.setAssignmentCreationDate(new Date());
 
             saveAndPublishNewFlattenedAssignment(mappedFlattenedAssignment, false);
         }
