@@ -292,6 +292,10 @@ public class FlattenedAssignmentService {
 
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
 
+        log.info("Checking if other active flattened assignment exists for user {} and resource {}",
+                flattenedAssignment.getUserRef(),
+                flattenedAssignment.getResourceRef()
+        );
         Optional<List<FlattenedAssignment>> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                 flattenedAssignment.getAssignmentViaRoleRef(),
                 flattenedAssignment.getUserRef(),
@@ -299,6 +303,10 @@ public class FlattenedAssignmentService {
         );
 
         if (otherActiveAssignments.isEmpty()) {
+            log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",
+                    flattenedAssignment.getUserRef(),
+                    flattenedAssignment.getResourceRef()
+            );
             return true;
         }
         otherActiveAssignments.get().forEach(otherAssignment -> {
