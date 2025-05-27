@@ -103,7 +103,8 @@ public class FlattenedAssignmentService {
         Long userRef = membership.getMemberId();
         Long roleRef = membership.getRoleId();
 
-        Optional<List<FlattenedAssignment>> existingflattenedAssignments =
+
+        List<FlattenedAssignment> existingflattenedAssignments =
                 flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignment.getId(), userRef, roleRef);
 
         if(existingflattenedAssignments.isEmpty()) {
@@ -116,7 +117,7 @@ public class FlattenedAssignmentService {
             saveAndPublishNewFlattenedAssignment(mappedFlattenedAssignment, false);
         }
         else {
-            existingflattenedAssignments.get().
+            existingflattenedAssignments.
                     forEach(existingflattenedAssignment -> {
                                 //TODO: sjekk på status endring
                                 if (membership.getIdentityProviderUserObjectId() != null && !membership.getIdentityProviderUserObjectId().equals(existingflattenedAssignment.getIdentityProviderUserObjectId())) {

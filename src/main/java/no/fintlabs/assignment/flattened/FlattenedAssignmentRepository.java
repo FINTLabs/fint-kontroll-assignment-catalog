@@ -34,7 +34,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     //Optional<List<FlattenedAssignment>> findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long id, Long userRef, Long resourceRef);
     Optional<List<FlattenedAssignment>> findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long id, Long userRef, Long resourceRef);
 
-    Optional<List<FlattenedAssignment>> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
+    List<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
     //Optional<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
 
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.userRef = :userId AND fa.assignmentViaRoleRef = :roleId AND fa.assignmentTerminationDate IS NULL")
