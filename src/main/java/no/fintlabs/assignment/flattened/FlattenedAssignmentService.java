@@ -242,6 +242,7 @@ public class FlattenedAssignmentService {
                         flattenedAssignment.getResourceRef(),
                         flattenedAssignment.getId()
                 );
+                setDeletionConfirmed(flattenedAssignment);
             }
         });
     }
@@ -323,5 +324,11 @@ public class FlattenedAssignmentService {
             );
         });
         return false;
+    }
+
+    private void setDeletionConfirmed(FlattenedAssignment flattenedAssignment) {
+        log.info("Setting deletion confirmed for flattened assignment with id: {}", flattenedAssignment.getId());
+        flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
     }
 }
