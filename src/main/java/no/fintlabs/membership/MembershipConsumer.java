@@ -71,39 +71,29 @@ public class MembershipConsumer {
     private void handleExistingMembership(Membership incomingMembership, Membership existingMembership) {
         Membership savedMembership = updateExistingMembership(existingMembership, incomingMembership);
 
-        if (shouldDeactivateMembership(incomingMembership, existingMembership)) {
+        if (shouldDeactivateFlattenedAssignmentsForMembership(incomingMembership, existingMembership)) {
             membershipService.deactivateFlattenedAssignmentsForMembership(savedMembership);
         } else {
             membershipService.syncAssignmentsForMembership(savedMembership);
         }
     }
-/*
-TODO: This check is not correctly implemented. It should check if the incoming membership is different from the existing one and if the status is inactive.
-https://grafana.flais.io/explore?schemaVersion=1&panes=%7B%22j24%22:%7B%22datasource%22:%22-PC3f4d4z%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bnamespace%3D%5C%22fintlabs-no%5C%22,%20app%3D%5C%22fint-kontroll-assignment-catalog%5C%22%7D%20%7C~%601179%60%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22-PC3f4d4z%22%7D,%22editorMode%22:%22code%22%7D,%7B%22refId%22:%22B%22,%22expr%22:%22%7Bnamespace%3D%5C%22fintlabs-no%5C%22,%20app%3D%5C%22fint-kontroll-role-catalog%5C%22%7D%20%7C~%60Membership%20already%20exist%20but%20is%20different%20from%20incoming%60%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22-PC3f4d4z%22%7D,%22editorMode%22:%22code%22,%22hide%22:true%7D%5D,%22range%22:%7B%22from%22:%22now-30m%22,%22to%22:%22now%22%7D%7D%7D&orgId=1
 
- */
-    private boolean shouldDeactivateMembership(Membership incomingMembership, Membership existingMembership) {
+    private boolean shouldDeactivateFlattenedAssignmentsForMembership(Membership incomingMembership, Membership existingMembership) {
         String existingStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
-        log.info("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
+        log.info("Checking if flattened assignments for membership {} should be deactivated, existing status {}, incoming status {}",
                 existingMembership.getId(),
                 existingStatus,
                 incomingMembership.getMemberStatus());
 
-        log.info("!existingMembership.equals(incomingMembership): {}, " +
-                        "!existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()): {}, " +
-                        "incomingMembership.getMemberStatus() != null: {}, " +
-                        "incomingMembership.getMemberStatus().equalsIgnoreCase(\"inactive\"): {}",
-                !existingMembership.equals(incomingMembership),
-                !existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()),
-                incomingMembership.getMemberStatus() != null,
-                incomingMembership.getMemberStatus().equalsIgnoreCase("inactive"));
-
-        boolean shouldDeactivateMembership = !existingMembership.equals(incomingMembership) && !existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()) &&
+        boolean shouldDeactivateFlattenedAssignments = !existingMembership.equals(incomingMembership) && !existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()) &&
                incomingMembership.getMemberStatus() != null && incomingMembership.getMemberStatus().equalsIgnoreCase("inactive");
 
-        log.info("Should deactivateMembership: {}", shouldDeactivateMembership);
+        log.info("Flattened assignments for membership {} should {}be deactivated",
+                existingMembership.getId(),
+                shouldDeactivateFlattenedAssignments ? "" : "not "
+        );
 
-        return shouldDeactivateMembership;
+        return shouldDeactivateFlattenedAssignments;
     }
 
     private Membership saveNewMembership(Membership incomingMembership) {

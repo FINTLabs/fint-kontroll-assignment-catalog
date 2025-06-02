@@ -46,12 +46,12 @@ public class Membership extends AuditEntity {
         final Membership that = (Membership) o;
         return Objects.equals(id, that.id) && Objects.equals(roleId, that.roleId) && Objects.equals(memberId, that.memberId) &&
                Objects.equals(identityProviderUserObjectId, that.identityProviderUserObjectId) &&
-               Objects.equals(memberStatus, that.memberStatus) && Objects.equals(memberStatusChanged, that.memberStatusChanged);
+               Objects.equals(memberStatus, that.memberStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, roleId, memberId, identityProviderUserObjectId, memberStatus, memberStatusChanged);
+        return Objects.hash(id, roleId, memberId, identityProviderUserObjectId, memberStatus);
     }
 }
 
