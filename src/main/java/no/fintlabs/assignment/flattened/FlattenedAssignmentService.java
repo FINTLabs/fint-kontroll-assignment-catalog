@@ -159,7 +159,10 @@ public class FlattenedAssignmentService {
     }
 
     public void saveAndPublishNewFlattenedAssignment(FlattenedAssignment newflattenedAssignment,boolean isSync ) {
-        log.info("saveAndPublishNewFlattenedAssignment - Saving new flattened assignment with id: {}, assignmentId: {}", newflattenedAssignment.getId(), newflattenedAssignment.getAssignmentId());
+        log.info("saveAndPublishNewFlattenedAssignment - Saving new flattened assignment for role {}, user {} and assignment {}",
+                newflattenedAssignment.getAssignmentViaRoleRef(),
+                newflattenedAssignment.getUserRef(),
+                newflattenedAssignment.getAssignmentId());
         FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
 
         log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
@@ -298,7 +301,7 @@ public class FlattenedAssignmentService {
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
-        Optional<List<FlattenedAssignment>> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+        List<FlattenedAssignment> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                 flattenedAssignment.getAssignmentViaRoleRef(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
@@ -311,7 +314,7 @@ public class FlattenedAssignmentService {
             );
             return true;
         }
-        otherActiveAssignments.get().forEach(otherAssignment -> {
+        otherActiveAssignments.forEach(otherAssignment -> {
             log.info("Found active flattened assignment {} for user {} and resource {} assigned {}",
                     otherAssignment.getId(),
                     otherAssignment.getUserRef(),
