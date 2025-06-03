@@ -8,6 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -117,5 +118,37 @@ public class FlattenedAssignmentServiceTest {
 
         verify(flattenedAssignmentRepository, times(1)).saveAll(any());
         verify(flattenedAssignmentRepository, times(1)).flush();
+    }
+
+    @Test
+    public void shouldPublishDeletionWhenNoOtherActiveFlattenedAssignmentsExist() {
+
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setAssignmentViaRoleRef(1L);
+        flattenedAssignment.setUserRef(2L);
+        flattenedAssignment.setResourceRef(3L);
+
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+                .thenReturn(new ArrayList<>());
+
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
+
+        verify(assigmentEntityProducerService, times(1)).publishDeletion(flattenedAssignment);
+    }
+
+    @Test
+    public void shouldNotPublishDeletionWhenOtherActiveFlattenedAssignmentsExist() {
+
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setAssignmentViaRoleRef(1L);
+        flattenedAssignment.setUserRef(2L);
+        flattenedAssignment.setResourceRef(3L);
+
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+                .thenReturn(List.of(new FlattenedAssignment()));
+
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
+
+        verify(assigmentEntityProducerService, times(0)).publishDeletion(flattenedAssignment);
     }
 }

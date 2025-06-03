@@ -19,36 +19,66 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
     @Autowired
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
 
-    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3;
+    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3,
+                                savedFlattenedAssignment1, savedFlattenedAssignment2, savedFlattenedAssignment3;
 
 
     @BeforeEach
     public void setUp() {
         flattenedAssignment1 = new FlattenedAssignment();
-        flattenedAssignment1.setId(1000L);
         flattenedAssignment1.setUserRef(10L);
         flattenedAssignment1.setAssignmentId(1L);
+        flattenedAssignment1.setResourceRef(10L);
+        flattenedAssignment1.setAssignmentViaRoleRef(2L);
 
         flattenedAssignment2 = new FlattenedAssignment();
-        flattenedAssignment2.setId(1001L);
         flattenedAssignment2.setUserRef(20L);
         flattenedAssignment2.setAssignmentId(1L);
         flattenedAssignment2.setAssignmentTerminationDate(new Date());
+        flattenedAssignment2.setResourceRef(10L);
+        flattenedAssignment2.setAssignmentViaRoleRef(2L);
 
         flattenedAssignment3 = new FlattenedAssignment();
-        flattenedAssignment3.setId(1002L);
-        flattenedAssignment3.setUserRef(30L);
+        flattenedAssignment3.setUserRef(20L);
         flattenedAssignment3.setAssignmentId(2L);
+        flattenedAssignment3.setResourceRef(10L);
+        flattenedAssignment3.setAssignmentViaRoleRef(3L);
 
-        flattenedAssignmentRepository.save(flattenedAssignment1);
-        flattenedAssignmentRepository.save(flattenedAssignment2);
-        flattenedAssignmentRepository.save(flattenedAssignment3);
+        savedFlattenedAssignment1 = flattenedAssignmentRepository.save(flattenedAssignment1);
+        savedFlattenedAssignment2 = flattenedAssignmentRepository.save(flattenedAssignment2);
+        savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
     }
 
     @Test
     public void testFindByAssignmentIdAndAssignmentTerminationDateIsNull() {
         List<FlattenedAssignment> activeFlattenedAssignmentsForAssignment1L = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(1L);
         assertThat(activeFlattenedAssignmentsForAssignment1L.size()).isEqualTo(1);
-        assertThat(activeFlattenedAssignmentsForAssignment1L.getFirst().getUserRef()).isEqualTo(10L);
+        assertThat(activeFlattenedAssignmentsForAssignment1L.getFirst().getId()).isEqualTo(savedFlattenedAssignment1.getId());
+    }
+
+    @Test
+    public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull() {
+
+        List<FlattenedAssignment> otherActiveFlattenedAssignments =
+                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                        2L,
+                        20L,
+                        10L
+        );
+
+        assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(1);
+        assertThat(otherActiveFlattenedAssignments.getFirst().getId()).isEqualTo(savedFlattenedAssignment3.getId());
+    }
+    @Test
+    public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull_should_return_empty_list() {
+
+        List<FlattenedAssignment> otherActiveFlattenedAssignments =
+                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                        2L,
+                        10L,
+                        10L
+                );
+
+        assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(0);
     }
 }
