@@ -22,6 +22,7 @@ on:
           - bfk-no
           - afk-no
           - fridiks-no
+          - nfk-no
 
 env:
   REGISTRY: ghcr.io

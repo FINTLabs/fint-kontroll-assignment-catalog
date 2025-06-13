@@ -1,0 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: nfk-no
+resources:
+  - ../../../base
+commonLabels:
+  app.kubernetes.io/name: fint-kontroll-assignment-catalog
+  app.kubernetes.io/instance: fint-kontroll-assignment-catalog_nfk-no
+  app.kubernetes.io/version: latest
+  app.kubernetes.io/component: backend
+  app.kubernetes.io/part-of: fint-kontroll
+  fintlabs.no/team: bas
+  fintlabs.no/org-id: nfk.no
+patches:
+  - patch: |-
+      - op: replace
+        path: "/spec/orgId"
+        value: "nfk.no"
+      - op: replace
+        path: "/spec/env/0/value"
+        value: "https://role-catalog.vigoiks.no/vigo/kontroll/user"
+      - op: replace
+        path: "/spec/env/1/value"
+        value: "nfk.no"
+      - op: replace
+        path: "/spec/env/2/value"
+        value: "nfk-no-fint-kontroll-assignment-catalog"
+      - op: replace
+        path: "/spec/kafka/acls/0/topic"
+        value: "nfk-no.kontroll.*"
+      - op: replace
+        path: "/spec/kafka/acls/1/topic"
+        value: "nfk-no.kontroll.*"
+      - op: replace
+        path: "/spec/ingress/basePath"
+        value: "/nfk-no/api/assignments"
+      - op: replace
+        path: "/spec/url/hostname"
+        value: "kontroll.novari.no"
+      - op: replace
+        path: "/spec/url/basePath"
+        value: "/nfk-no"
+      - op: replace
+        path: "/spec/observability/metrics/path"
+        value: "/nfk-no/actuator/prometheus"
+      - op: add
+        path: "/spec/resources"
+        value:
+          limits:
+            cpu: "2000m"
+            memory: "6000Mi"
+          requests:
+            cpu: "1000m"
+            memory: "5000Mi"
+      - op: add
+        path: "/spec/env/3"
+        value:
+          name: "JAVA_TOOL_OPTIONS"
+          value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"
+    target:
+      kind: Application
+      name: fint-kontroll-assignment-catalog
+
+  - patch: |-
+      - op: replace
+        path: "/spec/itemPath"
+        value: "vaults/aks-api-vault/items/kontroll-slack-nfk-no"
+    target:
+      kind: OnePasswordItem
+      name: fint-kontroll-slack-secrets

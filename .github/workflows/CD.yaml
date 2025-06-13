@@ -77,6 +77,8 @@ jobs:
             cluster: aks-api-fint-2022-02-08
           - org: fridiks-no
             cluster: aks-api-fint-2022-02-08
+          - org: nfk-no
+            cluster: aks-api-fint-2022-02-08
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
