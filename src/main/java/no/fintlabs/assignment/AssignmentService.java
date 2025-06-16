@@ -6,6 +6,7 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationServic
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
@@ -37,6 +38,7 @@ public class AssignmentService {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
+    private final LicenseEnforcementService licenseEnforcementService;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
@@ -45,7 +47,8 @@ public class AssignmentService {
             RoleRepository roleRepository,
             FlattenedAssignmentService flattenedAssignmentService,
             ApplicationResourceLocationService applicationResourceLocationService,
-            OpaService opaService
+            OpaService opaService,
+            LicenseEnforcementService licenseEnforcementService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.resourceRepository = resourceRepository;
@@ -54,6 +57,7 @@ public class AssignmentService {
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.applicationResourceLocationService = applicationResourceLocationService;
         this.opaService = opaService;
+        this.licenseEnforcementService = licenseEnforcementService;
     }
 
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
@@ -76,6 +80,10 @@ public class AssignmentService {
         }
 
         enrichByResource(assignment, resourceRef);
+
+        log.info("Incremented license for assignment {} : {}",
+                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure" );
+
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -108,6 +116,10 @@ public class AssignmentService {
 
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
+
+        log.info("Removed license from assignment {} : {}",
+                assignment.getId(),licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment)? "Success" : "Failure");
+
 
         userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
 
@@ -261,6 +273,9 @@ public class AssignmentService {
                         assignment.setAssignmentRemovedDate(new Date());
                         assignmentRepository.saveAndFlush(assignment);
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
+                        log.info("Removing license from assignment {}", assignment.getId());
+                        log.info("Removed license from assignment {} : {}",
+                                assignment.getId(),licenseEnforcementService.updateAssignedLicense(assignment, -1L)? "Success" : "Failure");
                     });
         }
     }
