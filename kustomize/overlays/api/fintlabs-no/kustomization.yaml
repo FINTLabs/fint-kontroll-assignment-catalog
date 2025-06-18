@@ -21,7 +21,7 @@ patches:
         value: "https://role-catalog.vigoiks.no/vigo/kontroll/user"
       - op: replace
         path: "/spec/env/1/value"
-        value: "fintlabs.no"
+        value: "vigo.no"
       - op: replace
         path: "/spec/env/2/value"
         value: "fintlabs-no-fint-kontroll-assignment-catalog"
