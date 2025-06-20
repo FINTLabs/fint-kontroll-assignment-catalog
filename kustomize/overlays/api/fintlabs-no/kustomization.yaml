@@ -10,12 +10,12 @@ commonLabels:
   app.kubernetes.io/component: backend
   app.kubernetes.io/part-of: fint-kontroll
   fintlabs.no/team: bas
-  fintlabs.no/org-id: fintlabs.no
+  fintlabs.no/org-id: vigo.no
 patches:
   - patch: |-
       - op: replace
         path: "/spec/orgId"
-        value: "fintlabs.no"
+        value: "vigo.no"
       - op: replace
         path: "/spec/env/0/value"
         value: "https://role-catalog.vigoiks.no/vigo/kontroll/user"
@@ -39,7 +39,7 @@ patches:
         value: "kontroll.novari.no"
       - op: replace
         path: "/spec/url/basePath"
-        value: "/fintlabs-no"
+        value: "/vigo-no"
       - op: replace
         path: "/spec/observability/metrics/path"
         value: "/fintlabs-no/actuator/prometheus"
