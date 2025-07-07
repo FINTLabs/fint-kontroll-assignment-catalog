@@ -33,10 +33,6 @@ public class ResourceSpecificationBuilder {
     }
 
     public Specification<Resource> build() {
-        //        List<String> orgUnitsTofilter = OpaUtils.getOrgUnitsToFilter(orgUnits, orgUnitsInScope);
-        //        if (!orgUnitsTofilter.contains(OrgUnitType.ALLORGUNITS.name())) {
-        //            spec = spec.and(belongsToOrgUnit(orgUnitsTofilter));
-        //        }
         Specification<Resource> spec = (root, query, criteriaBuilder) -> {
             Join<Resource, Assignment> join = assignmentJoin(root);
             return criteriaBuilder.and(

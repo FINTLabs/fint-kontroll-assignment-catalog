@@ -55,9 +55,8 @@ public class UpdateAssignedResourcesService {
             log.info("Resource {} has {} assignments", resource.getResourceId(), assignments.size());
             for (Assignment assignment : assignments) {
                 log.info("Update assigned resources for asignment {}", assignment.getAssignmentId());
-                String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
                 Long requestedNumberOfLicences;
-                if (userOrGroup.equals("group")) {
+                if (assignment.isGroupAssignment()) {
                     log.info("Processing assigned licences for group {}", assignment.getRoleRef());
                     requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L);
                     log.info("Number of licences assigned to group {}", requestedNumberOfLicences);

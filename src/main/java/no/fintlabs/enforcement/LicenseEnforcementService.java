@@ -1,10 +1,10 @@
 package no.fintlabs.enforcement;
 
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
-import no.fintlabs.applicationresourcelocation.MultipleApplicationResourceLocationObjectsException;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.kodeverk.Handhevingstype;
@@ -23,6 +23,7 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class LicenseEnforcementService {
 
     @Value("${fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable:true}")
@@ -34,37 +35,24 @@ public class LicenseEnforcementService {
     private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
     private final AssignmentRepository assignmentRepository;
 
-    public LicenseEnforcementService(ResourceRepository resourceRepository,
-                                     ApplicationResourceLocationRepository applicationResourceLocationRepository,
-                                     RoleRepository roleRepository,
-                                     ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent,
-                                     AssignmentRepository assignmentRepository) {
-        this.resourceRepository = resourceRepository;
-        this.applicationResourceLocationRepository = applicationResourceLocationRepository;
-        this.roleRepository = roleRepository;
-        this.resourceAvailabilityPublishingComponent = resourceAvailabilityPublishingComponent;
-        this.assignmentRepository = assignmentRepository;
-    }
-
-
     public boolean incrementAssignedLicensesWhenNewAssignment(Assignment assignment) {
-        String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
-        Long requestedNumberOfLicences;
-        if (userOrGroup.equals("group")) {
-            requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L);
-        } else { requestedNumberOfLicences = 1L;}
-
+        long requestedNumberOfLicences = calculateRequestedLicenses(assignment);
         return updateAssignedLicense(assignment, requestedNumberOfLicences);
     }
 
     public boolean decreaseAssignedResourcesWhenAssignmentRemoved(Assignment assignment) {
-        String userOrGroup = assignment.getUserRef() != null ? "user" : "group";
-        Long requestedNumberOfLicencesRemoval;
-        if (userOrGroup.equals("group")) {
-            requestedNumberOfLicencesRemoval = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L);
-        } else { requestedNumberOfLicencesRemoval = 1L;}
-
+        long requestedNumberOfLicencesRemoval = calculateRequestedLicenses(assignment);
         return updateAssignedLicense(assignment, -requestedNumberOfLicencesRemoval);
+    }
+
+    private long calculateRequestedLicenses(Assignment assignment) {
+        if (assignment.isGroupAssignment()) {
+            return roleRepository.findById(assignment.getRoleRef())
+                    .map(Role::getNoOfMembers)
+                    .orElse(0L);
+        } else {
+            return 1L;
+        }
     }
 
     public boolean removeAllAssignedResourcesForRole(Role inActiveRole, Long noOfMembersExistingRole) {
@@ -82,7 +70,9 @@ public class LicenseEnforcementService {
     public boolean updateAssignedResourcesWhenChangesInRole(Role role, Long existingNoOfMembers) {
 
         List<Assignment> assignments = getAssignmentsByRole(role.getId());
-        if (assignments.isEmpty()) {log.info("No assignment found for role {} with id : {}", role.getRoleName(),role.getId());}
+        if (assignments.isEmpty()) {
+            log.info("No assignment found for role {} with id : {}", role.getRoleName(), role.getId());
+        }
         Long difference = role.getNoOfMembers() - existingNoOfMembers;
 
         for (Assignment assignment : assignments) {
@@ -93,19 +83,19 @@ public class LicenseEnforcementService {
     }
 
 
-    public boolean updateAssignedLicense(Assignment assignment,Long numberOfAssignments) {
+    public boolean updateAssignedLicense(Assignment assignment, Long numberOfAssignments) {
         Resource resource = getResource(assignment.getResourceRef());
         if (resource == null) {
             return false;
         }
 
-        Optional <ApplicationResourceLocation> applicationResourceLocationOptional = getApplicationResourceLocation(assignment);
+        Optional<ApplicationResourceLocation> applicationResourceLocationOptional = getApplicationResourceLocation(assignment);
         if (applicationResourceLocationOptional.isEmpty()) {
             return false;
         }
 
         ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
-        LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation,resource);
+        LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation, resource);
 
         if (licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + numberOfAssignments
                 > licenseCounter.getApplicationResourceResourceLimit() && isHardStop(resource)) {
@@ -130,14 +120,14 @@ public class LicenseEnforcementService {
         log.info("Total assign resources for resource {} has been updated to {}",
                 resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToResource() + numberOfAssignments);
 
-        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation,resource);
+        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation, resource);
 
         return true;
     }
 
 
     public boolean isHardStop(Resource resource) {
-        if (hardstopEnabled){
+        if (hardstopEnabled) {
             return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
         }
         return false;
@@ -156,17 +146,17 @@ public class LicenseEnforcementService {
 
     public Optional<ApplicationResourceLocation> getApplicationResourceLocation(Assignment assignment) {
         return applicationResourceLocationRepository.findByApplicationResourceIdAndOrgUnitId(
-                assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId())
+                        assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId())
                 .flatMap(locations -> {
                     if (locations.size() > 1) {
                         log.warn("Found multiple applicationResourceLocation Object for orgId: {} with resourceId: {}",
-                                assignment.getApplicationResourceLocationOrgUnitId(),assignment.getResourceRef().toString());
+                                assignment.getApplicationResourceLocationOrgUnitId(), assignment.getResourceRef().toString());
                         return Optional.empty();
                     } else if (locations.isEmpty()) {
-                        log.warn("No applicationsResourceLocation object found for resource with resourceId: {}",assignment.getResourceRef().toString());
+                        log.warn("No applicationsResourceLocation object found for resource with resourceId: {}", assignment.getResourceRef().toString());
                         return Optional.empty();
                     }
-                    return Optional.of(locations.get(0));
+                    return Optional.of(locations.getFirst());
                 });
 
 

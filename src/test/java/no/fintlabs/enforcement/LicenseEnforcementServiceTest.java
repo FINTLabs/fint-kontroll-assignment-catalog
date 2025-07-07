@@ -10,16 +10,17 @@ import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.BDDMockito.given;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -44,7 +45,7 @@ class LicenseEnforcementServiceTest {
 
     private Resource resourceHardstop, resourceFree;
     private ApplicationResourceLocation applicationResourceLocationHardstop, applicationResourceLocationFreeall;
-    private Assignment assignmentToUserHardstop, assignmentToRoleHardstop,assignmentToRoleFree,assignmentToUserFree;
+    private Assignment assignmentToUserHardstop, assignmentToRoleHardstop, assignmentToRoleFree, assignmentToUserFree;
     private Role role;
 
 
@@ -96,6 +97,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(1L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
+                .azureAdUserId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleHardstop = Assignment.builder()
@@ -105,6 +107,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
+                .azureAdGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleFree = Assignment.builder()
@@ -114,6 +117,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
+                .azureAdGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToUserFree = Assignment.builder()
@@ -123,6 +127,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(2L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
+                .azureAdUserId(UUID.randomUUID())
                 .build();
 
         role = Role.builder()
@@ -203,7 +208,7 @@ class LicenseEnforcementServiceTest {
         given(applicationResourceLocationRepository
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(Optional.of(List.of(applicationResourceLocationHardstop)));
-        licenseEnforcementService.setHardstopEnabled(true);
+        ReflectionTestUtils.setField(licenseEnforcementService, "hardstopEnabled", true);
 
         boolean lisensUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
@@ -220,7 +225,7 @@ class LicenseEnforcementServiceTest {
         given(applicationResourceLocationRepository
                 .findByApplicationResourceIdAndOrgUnitId(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(Optional.of(List.of(applicationResourceLocationHardstop)));
-        licenseEnforcementService.setHardstopEnabled(true);
+        ReflectionTestUtils.setField(licenseEnforcementService, "hardstopEnabled", true);
 
         boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
