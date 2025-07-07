@@ -43,8 +43,18 @@ public class MembershipService {
 
     @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
+        log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
+                membership.getId()
+        );
+
         Set<Long> flattenedAssignmentIdsByUserAndRoleRef =
                 flattenedAssignmentService.findFlattenedAssignmentIdsByUserAndRoleRef(membership.getMemberId(), membership.getRoleId());
+
+        if (flattenedAssignmentIdsByUserAndRoleRef.isEmpty()) {
+            log.info("No associated flattened assignments with inactive membership {} found for deactivation",
+                    membership.getId());
+            return;
+        }
         log.info("Deactivating {} flattened assignments assigned via inactive membership {}",
                 flattenedAssignmentIdsByUserAndRoleRef.size(),
                 membership.getId()
@@ -55,8 +65,11 @@ public class MembershipService {
     @Async
     public void syncAssignmentsForMembership(Membership savedMembership) {
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
-            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}", savedMembership.getRoleId(), savedMembership.getMemberId(),
-                     savedMembership.getId());
+            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}",
+                    savedMembership.getRoleId(),
+                    savedMembership.getMemberId(),
+                    savedMembership.getId()
+            );
             return;
         }
 
@@ -69,9 +82,9 @@ public class MembershipService {
         assignmentsByRole
                 .forEach(assignment -> {
             try {
-                flattenedAssignmentService.createFlattenedAssignmentsForMembership(assignment, savedMembership);
+                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
             } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e);
+                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
             }
         });
     }

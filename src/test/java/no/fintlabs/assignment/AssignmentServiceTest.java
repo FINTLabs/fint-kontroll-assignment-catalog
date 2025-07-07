@@ -239,7 +239,7 @@ class AssignmentServiceTest {
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(licenseEnforcementService,times(1)).incrementAssignedLicensesWhenNewAssignment(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
     @Test
@@ -344,7 +344,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
     @DisplayName("Create new assignment - valid role reference")
@@ -363,7 +363,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any(), isA(Boolean.class));
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
 //    @DisplayName("Create new assignment - invalid user reference")

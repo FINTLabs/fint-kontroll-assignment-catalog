@@ -69,24 +69,34 @@ public class MembershipConsumer {
     }
 
     private void handleExistingMembership(Membership incomingMembership, Membership existingMembership) {
+        String existingMemberShipStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
+
         Membership savedMembership = updateExistingMembership(existingMembership, incomingMembership);
 
-        if (shouldDeactivateMembership(incomingMembership, existingMembership)) {
+        if (shouldDeactivateFlattenedAssignmentsForMembership(existingMemberShipStatus, existingMembership)) {
             membershipService.deactivateFlattenedAssignmentsForMembership(savedMembership);
         } else {
             membershipService.syncAssignmentsForMembership(savedMembership);
         }
     }
 
-    private boolean shouldDeactivateMembership(Membership incomingMembership, Membership existingMembership) {
-        String existingStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
-        log.debug("Checking if membership {} should be deactivated, existing status {}, incoming status {}",
-                existingMembership.getId(),
-                existingStatus,
+    private boolean shouldDeactivateFlattenedAssignmentsForMembership(String existingMemberShipStatus, Membership incomingMembership) {
+
+        log.info("Checking if flattened assignments for membership {} should be deactivated, existing status {}, incoming status {}",
+                incomingMembership.getId(),
+                existingMemberShipStatus,
                 incomingMembership.getMemberStatus());
 
-        return !existingMembership.equals(incomingMembership) && !existingStatus.equalsIgnoreCase(incomingMembership.getMemberStatus()) &&
-               incomingMembership.getMemberStatus() != null && incomingMembership.getMemberStatus().equalsIgnoreCase("inactive");
+        boolean shouldDeactivateFlattenedAssignments = incomingMembership.getMemberStatus() != null
+                && !existingMemberShipStatus.equalsIgnoreCase(incomingMembership.getMemberStatus())
+                && incomingMembership.getMemberStatus().equalsIgnoreCase("inactive");
+
+        log.info("Flattened assignments for membership {} should {}be deactivated",
+                incomingMembership.getId(),
+                shouldDeactivateFlattenedAssignments ? "" : "not "
+        );
+
+        return shouldDeactivateFlattenedAssignments;
     }
 
     private Membership saveNewMembership(Membership incomingMembership) {
@@ -101,12 +111,12 @@ public class MembershipConsumer {
         Membership membership;
 
         if (!existingMembership.equals(incomingMembership)) {
-            log.info("Membership already exist but is different from incoming. Saving it, roleId {}, memberId {}, id {}, status {}",
+            log.info("Membership already exist but is different from incoming. Saving incoming: roleId {}, memberId {}, id {}, status {}",
                     incomingMembership.getRoleId(),
                     incomingMembership.getMemberId(),
                     incomingMembership.getId(),
                     incomingMembership.getMemberStatus());
-            membership = membershipRepository.saveAndFlush(incomingMembership);
+            membership = membershipRepository.saveAndFlush(mapIncomingMembershipToExistingMembership(incomingMembership, existingMembership));
         } else {
             membership = existingMembership;
         }
@@ -124,5 +134,11 @@ public class MembershipConsumer {
         }
     }
 
+    private Membership mapIncomingMembershipToExistingMembership(Membership incomingMembership, Membership existingMembership) {
+        existingMembership.setIdentityProviderUserObjectId(incomingMembership.getIdentityProviderUserObjectId());
+        existingMembership.setMemberStatus(incomingMembership.getMemberStatus());
+        existingMembership.setMemberStatusChanged(incomingMembership.getMemberStatusChanged());
+        return existingMembership;
+    }
 
 }
