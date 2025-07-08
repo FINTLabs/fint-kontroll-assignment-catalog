@@ -29,7 +29,7 @@ public class RoleConsumer {
     @Bean
     public ConcurrentMessageListenerContainer<String, Role> roleConsumerConfig(
             EntityConsumerFactoryService entityConsumerFactoryService
-    ){
+    ) {
         return entityConsumerFactoryService.createFactory(
                         Role.class,
                         this::process)
@@ -70,14 +70,16 @@ public class RoleConsumer {
     private void updateRole(Role incomingRole, Role existingRole) {
         if (!existingRole.equals(incomingRole)) {
             log.info("Role id: {} already exists but has changes, updating role. Existing: {}, Incoming: {}", incomingRole.getId(), existingRole, incomingRole);
-
+            long numberOfMembers = existingRole.getNoOfMembers() != null ? existingRole.getNoOfMembers() : 0;
             //TODO: legge til sjekk på status active/inactive
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus())) {
-                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.removeAllAssignedResourcesForRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
+                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.removeAllAssignedResourcesForRole(incomingRole,
+                        numberOfMembers) ? "Success" : "Failure");
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
 
             } else {
-                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesWhenChangesInRole(incomingRole,existingRole.getNoOfMembers())? "Success" : "Failure" );
+                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesWhenChangesInRole(incomingRole,
+                        numberOfMembers) ? "Success" : "Failure");
             }
 
             roleRepository.saveAndFlush(incomingRole);
