@@ -32,7 +32,7 @@ spec:
     - name: spring.kafka.consumer.group-id
       value: 'fint-kontroll-assignment-catalog'
     - name: fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable
-      value: false
+      value: "false"
   envFrom:
     - configMapRef:
         name: fint-kontroll-assignment-catalog-config
