@@ -7,10 +7,14 @@ import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
+import no.fintlabs.kafka.entity.EntityProducerFactory;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAvailabilityProducerService;
+import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -77,8 +81,14 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     @Autowired
     private AuthenticationUtil authenticationUtil;
 
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
+
+
     @Autowired
     private AssignmentService assignmentService;
+
+
 
     @Test
     public void shouldGetAssignmentsNotDeleted() {
@@ -179,6 +189,3 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         assertNull(updatedAssignment.getApplicationResourceLocationOrgUnitId());
     }
 }
-
-
-

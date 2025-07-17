@@ -10,6 +10,7 @@ import no.fintlabs.common.GlobalAsyncExceptionHandler;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.opa.RestTemplateOpaProvider;
+import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.securityconfig.FintKontrollSecurityConfig;
 import no.fintlabs.slack.SlackMessenger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -68,6 +69,9 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private AssignmentPublishingComponent assignmentPublishingComponent;
+
+    @MockBean
+    private ResourceAvailabilityProducerService resourceAvailabilityProducerService;
 
     @MockBean
     private AuthorizationUtil authorizationUtil;

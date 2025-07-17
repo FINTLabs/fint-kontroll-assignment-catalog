@@ -52,8 +52,11 @@ patches:
           requests:
             cpu: "1000m"
             memory: "5000Mi"
+      - op: replace
+        path: "/spec/env/3/value"
+        value: "false"
       - op: add
-        path: "/spec/env/3"
+        path: "/spec/env/4"
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"

@@ -3,6 +3,7 @@ package no.fintlabs.assignment;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceNotFoundException;
@@ -54,6 +55,9 @@ class AssignmentServiceTest {
 
     @Mock
     private OpaService opaService;
+
+    @Mock
+    private LicenseEnforcementService licenseEnforcementService;
 
     @InjectMocks
     private AssignmentService assignmentService;
@@ -233,6 +237,7 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
+        verify(licenseEnforcementService,times(1)).incrementAssignedLicensesWhenNewAssignment(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
         verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }

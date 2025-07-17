@@ -26,6 +26,9 @@ patches:
         path: "/spec/env/2/value"
         value: "fridiks-no-fint-kontroll-assignment-catalog"
       - op: replace
+        path: "/spec/env/3/value"
+        value: "false"
+      - op: replace
         path: "/spec/kafka/acls/0/topic"
         value: "fridiks-no.kontroll.*"
       - op: replace
@@ -50,7 +53,7 @@ patches:
             cpu: "1000m"
             memory: "5000Mi"
       - op: add
-        path: "/spec/env/3"
+        path: "/spec/env/4"
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"

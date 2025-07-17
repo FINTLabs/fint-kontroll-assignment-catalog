@@ -13,7 +13,7 @@ public class UserResponseFactory {
     public static ResponseEntity<Map<String, Object>> assignmentUsersToResponseEntity(Page<AssignmentUser> assignmentUserPage) {
 
         return new ResponseEntity<>(
-                Map.of( "users", assignmentUserPage.getContent(),
+                Map.of("users", assignmentUserPage.getContent(),
                         "currentPage", assignmentUserPage.getNumber(),
                         "totalPages", assignmentUserPage.getTotalPages(),
                         "size", assignmentUserPage.getSize(),
@@ -24,14 +24,9 @@ public class UserResponseFactory {
     }
 
     public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<ResourceAssignmentUser> resourceAssignmentUsersPagable) {
-//        log.info("users: {}", resourceAssignmentUsersPagable.getContent());
-//        log.info("currentPage: {}", resourceAssignmentUsersPagable.getNumber());
-//        log.info("totalPages: {}", resourceAssignmentUsersPagable.getTotalPages());
-//        log.info("size: {}", resourceAssignmentUsersPagable.getSize());
-//        log.info("totalItems: {}", resourceAssignmentUsersPagable.getTotalElements());
 
         return new ResponseEntity<>(
-                Map.of( "users", resourceAssignmentUsersPagable.getContent(),
+                Map.of("users", resourceAssignmentUsersPagable.getContent(),
                         "currentPage", resourceAssignmentUsersPagable.getNumber(),
                         "totalPages", resourceAssignmentUsersPagable.getTotalPages(),
                         "size", resourceAssignmentUsersPagable.getSize(),
@@ -44,7 +39,7 @@ public class UserResponseFactory {
     public static ResponseEntity<Map<String, Object>> assignmentRoleToResponseEntity(Page<AssignmentRole> rolePage) {
 
         return new ResponseEntity<>(
-                Map.of( "roles", rolePage.getContent(),
+                Map.of("roles", rolePage.getContent(),
                         "currentPage", rolePage.getNumber(),
                         "totalPages", rolePage.getTotalPages(),
                         "size", rolePage.getSize(),
