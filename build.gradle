@@ -71,6 +71,8 @@ dependencies {
     testImplementation 'org.testcontainers:kafka'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'io.micrometer:micrometer-tracing-test'
+    testImplementation 'io.micrometer:micrometer-tracing-integration-test'
 }
 
 test {
