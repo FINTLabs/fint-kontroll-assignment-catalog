@@ -1,6 +1,8 @@
 package no.fintlabs.user;
 
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
+import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.slack.SlackMessenger;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +55,12 @@ public class UserControllerTest {
 
     @Autowired
     private WebApplicationContext context;
+
+    @MockBean
+    private Tracer tracer;
+
+    @MockBean
+    private ProblemDetailFactory problemDetailFactory;
 
     private final static String ID_TOKEN = "dummyToken";
 

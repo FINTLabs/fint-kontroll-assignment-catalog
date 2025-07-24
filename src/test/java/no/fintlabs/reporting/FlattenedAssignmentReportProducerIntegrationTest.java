@@ -1,6 +1,8 @@
 package no.fintlabs.reporting;
 
+import io.micrometer.tracing.Tracer;
 import no.fintlabs.DatabaseIntegrationTest;
+import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.AssignmentPublishingComponent;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
@@ -81,6 +83,15 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private OpaApiClient opaApiClient;
+
+    @MockBean
+    private Tracer tracer;
+
+    @MockBean
+    private ProblemDetailFactory problemDetailFactory;
+
+
+
 
     @MockBean
     private FintKontrollSecurityConfig fintKontrollSecurityConfig;

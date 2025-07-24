@@ -1,7 +1,9 @@
 package no.fintlabs.assignment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
+import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
@@ -77,6 +79,12 @@ public class AssignmentControllerTest {
 
     @MockBean
     private SlackMessenger slackMessengerMock;
+
+    @MockBean
+    private Tracer tracer;
+
+    @MockBean
+    private ProblemDetailFactory problemDetailFactory;
 
     @Autowired
     private WebApplicationContext context;
