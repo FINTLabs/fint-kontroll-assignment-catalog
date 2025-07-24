@@ -51,7 +51,7 @@ dependencies {
     implementation 'no.fintlabs:fint-antlr:1.1.1'
     implementation 'no.fintlabs:fint-flyt-cache:1.2.3'
     implementation 'no.fintlabs:fint-resource-server-security:1.1.0'
-    implementation 'no.fintlabs:fint-kontroll-auth:1.3.6'
+    implementation 'no.fintlabs:fint-kontroll-auth:1.3.7'
 //    implementation files('/Users/mortensolberg/Development/vigoikt/fint-kontroll-authorization/build/libs/fint-kontroll-auth-0-SNAPSHOT-plain.jar')
     implementation 'no.fintlabs:fint-kontroll-db-audit:1.0.0'
     implementation 'no.fint:fint-model-resource:0.4.1'
