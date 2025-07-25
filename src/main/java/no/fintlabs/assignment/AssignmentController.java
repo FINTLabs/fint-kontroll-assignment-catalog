@@ -14,6 +14,7 @@ import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserNotFoundException;
+import no.fintlabs.util.OnlyDevelopers;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -304,6 +305,7 @@ public class AssignmentController {
         throw new Exception("test");
     }
 
+    @OnlyDevelopers
     @PostMapping("/update-assigned-resources-usage")
     public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt){
 //        if (!validateIsAdmin(jwt)) {
