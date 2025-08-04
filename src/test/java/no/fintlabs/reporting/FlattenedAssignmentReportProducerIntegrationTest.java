@@ -118,29 +118,29 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
         registry.add("fint.kafka.application-id", () -> applicationId);
     }
 
-    @Disabled
-    @Test
-    public void shouldProduceAllFlattenedAssignmentReports() {
-        // 1. Insert 1 million dummy records
-//        insertDummyAssignments(100_000);
-
-        // 2. Measure time for report generation
-        long startReportTime = System.nanoTime();
-        flattenedAssignmentReportService.generateStatisticsReport();
-        long endReportTime = System.nanoTime();
-        long reportDurationMillis = TimeUnit.NANOSECONDS.toMillis(endReportTime - startReportTime);
-        System.out.println("Time taken to generate and publish report: " + reportDurationMillis + " ms");
-
-        // 3. Measure time to consume Kafka messages
-        long startConsumeTime = System.nanoTime();
-        List<FlattenedAssignmentReport> receivedReports = consumeKafkaMessages(100_000);
-        long endConsumeTime = System.nanoTime();
-        long consumeDurationMillis = TimeUnit.NANOSECONDS.toMillis(endConsumeTime - startConsumeTime);
-        System.out.println("Time taken to consume messages from Kafka: " + consumeDurationMillis + " ms");
-
-        // 4. Assert
-        assertThat(receivedReports.size()).isEqualTo(100_000);
-    }
+//    @Disabled
+//    @Test
+//    public void shouldProduceAllFlattenedAssignmentReports() {
+//        // 1. Insert 1 million dummy records
+////        insertDummyAssignments(100_000);
+//
+//        // 2. Measure time for report generation
+//        long startReportTime = System.nanoTime();
+//        flattenedAssignmentReportService.generateStatisticsReport();
+//        long endReportTime = System.nanoTime();
+//        long reportDurationMillis = TimeUnit.NANOSECONDS.toMillis(endReportTime - startReportTime);
+//        System.out.println("Time taken to generate and publish report: " + reportDurationMillis + " ms");
+//
+//        // 3. Measure time to consume Kafka messages
+//        long startConsumeTime = System.nanoTime();
+//        List<FlattenedAssignmentReport> receivedReports = consumeKafkaMessages(100_000);
+//        long endConsumeTime = System.nanoTime();
+//        long consumeDurationMillis = TimeUnit.NANOSECONDS.toMillis(endConsumeTime - startConsumeTime);
+//        System.out.println("Time taken to consume messages from Kafka: " + consumeDurationMillis + " ms");
+//
+//        // 4. Assert
+//        assertThat(receivedReports.size()).isEqualTo(100_000);
+//    }
 
     private List<FlattenedAssignmentReport> consumeKafkaMessages(int expectedCount) {
         Map<String, Object> consumerProps = new HashMap<>();
