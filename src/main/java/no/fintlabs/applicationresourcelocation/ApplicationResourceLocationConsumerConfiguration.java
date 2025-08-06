@@ -17,8 +17,8 @@ public class ApplicationResourceLocationConsumerConfiguration {
     @Bean
     public ConcurrentMessageListenerContainer<String, ApplicationResourceLocation> applicationResourceLocationConsumer(
             EntityConsumerFactoryService entityConsumerFactoryService,
-            ApplicationResourceLocationRepository applicationResourceLocationRepository
-    ) {
+            ApplicationResourceLocationRepository applicationResourceLocationRepository,
+            ApplicationResourceLocationService applicationResourceLocationService) {
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
                 .resource("applicationresourcelocation-extended")
@@ -33,7 +33,7 @@ public class ApplicationResourceLocationConsumerConfiguration {
 
                             if (incoming == null) {
                                 log.info("Received tombstone for key: {}", key);
-                                applicationResourceLocationRepository.deleteById(Long.parseLong(key));
+                                applicationResourceLocationService.deleteById(Long.parseLong(key));
                                 log.info("Deleted ApplicationResourceLocation with id: {}", key);
                                 return;
                             }
