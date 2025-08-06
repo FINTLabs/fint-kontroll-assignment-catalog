@@ -13,18 +13,12 @@ import java.util.Optional;
 @Slf4j
 @Configuration
 public class ApplicationResourceLocationConsumerConfiguration {
-    private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
-
-    public ApplicationResourceLocationConsumerConfiguration(ApplicationResourceLocationRepository applicationResourceLocationRepository) {
-        this.applicationResourceLocationRepository = applicationResourceLocationRepository;
-    }
-
 
     @Bean
     public ConcurrentMessageListenerContainer<String, ApplicationResourceLocation> applicationResourceLocationConsumer(
             EntityConsumerFactoryService entityConsumerFactoryService,
-            ApplicationResourceLocationService applicationResourceLocationService
-    ) {
+            ApplicationResourceLocationRepository applicationResourceLocationRepository,
+            ApplicationResourceLocationService applicationResourceLocationService) {
         EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
                 .builder()
                 .resource("applicationresourcelocation-extended")
@@ -33,27 +27,38 @@ public class ApplicationResourceLocationConsumerConfiguration {
         return entityConsumerFactoryService.createFactory(
                         ApplicationResourceLocation.class,
                         (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) -> {
-                            ApplicationResourceLocation incomingApplicationResourceLocation = consumerRecord.value();
-                            log.info("Processing applicationResourceLocation with id: {} - for applicationResource: {}",
-                                      consumerRecord.value().id, consumerRecord.value().resourceId);
-                            Optional<ApplicationResourceLocation> applicationResourceLocationOptional =
-                                    applicationResourceLocationRepository.findById(consumerRecord.value().id);
-                            if (applicationResourceLocationOptional.isPresent()) {
-                                ApplicationResourceLocation existingApplicationResourceLocation = applicationResourceLocationOptional.get();
-                                if (!existingApplicationResourceLocation.equals(incomingApplicationResourceLocation)) {
-                                    applicationResourceLocationRepository.save(incomingApplicationResourceLocation);
+
+                            String key = consumerRecord.key();
+                            ApplicationResourceLocation incoming = consumerRecord.value();
+
+                            if (incoming == null) {
+                                log.info("Received tombstone for key: {}", key);
+                                applicationResourceLocationService.deleteById(Long.parseLong(key));
+                                log.info("Deleted ApplicationResourceLocation with id: {}", key);
+                                return;
+                            }
+
+                            log.info("Processing ApplicationResourceLocation with id: {} - for applicationResource: {}",
+                                    incoming.getId(), incoming.getResourceId());
+
+                            Optional<ApplicationResourceLocation> existingOpt =
+                                    applicationResourceLocationRepository.findById(incoming.getId());
+
+                            if (existingOpt.isPresent()) {
+                                if (!existingOpt.get().equals(incoming)) {
+                                    applicationResourceLocationRepository.save(incoming);
+                                    log.info("Updated ApplicationResourceLocation {}", incoming.getId());
                                 } else {
-                                    log.info("ApplicationResourceLocation {} already exists and is equal to the incoming resource. Skipping update",
-                                            incomingApplicationResourceLocation.getId());
+                                    log.info("ApplicationResourceLocation {} unchanged. Skipping update", incoming.getId());
                                 }
                             } else {
-                                applicationResourceLocationRepository.save(incomingApplicationResourceLocation);
-                                log.info("ApplicationResourceLocation {} was created", incomingApplicationResourceLocation.getId());
-
+                                applicationResourceLocationRepository.save(incoming);
+                                log.info("Created ApplicationResourceLocation {}", incoming.getId());
                             }
                         })
                 .createContainer(entityTopicNameParameters);
     }
+
 
 
 }

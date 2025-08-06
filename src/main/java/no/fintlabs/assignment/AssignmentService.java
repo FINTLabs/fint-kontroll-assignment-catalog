@@ -324,5 +324,12 @@ public class AssignmentService {
                     return assignment;
                 });
     }
+
+    public void deleteAssignmentsByOrgUnitIdAndResourceRef(Long resourceRef, String orgUnitId) {
+        List<Assignment> assignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(resourceRef, orgUnitId);
+        log.info("Found {} assignments for resource {} and orgUnitId {}", assignments.size(), resourceRef, orgUnitId);
+        assignments.forEach(flattenedAssignmentService::deleteFlattenedAssignments);
+        assignments.forEach(assignment -> deleteAssignment(assignment.getId()));
+    }
 }
 
