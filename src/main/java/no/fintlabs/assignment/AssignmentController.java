@@ -6,10 +6,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
+import no.fintlabs.exception.ConflictException;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
@@ -87,7 +89,7 @@ public class AssignmentController {
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
         validateUserRoleRefs(request);
-        validateResource(request);
+        validateResource(request); //TODO is this correct validation?
         validateOrganizationUnitId(request);
 
         try {
@@ -96,21 +98,13 @@ public class AssignmentController {
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
         }
         catch (AssignmentAlreadyExistsException exception) {
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
-        }
-        catch (Exception e) {
-            log.error("Error creating assignment", e);
-            return ResponseEntity.badRequest().build();
+           throw new ConflictException("Assignment already exists");
         }
     }
 
+    @OnlyDevelopers
     @PostMapping("/republish")
-    public ResponseEntity<HttpStatus> republishAllAssignments() { //@AuthenticationPrincipal Jwt jwt) {
-
-        //TODO: implement when agreed on security solution
-        /*if (!validateIsAdmin(jwt)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to republish all assignments");
-        }*/
+    public ResponseEntity<HttpStatus> republishAllAssignments() {
 
         log.info("Republishing all assignments");
 
@@ -162,12 +156,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
         long start = System.currentTimeMillis();
         log.info("Starting to sync assignment by userid {}", id);
 
@@ -268,27 +259,25 @@ public class AssignmentController {
         private Boolean updateAllResourceLocationOrgUnits;
     }
 
-    @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
+    @OnlyDevelopers
+    @PostMapping("/update-assignments-applicationresourcelocationorgunit")
+    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
         long start = System.currentTimeMillis();
-        log.info("Start updating all assignments missing application resource location org unit)");
+        log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
 
         Set<Long> ids = assignmentService.getAssignments()
                 .stream()
                 .filter(assignment -> {
-                    if (!updateAll.updateAllResourceLocationOrgUnits) {
-                        return false;
+                    if (updateAllResourceLocationOrgUnits) {
+                        return true;
                     }
                     return assignment.getApplicationResourceLocationOrgUnitId() == null;
                 })
                 .map(Assignment::getId)
                 .collect(Collectors.toSet());
 
-        log.info("Found {} assignments missing application resource location org unit", ids.size());
+        log.info("Found {} assignments where application resource location org unit wil be updated", ids.size());
 
         if (!ids.isEmpty()) {
             assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(ids);
@@ -300,17 +289,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/test")
-    public void test() throws Exception{
-        throw new Exception("test");
-    }
-
     @OnlyDevelopers
     @PostMapping("/update-assigned-resources-usage")
     public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt){
-//        if (!validateIsAdmin(jwt)) {
-//            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-//        }
 
         long start = System.currentTimeMillis();
         log.info("Start updating assignedResoursesUsage of assignment");
@@ -327,32 +308,32 @@ public class AssignmentController {
 
     private void validateResource(NewAssignmentRequest request) {
         if (request.resourceRef == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
         }
 
         resourceRepository.findById(request.resourceRef)
                 .ifPresentOrElse(
                         resource -> {
                             if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " does not have azure group id set");
+                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have azure group id set");
                             }
                         },
                         () -> {
                             log.error("Resource: {} not found", request.resourceRef);
-                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " not found");
+                            throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
                         }
                 );
     }
 
     private void validateOrganizationUnitId(NewAssignmentRequest request) {
         if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
         }
     }
 
     private void validateUserRoleRefs(NewAssignmentRequest request) {
         if (request.userRef != null && request.roleRef != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
         }
     }
 

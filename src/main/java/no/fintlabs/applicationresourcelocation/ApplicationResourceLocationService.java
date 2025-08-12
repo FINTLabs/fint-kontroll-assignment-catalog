@@ -1,19 +1,26 @@
 package no.fintlabs.applicationresourcelocation;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
+@Transactional
 public class ApplicationResourceLocationService {
 
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
     private final AssignmentService assignmentService;
+
+    public ApplicationResourceLocationService(ApplicationResourceLocationRepository applicationResourceLocationRepository, @Lazy AssignmentService assignmentService) {
+        this.applicationResourceLocationRepository = applicationResourceLocationRepository;
+        this.assignmentService = assignmentService;
+    }
 
     public void save(ApplicationResourceLocation resourceLocation) {
         log.info("Saving applicationResourceLocation with id: {} - for resource: {}", resourceLocation.id, resourceLocation.resourceId);
@@ -39,15 +46,16 @@ public class ApplicationResourceLocationService {
             log.warn("No applicationResourceLocation found for id: {}", applicationResourceLocationId);
             return;
         }
-        deleteLinkedAssignmentsForApplicationResourceLocation(applicationResourceLocation.get());
         log.info("Deleting applicationResourceLocation with id: {}", applicationResourceLocationId);
         applicationResourceLocationRepository.deleteById(applicationResourceLocationId);
+        reassignLinkedAssignments(applicationResourceLocation.get());
+
     }
 
-    private void deleteLinkedAssignmentsForApplicationResourceLocation(ApplicationResourceLocation applicationResourceLocation) {
+    private void reassignLinkedAssignments(ApplicationResourceLocation applicationResourceLocation) {
         String orgUnitId = applicationResourceLocation.getOrgUnitId();
         Long resourceRef = applicationResourceLocation.getApplicationResourceId();
-        assignmentService.deleteAssignmentsByOrgUnitIdAndResourceRef(resourceRef, orgUnitId);
+        assignmentService.reassignLinkedAssignments(resourceRef, orgUnitId);
     }
 
 }
