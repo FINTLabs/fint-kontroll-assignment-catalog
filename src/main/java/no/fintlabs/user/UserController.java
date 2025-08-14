@@ -1,6 +1,7 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.opa.OpaService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,12 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -39,7 +35,7 @@ public class UserController {
                                                                     @PathVariable Long id,
                                                                     @RequestParam(defaultValue = "0") int page,
                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                                                 ".pagesize:20}")
+                                                                            ".pagesize:20}")
                                                                     int size,
                                                                     @RequestParam(value = "userType", defaultValue = "ALLTYPES")
                                                                     String userType,
@@ -55,8 +51,8 @@ public class UserController {
                 .assignmentSearch();
 
         Pageable pageable = PageRequest.of(page, size,
-                                           Sort.by("firstName").ascending()
-                                                   .and(Sort.by("lastName")).ascending());
+                Sort.by("firstName").ascending()
+                        .and(Sort.by("lastName")).ascending());
 
         Page<AssignmentUser> usersPage = assignmentUserService.findBySearchCriteria(id, spec, pageable);
 
@@ -68,7 +64,7 @@ public class UserController {
                                                    @PathVariable("id") Long id,
                                                    @RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                                ".pagesize:20}")
+                                                           ".pagesize:20}")
                                                    int size,
                                                    @RequestParam(value = "userType", defaultValue = "ALLTYPES")
                                                    String userType,
@@ -78,7 +74,7 @@ public class UserController {
                                                    @RequestParam(value = "userfilter", required = false) List<Long> userIds
     ) {
         if (id == null) {
-            throw new ResponseStatusException(
+            throw new AssignmentException(
                     HttpStatus.BAD_REQUEST,
                     "Resource id is required"
             );
@@ -86,31 +82,28 @@ public class UserController {
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
 
-        try {
-            Page<ResourceAssignmentUser> resourceAssignments
-                    = assignmentUserService.findResourceAssignmentUsersForResourceId(
-                    id,
-                    userType,
-                    orgUnits,
-                    orgUnitsInScope,
-                    userIds,
-                    search,
-                    page,
-                    size
-            );
-            log.info("Resource assignment users returned from assignmentUserService");
 
-            if (resourceAssignments == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Fetching users assigned to resource " + id + " resources returned no users"
-                );
-            }
-            return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
+        Page<ResourceAssignmentUser> resourceAssignments
+                = assignmentUserService.findResourceAssignmentUsersForResourceId(
+                id,
+                userType,
+                orgUnits,
+                orgUnitsInScope,
+                userIds,
+                search,
+                page,
+                size
+        );
+        log.info("Resource assignment users returned from assignmentUserService");
+
+        if (resourceAssignments == null) {
+            throw new AssignmentException(
+                    HttpStatus.NOT_FOUND,
+                    "Fetching users assigned to resource " + id + " resources returned no users"
+            );
         }
-        catch (Exception e) {
-            log.error("Fetching users assigned to resource {} resources returned no users .Failed with error message: {}", id, e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something went wrong when fetching users assigned to resource");
-        }
+        return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
+
+
     }
 }

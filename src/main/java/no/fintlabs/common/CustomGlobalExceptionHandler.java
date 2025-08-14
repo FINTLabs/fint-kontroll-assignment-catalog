@@ -44,13 +44,6 @@ public class CustomGlobalExceptionHandler {
         return problemDetailFactory.createProblemDetail(ex, request);
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<String> handleResponseStatusException(ResponseStatusException ex) {
-        log.warn("Request resulted in ResponseStatusException: {}", ex.getMessage());
-
-        return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
-    }
-
     private static String getStackTrace(Throwable ex) {
         StringBuilder sb = new StringBuilder();
         for (StackTraceElement element : ex.getStackTrace()) {

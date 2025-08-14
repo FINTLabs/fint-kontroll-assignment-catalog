@@ -24,6 +24,7 @@ import no.fintlabs.audit.AuditEntity;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
@@ -33,13 +34,11 @@ import java.util.UUID;
 @Setter
 @Builder
 @ToString
-//@RequiredArgsConstructor
 @Slf4j
 @Entity
 @Table(name = "Assignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
-//@Where(clause = "disabled = 'false'")
 public class Assignment extends AuditEntity {
 
     @Id
@@ -76,6 +75,8 @@ public class Assignment extends AuditEntity {
     private Date assignmentDate;
     private Date validFrom;
     private Date validTo;
+    @Builder.Default
+    private Boolean isInvalid = false;
 
     @ManyToOne(fetch = FetchType.LAZY,
             cascade = {CascadeType.MERGE})

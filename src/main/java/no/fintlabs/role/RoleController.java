@@ -1,12 +1,14 @@
 package no.fintlabs.role;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.user.UserResponseFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -42,7 +44,7 @@ public class RoleController {
                                                   @RequestParam(value = "rolefilter", required = false) List<Long> roleIds
     ) {
         if (id == null) {
-            return ResponseEntity.badRequest().body("Role id is required");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Role id is required");
         }
 
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");

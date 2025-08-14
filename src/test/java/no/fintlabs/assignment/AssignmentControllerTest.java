@@ -3,6 +3,7 @@ package no.fintlabs.assignment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
+import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -38,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -45,8 +48,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AssignmentController.class)
 public class AssignmentControllerTest {
@@ -83,8 +85,11 @@ public class AssignmentControllerTest {
     @MockBean
     private Tracer tracer;
 
-    @MockBean
+    @SpyBean
     private ProblemDetailFactory problemDetailFactory;
+
+    @SpyBean
+    private ExceptionMappingRegistry exceptionMappingRegistry;
 
     @Autowired
     private WebApplicationContext context;
@@ -197,19 +202,18 @@ public class AssignmentControllerTest {
         newAssignmentRequest.resourceRef = 123L;
         newAssignmentRequest.organizationUnitId = "99999999";
         newAssignmentRequest.roleRef = 1L;
-        newAssignmentRequest.userRef = 1L;
 
         Resource value = new Resource();
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(null);
 
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.of(value));
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 1 does not have azure group id set"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().string(containsString("Resource 123 does not have azure group id set")));
     }
 
     @Test
