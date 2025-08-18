@@ -31,6 +31,8 @@ spring:
       bootstrap-servers: localhost:9092
 
 fint:
+  kafka:
+    application-id: fint-kontroll-assignment-catalog
   application-id: fint-kontroll-assignment-catalog
   cache:
     defaultCacheEntryTimeToLiveMillis: 518400000
