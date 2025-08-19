@@ -120,10 +120,8 @@ public class FlattenedAssignmentMembershipService {
     }
 
     private FlattenedAssignment mapToFlattenedAssignment(Membership membership, Assignment assignment) {
-        boolean isActive = membership.getMemberStatus().equalsIgnoreCase("active");
-
         log.info("Mapping {} membership {} to flattened assignment for assignment with id {}",
-                isActive ? "active" : "non active",
+                membership.isActive() ? "active" : "non active",
                 membership.getId(),
                 assignment.getId());
 
@@ -131,7 +129,7 @@ public class FlattenedAssignmentMembershipService {
         flattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
         flattenedAssignment.setUserRef(membership.getMemberId());
 
-        if (!isActive) {
+        if (!membership.isActive()) {
             Date assignmentRemovedDate = new Date();
             log.info("Flattened assignment removed date is set to {}", assignmentRemovedDate);
             flattenedAssignment.setAssignmentTerminationDate(assignmentRemovedDate);

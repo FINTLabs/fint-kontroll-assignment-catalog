@@ -53,6 +53,10 @@ public class Membership extends AuditEntity {
     public int hashCode() {
         return Objects.hash(id, roleId, memberId, identityProviderUserObjectId, memberStatus);
     }
+
+    public boolean isActive() {
+        return "ACTIVE".equalsIgnoreCase(memberStatus);
+    }
 }
 
 
