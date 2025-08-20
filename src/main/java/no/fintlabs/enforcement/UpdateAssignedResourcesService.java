@@ -62,7 +62,7 @@ public class UpdateAssignedResourcesService {
                     log.info("Number of licences assigned to group {}", requestedNumberOfLicences);
                 } else {
                     requestedNumberOfLicences = 1L;
-                    log.info("Processing assigned licences for user {}", assignment.getUserRef());
+                    log.info("Processing assigned licences for user {}", assignment.getUser().getUserName());
                     log.info("Number of licences assigned to user {}", requestedNumberOfLicences);
                 }
 
