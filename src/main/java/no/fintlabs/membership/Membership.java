@@ -19,7 +19,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString
-//@RequiredArgsConstructor
 @Slf4j
 @Entity
 @Table(name = "Assignment_memberships")
@@ -52,6 +51,10 @@ public class Membership extends AuditEntity {
     @Override
     public int hashCode() {
         return Objects.hash(id, roleId, memberId, identityProviderUserObjectId, memberStatus);
+    }
+
+    public boolean isActive() {
+        return "ACTIVE".equalsIgnoreCase(memberStatus);
     }
 }
 

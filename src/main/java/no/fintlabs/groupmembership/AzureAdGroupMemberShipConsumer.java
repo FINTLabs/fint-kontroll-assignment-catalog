@@ -81,19 +81,18 @@ public class AzureAdGroupMemberShipConsumer {
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent assignment on deletion, updating and publishing. flattenedassignmentId: {}", assignment.getId());
-                        assigmentEntityProducerService.publish(assignment);
+                        log.info("Found inconsistent assignment on deletion, identityProviderGroupMembershipDeletionConfirmed is false, but skipping publishing. FlattenedAssignmentId: {}", assignment.getId());
+//                        assigmentEntityProducerService.publish(assignment);
                     });
 
             flattenedAssignments
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && assignment.isIdentityProviderGroupMembershipConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent delete, recreating assignment in Azure. flattenedassignmentId: {}", assignment.getId());
-                        assigmentEntityProducerService.publish(assignment);
+                        log.info("Found inconsistent delete, identityProviderGroupMembershipConfirmed is true, but skipping publishing. FlattenedAssignmentId: {}", assignment.getId());
+//                        assigmentEntityProducerService.publish(assignment);
                     });
 
-            log.info("Finished handling deletion for azureref {}", record.key());
         } catch (Exception e) {
             log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
         }
