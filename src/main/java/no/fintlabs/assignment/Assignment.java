@@ -33,16 +33,15 @@ import java.util.UUID;
 @Setter
 @Builder
 @ToString
-//@RequiredArgsConstructor
 @Slf4j
 @Entity
 @Table(name = "Assignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
-//@Where(clause = "disabled = 'false'")
 public class Assignment extends AuditEntity {
 
     @Id
+    @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

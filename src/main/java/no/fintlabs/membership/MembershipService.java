@@ -75,17 +75,17 @@ public class MembershipService {
 
         List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
 
-        if(!assignmentsByRole.isEmpty()) {
+        if (!assignmentsByRole.isEmpty()) {
             log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignmentsByRole.size());
         }
 
         assignmentsByRole
                 .forEach(assignment -> {
-            try {
-                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
-            } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
-            }
-        });
+                    try {
+                        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
+                    } catch (Exception e) {
+                        log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
+                    }
+                });
     }
 }

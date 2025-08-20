@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
@@ -268,27 +267,28 @@ public class AssignmentController {
         private Boolean updateAllResourceLocationOrgUnits;
     }
 
-    @PostMapping("/update-assignments-missing-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateAssignmentsMissingApplicationResourceLocationOrgUnit(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+    @PostMapping("/update-assignments-applicationresourcelocationorgunit")
+    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
         if (!validateIsAdmin(jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
+        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
         long start = System.currentTimeMillis();
-        log.info("Start updating all assignments missing application resource location org unit)");
+        log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
 
         Set<Long> ids = assignmentService.getAssignments()
                 .stream()
                 .filter(assignment -> {
-                    if (!updateAll.updateAllResourceLocationOrgUnits) {
-                        return false;
+                    if (updateAllResourceLocationOrgUnits) {
+                        return true;
                     }
                     return assignment.getApplicationResourceLocationOrgUnitId() == null;
                 })
                 .map(Assignment::getId)
                 .collect(Collectors.toSet());
 
-        log.info("Found {} assignments missing application resource location org unit", ids.size());
+        log.info("Found {} assignments where application resource location org unit wil be updated", ids.size());
 
         if (!ids.isEmpty()) {
             assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(ids);

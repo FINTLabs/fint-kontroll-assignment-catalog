@@ -1,7 +1,10 @@
 package no.fintlabs.assignment;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
         return FlattenedAssignment.builder()
