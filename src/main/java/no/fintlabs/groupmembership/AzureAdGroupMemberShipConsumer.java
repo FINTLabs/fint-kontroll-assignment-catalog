@@ -105,7 +105,7 @@ public class AzureAdGroupMemberShipConsumer {
             UUID groupId = membership.getAzureGroupRef();
             UUID userId = membership.getAzureUserRef();
 
-            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
+            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipDeletionConfirmedFalse(groupId, userId);
 
             if(flattenedAssignments.isEmpty()) {
                 assigmentEntityProducerService.publishDeletion(groupId, userId);
@@ -128,21 +128,21 @@ public class AzureAdGroupMemberShipConsumer {
                     assignment.setIdentityProviderGroupMembershipConfirmed(true);
                 })
                 .toList();
-
-        List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
-                .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                .peek(assignment -> {
-                    log.info("Found inconsistent assignment on update, updating and publishing. flattenedassignmentId: {}", assignment.getId());
-                })
-                .toList();
+//
+//        List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
+//                .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
+//                .peek(assignment -> {
+//                    log.info("Found inconsistent assignment on update, updating and publishing. flattenedassignmentId: {}", assignment.getId());
+//                })
+//                .toList();
 
         if (!assignmentsToUpdate.isEmpty()) {
             flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToUpdate);
         }
-
-        if (!assignmentsToDelete.isEmpty()) {
-            assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
-        }
+//
+//        if (!assignmentsToDelete.isEmpty()) {
+//            assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
+//        }
     }
 
     private UUID parseUUID(String uuidString) {

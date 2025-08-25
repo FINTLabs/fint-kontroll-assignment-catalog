@@ -117,6 +117,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("search") String search, Pageable pageable);
 
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
+    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectIdAndIdentityProviderGroupMembershipDeletionConfirmedFalse(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 
     List<FlattenedAssignment> findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNullAndAssignmentId(boolean groupMembershipConfirmed, Long assignmentId);
 
