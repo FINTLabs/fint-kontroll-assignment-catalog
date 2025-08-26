@@ -255,6 +255,7 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByRole(Role role) {
+        //TODO check if we should update the count of licenses assigned
         getAssignmentsByRole(role.getId())
                 .forEach(assignment -> {
                     if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
