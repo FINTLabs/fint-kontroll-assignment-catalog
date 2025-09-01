@@ -10,6 +10,8 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Slf4j
 @Component
 public class MembershipConsumer {
@@ -36,11 +38,11 @@ public class MembershipConsumer {
                 .createContainer(EntityTopicNameParameters.builder()
                                          .resource("role-catalog-membership")
                                          .build());
-        container.setConcurrency(5);
+        //container.setConcurrency(5);
         return container;
     }
 
-    @Async
+   // @Async
     void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
         Membership incomingMembership = consumerRecord.value();
 
@@ -51,7 +53,7 @@ public class MembershipConsumer {
     }
 
     private void handleCachedMembership(Membership cachedMembership, Membership incomingMembership) {
-        if (!cachedMembership.equals(incomingMembership)) {
+        if (!Objects.equals(cachedMembership.getMemberStatus(), incomingMembership.getMemberStatus())) {
             handleMembership(incomingMembership);
         }
     }
@@ -69,7 +71,7 @@ public class MembershipConsumer {
     }
 
     private void handleExistingMembership(Membership incomingMembership, Membership existingMembership) {
-        String existingMemberShipStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "active";
+        String existingMemberShipStatus = existingMembership.getMemberStatus() != null ? existingMembership.getMemberStatus() : "ACTIVE";
 
         Membership savedMembership = updateExistingMembership(existingMembership, incomingMembership);
 
@@ -135,7 +137,6 @@ public class MembershipConsumer {
     }
 
     private Membership mapIncomingMembershipToExistingMembership(Membership incomingMembership, Membership existingMembership) {
-        existingMembership.setIdentityProviderUserObjectId(incomingMembership.getIdentityProviderUserObjectId());
         existingMembership.setMemberStatus(incomingMembership.getMemberStatus());
         existingMembership.setMemberStatusChanged(incomingMembership.getMemberStatusChanged());
         return existingMembership;

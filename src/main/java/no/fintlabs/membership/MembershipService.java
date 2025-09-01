@@ -41,7 +41,7 @@ public class MembershipService {
         membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
     }
 
-    @Async
+   // @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
         log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
                 membership.getId()
@@ -62,7 +62,7 @@ public class MembershipService {
         flattenedAssignmentService.deactivateFlattenedAssignments(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
-    @Async
+    //@Async
     public void syncAssignmentsForMembership(Membership savedMembership) {
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
             log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}",
