@@ -53,7 +53,7 @@ public class MembershipConsumer {
     }
 
     private void handleCachedMembership(Membership cachedMembership, Membership incomingMembership) {
-        if (!Objects.equals(cachedMembership.getMemberStatus(), incomingMembership.getMemberStatus())) {
+        if (!Objects.equals(cachedMembership.getMemberStatus(), incomingMembership.getMemberStatus()) || !Objects.equals(cachedMembership.getIdentityProviderUserObjectId(), incomingMembership.getIdentityProviderUserObjectId())) {
             handleMembership(incomingMembership);
         }
     }
