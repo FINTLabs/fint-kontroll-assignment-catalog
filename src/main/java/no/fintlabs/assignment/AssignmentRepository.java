@@ -22,7 +22,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
 
     List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(Long userId);
 
-    List<Assignment> findAssignmentsByResourceRefAndAssignmentRemovedDateIsNotNull(Long resourceId);
+    List<Assignment> findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(Long resourceId);
 
     @Query("SELECT a.id FROM Assignment a WHERE a.role.id = :roleId AND a.user.id = :userId AND a.assignmentRemovedDate IS NULL")
     List<Long> findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(
