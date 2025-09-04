@@ -161,6 +161,19 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
+    @PostMapping("/syncflattenedassignments/resource/{id}")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
+        log.info("Starting to sync assignments for resource: {}", resourceId);
+
+        assignmentService.getActiveAssignmentsByResource(resourceId)
+                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
+
+        log.info("Started syncing all flattened assignments for resource: {}", resourceId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {

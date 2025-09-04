@@ -245,6 +245,9 @@ public class AssignmentService {
     public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
+    public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
+        return assignmentRepository.findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(resourceId);
+    }
 
     public List<Assignment> getInactiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(userId);
