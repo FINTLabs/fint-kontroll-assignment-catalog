@@ -174,6 +174,20 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+
+    @OnlyDevelopers
+    @PostMapping("/publishallflattenedassignments/resource/{id}")
+    public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
+        log.info("Starting to publish flattened assignments for resource: {}", resourceId);
+
+        assignmentService.getActiveAssignmentsByResource(resourceId)
+                .forEach(flattenedAssignmentService::publishAllActive);
+
+        log.info("Started publishing all flattened assignments for resource: {}", resourceId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         if (!validateIsAdmin(jwt)) {
