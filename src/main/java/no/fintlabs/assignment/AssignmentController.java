@@ -12,6 +12,7 @@ import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
@@ -32,6 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,6 +49,7 @@ public class AssignmentController {
     private final MembershipService membershipService;
     private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
+    private final ResourceService resourceService;
 
 
     public AssignmentController(AssignmentService assignmentService,
@@ -56,7 +59,7 @@ public class AssignmentController {
                                 AuthManager authManager,
                                 MembershipService membershipService,
                                 ResourceRepository resourceRepository,
-                                UpdateAssignedResourcesService updateAssignedResourcesService) {
+                                UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
 
         this.assignmentService = assignmentService;
         this.assignmentResponseFactory = assignmentResponseFactory;
@@ -66,7 +69,7 @@ public class AssignmentController {
         this.membershipService = membershipService;
         this.resourceRepository = resourceRepository;
         this.updateAssignedResourcesService = updateAssignedResourcesService;
-
+        this.resourceService = resourceService;
     }
 
     @GetMapping()
@@ -183,10 +186,34 @@ public class AssignmentController {
         assignmentService.getActiveAssignmentsByResource(resourceId)
                 .forEach(flattenedAssignmentService::publishAllActive);
 
-        log.info("Started publishing all flattened assignments for resource: {}", resourceId);
+        log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @OnlyDevelopers
+    @PostMapping("/syncandpublishflattenedassignmentsallresources")
+    public ResponseEntity<HttpStatus> syncAndPublishFlattenedassignmentsAllResources(@AuthenticationPrincipal Jwt jwt) {
+        log.info("Starting to sync and publish flattenedAssignments all resources");
+
+        resourceService.findAll().forEach(resource -> {
+            log.info("Starting to publish flattened assignments for resource: {}", resource);
+
+            assignmentService.getActiveAssignmentsByResource(resource.getId())
+                    .forEach(assignment -> {
+                        flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
+                        flattenedAssignmentService.publishAllActive(assignment);
+                    });
+            log.info("Finished publishing all flattened assignments for resource: {}", resource);
+        });
+
+        log.info("Finished publishing flattened assignments all resources");
+
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
 
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
