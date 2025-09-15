@@ -47,6 +47,7 @@ public class UserController {
                                                                     List<String> orgUnits,
                                                                     @RequestParam(value = "search", required = false) String search
     ) {
+        long start = System.currentTimeMillis();
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching users for resource with Id: " + id);
@@ -59,7 +60,8 @@ public class UserController {
                                                    .and(Sort.by("lastName")).ascending());
 
         Page<AssignmentUser> usersPage = assignmentUserService.findBySearchCriteria(id, spec, pageable);
-
+        long end = System.currentTimeMillis();
+        log.info("Time taken to getUsersByResourceId {}: " + (end - start) + " ms", id);
         return UserResponseFactory.assignmentUsersToResponseEntity(usersPage);
     }
 
@@ -77,6 +79,8 @@ public class UserController {
                                                    @RequestParam(value = "search", required = false) String search,
                                                    @RequestParam(value = "userfilter", required = false) List<Long> userIds
     ) {
+        long start = System.currentTimeMillis();
+
         if (id == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -106,6 +110,8 @@ public class UserController {
                         "Fetching users assigned to resource " + id + " resources returned no users"
                 );
             }
+            long end = System.currentTimeMillis();
+            log.info("Time taken to getUsersByResourceId2 {}: " + (end - start) + " ms", id);
             return UserResponseFactory.resourceAssignmentUsersToResponseEntity(resourceAssignments);
         }
         catch (Exception e) {
