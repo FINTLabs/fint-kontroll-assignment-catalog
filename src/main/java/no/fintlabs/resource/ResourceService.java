@@ -3,6 +3,7 @@ package no.fintlabs.resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,5 +19,9 @@ public class ResourceService {
     }
     public Optional<Resource> findRoleById(Long id) {
         return resourceRepository.findById(id);
+    }
+
+    public List<Resource> findAll() {
+        return resourceRepository.findAll();
     }
 }
