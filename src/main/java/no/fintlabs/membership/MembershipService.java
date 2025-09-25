@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.user.User;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -88,4 +89,12 @@ public class MembershipService {
                     }
                 });
     }
+
+    public void updateUserMemberships(User savedUser) {
+        List<Membership> userMemberships = membershipRepository.findAllByMemberId(savedUser.getId());
+        userMemberships.forEach(membership -> membership.setIdentityProviderUserObjectId(savedUser.getIdentityProviderUserObjectId()));
+        membershipRepository.saveAll(userMemberships);
+        log.info("Updated memberships for user with id {}", savedUser.getId());
+    }
+
 }
