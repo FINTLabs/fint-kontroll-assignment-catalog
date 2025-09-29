@@ -110,8 +110,8 @@ public class LicenseEnforcementService {
             }
         }
 
-        applicationResourceLocation.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + numberOfAssignments);
-        resource.setNumberOfResourcesAssigned(licenseCounter.getNumberOfResourcesAssignedToResource() + numberOfAssignments);
+        applicationResourceLocation.setNumberOfResourcesAssigned(Math.max(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + numberOfAssignments, 0));
+        resource.setNumberOfResourcesAssigned(Math.max(licenseCounter.getNumberOfResourcesAssignedToResource() + numberOfAssignments, 0));
         log.info("Total assign resources for resource {} has been updated to {}",
                 resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToResource() + numberOfAssignments);
         applicationResourceLocationRepository.save(applicationResourceLocation);
