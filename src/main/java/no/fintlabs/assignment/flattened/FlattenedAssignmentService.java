@@ -337,4 +337,10 @@ public class FlattenedAssignmentService {
         flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
     }
+
+    public void publishAllActive(Assignment assignment) {
+        log.info("Publishing all flattened assignments for assignment with id {}", assignment.getId());
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
+        flattenedAssignments.stream().filter(f -> f.getAssignmentTerminationDate() == null).forEach(assigmentEntityProducerService::publish);
+    }
 }

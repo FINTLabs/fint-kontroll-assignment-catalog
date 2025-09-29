@@ -41,7 +41,7 @@ public class MembershipService {
         membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
     }
 
-    @Async
+   @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
         log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
                 membership.getId()

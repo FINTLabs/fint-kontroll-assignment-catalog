@@ -47,7 +47,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-core'
     runtimeOnly 'org.postgresql:postgresql'
 
-    implementation 'no.fintlabs:fint-kafka:3.1.0-rc-1'
+    implementation 'no.fintlabs:fint-kafka:3.1.1-rc-2'
     implementation 'no.fintlabs:fint-antlr:1.1.1'
     implementation 'no.fintlabs:fint-flyt-cache:1.2.3'
     implementation 'no.fintlabs:fint-resource-server-security:1.1.0'

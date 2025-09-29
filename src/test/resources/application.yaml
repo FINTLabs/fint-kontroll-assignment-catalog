@@ -36,7 +36,7 @@ fint:
   application-id: fint-kontroll-assignment-catalog
   cache:
     defaultCacheEntryTimeToLiveMillis: 518400000
-    defaultCacheHeapSize: 1000000
+    defaultCacheHeapSize: 500000000
   kontroll:
     assignment-catalog:
       license-enforcement:

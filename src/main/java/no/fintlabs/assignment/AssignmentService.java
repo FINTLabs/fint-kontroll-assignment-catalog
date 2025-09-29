@@ -245,6 +245,9 @@ public class AssignmentService {
     public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
+    public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
+        return assignmentRepository.findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(resourceId);
+    }
 
     public List<Assignment> getInactiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(userId);
@@ -255,6 +258,7 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByRole(Role role) {
+        //TODO check if we should update the count of licenses assigned
         getAssignmentsByRole(role.getId())
                 .forEach(assignment -> {
                     if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
