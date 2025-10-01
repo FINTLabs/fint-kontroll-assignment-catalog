@@ -328,5 +328,13 @@ public class AssignmentService {
                     return assignment;
                 });
     }
-}
 
+    public void updateAllAssignmentsOnUserChange(User user) {
+        List<Assignment> assignments = getAssignmentsByUser(user.getId());
+        assignments.forEach(assignment -> assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId()));
+        assignmentRepository.saveAll(assignments);
+        assignmentRepository.flush();
+        log.info("Updated {} assignments for user {}", assignments.size(), user.getId());
+        flattenedAssignmentService.updateAssignmentsOnUserChange(user);
+    }
+}

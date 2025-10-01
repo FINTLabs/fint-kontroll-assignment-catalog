@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
+import no.fintlabs.user.User;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -104,7 +105,6 @@ public class FlattenedAssignmentService {
             mappedFlattenedAssignment.setUserRef(userRef);
             mappedFlattenedAssignment.setAssignmentViaRoleRef(roleRef);
             mappedFlattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
-            mappedFlattenedAssignment.setAssignmentCreationDate(new Date());
 
             saveAndPublishNewFlattenedAssignment(mappedFlattenedAssignment, false);
             return;
@@ -153,7 +153,6 @@ public class FlattenedAssignmentService {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
-
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveFlattened - Saved flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
@@ -170,7 +169,6 @@ public class FlattenedAssignmentService {
                 newflattenedAssignment.getUserRef(),
                 newflattenedAssignment.getAssignmentId());
         FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
-
         log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
                 savedFlattened.getId(),
                 savedFlattened.getAssignmentId());
@@ -189,7 +187,6 @@ public class FlattenedAssignmentService {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
-
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveAndPublish - Flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
@@ -342,5 +339,12 @@ public class FlattenedAssignmentService {
         log.info("Publishing all flattened assignments for assignment with id {}", assignment.getId());
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
         flattenedAssignments.stream().filter(f -> f.getAssignmentTerminationDate() == null).forEach(assigmentEntityProducerService::publish);
+    }
+
+    public void updateAssignmentsOnUserChange(User user) {
+        List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByUserRefAndAssignmentTerminationDateIsNull(user.getId());
+        flattenedAssignments.forEach(flattenedAssignment -> flattenedAssignment.setIdentityProviderUserObjectId(user.getIdentityProviderUserObjectId()));
+        flattenedAssignmentRepository.saveAll(flattenedAssignments);
+        log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
     }
 }
