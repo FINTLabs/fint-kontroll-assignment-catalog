@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -193,7 +192,6 @@ public class AssignmentController {
     }
 
 
-
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         long start = System.currentTimeMillis();
@@ -281,23 +279,11 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    private static class UpdateAllResourceLocationOrgUnits {
-        private Boolean updateAllResourceLocationOrgUnits;
-    }
-
-    @PostMapping("/update-assignments-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
-        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
     @OnlyDevelopers
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+
+
         boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
         long start = System.currentTimeMillis();
         log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
@@ -379,5 +365,5 @@ public class AssignmentController {
         private Boolean updateAllResourceLocationOrgUnits;
     }
 
-
 }
+
