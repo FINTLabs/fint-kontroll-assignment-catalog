@@ -153,7 +153,6 @@ public class FlattenedAssignmentService {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
-// here
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveFlattened - Saved flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
@@ -170,7 +169,6 @@ public class FlattenedAssignmentService {
                 newflattenedAssignment.getUserRef(),
                 newflattenedAssignment.getAssignmentId());
         FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
-// here
         log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
                 savedFlattened.getId(),
                 savedFlattened.getAssignmentId());
@@ -189,7 +187,6 @@ public class FlattenedAssignmentService {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
-// here
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveAndPublish - Flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
@@ -298,7 +295,6 @@ public class FlattenedAssignmentService {
             );
             flattenedAssignment.setAssignmentTerminationReason(deactivationReason);
             flattenedAssignment.setAssignmentTerminationDate(deactivationDate);
-            // here
             flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
         });
     }
