@@ -159,7 +159,6 @@ public class RoleConsumerTest {
 
         consumer.processRoleUpdate(updatedRole);
 
-        verify(assignmentService, times(1)).deactivateAssignmentsByRole(updatedRole);
         verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
     }

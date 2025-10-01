@@ -42,6 +42,7 @@ import java.util.UUID;
 public class Assignment extends AuditEntity {
 
     @Id
+    @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

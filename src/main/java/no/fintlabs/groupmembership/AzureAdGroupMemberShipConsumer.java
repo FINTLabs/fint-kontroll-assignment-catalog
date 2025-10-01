@@ -13,8 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Configuration
@@ -67,7 +66,7 @@ public class AzureAdGroupMemberShipConsumer {
             UUID userId = parseUUID(ids[1]);
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
-
+            FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
             flattenedAssignments
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
@@ -81,23 +80,34 @@ public class AzureAdGroupMemberShipConsumer {
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent assignment on deletion, updating and publishing. flattenedassignmentId: {}", assignment.getId());
-                        assigmentEntityProducerService.publish(assignment);
+                        log.info("Found inconsistent assignment on deletion, identityProviderGroupMembershipDeletionConfirmed is false. FlattenedAssignmentId: {}", assignment.getId());
+                        if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
+                            log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
+                            assigmentEntityProducerService.publish(assignment);
+                        }
                     });
 
             flattenedAssignments
                     .stream()
                     .filter(assignment -> assignment.getAssignmentTerminationDate() == null && assignment.isIdentityProviderGroupMembershipConfirmed())
                     .forEach(assignment -> {
-                        log.info("Found inconsistent delete, recreating assignment in Azure. flattenedassignmentId: {}", assignment.getId());
-                        assigmentEntityProducerService.publish(assignment);
+                        log.info("Found inconsistent delete, identityProviderGroupMembershipConfirmed is true. FlattenedAssignmentId: {}", assignment.getId());
+                        if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
+                            log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
+                            assigmentEntityProducerService.publish(assignment);
+                        }
                     });
 
-            log.info("Finished handling deletion for azureref {}", record.key());
         } catch (Exception e) {
             log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
         }
     }
+
+    private Optional<FlattenedAssignment> getNewest(List<FlattenedAssignment> flattenedAssignments) {
+        return flattenedAssignments.stream()
+                .max(Comparator.comparing(FlattenedAssignment::getAssignmentCreationDate));
+    }
+
 
     private void handleUpdate(AzureAdGroupMembership membership) {
         log.debug("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
@@ -108,7 +118,7 @@ public class AzureAdGroupMemberShipConsumer {
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
 
-            if(flattenedAssignments.isEmpty()) {
+            if (flattenedAssignments.isEmpty()) {
                 assigmentEntityProducerService.publishDeletion(groupId, userId);
                 log.info("User assignment not found with id: {}, removing user from group: {} in azure", userId, groupId);
             } else {
@@ -125,10 +135,11 @@ public class AzureAdGroupMemberShipConsumer {
                 .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
                 .peek(assignment -> {
                     log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
-                             assignment.getId());
+                            assignment.getId());
                     assignment.setIdentityProviderGroupMembershipConfirmed(true);
                 })
                 .toList();
+        FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
 
         List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
                 .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
@@ -142,7 +153,21 @@ public class AzureAdGroupMemberShipConsumer {
         }
 
         if (!assignmentsToDelete.isEmpty()) {
-            assignmentsToDelete.forEach(assigmentEntityProducerService::publishDeletion);
+            List<FlattenedAssignment> toSave = new ArrayList<>();
+
+            assignmentsToDelete.forEach(assignment -> {
+                if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
+                    log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
+                    assigmentEntityProducerService.publishDeletion(assignment);
+                } else {
+                    assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+                    toSave.add(assignment);
+                }
+            });
+
+            if (!toSave.isEmpty()) {
+                flattenedAssignmentService.saveFlattenedAssignmentsBatch(toSave);
+            }
         }
     }
 

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.user.User;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class MembershipService {
         membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
     }
 
-    @Async
+   @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
         log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
                 membership.getId()
@@ -75,17 +76,25 @@ public class MembershipService {
 
         List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
 
-        if(!assignmentsByRole.isEmpty()) {
+        if (!assignmentsByRole.isEmpty()) {
             log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignmentsByRole.size());
         }
 
         assignmentsByRole
                 .forEach(assignment -> {
-            try {
-                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
-            } catch (Exception e) {
-                log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
-            }
-        });
+                    try {
+                        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
+                    } catch (Exception e) {
+                        log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
+                    }
+                });
     }
+
+    public void updateUserMemberships(User savedUser) {
+        List<Membership> userMemberships = membershipRepository.findAllByMemberId(savedUser.getId());
+        userMemberships.forEach(membership -> membership.setIdentityProviderUserObjectId(savedUser.getIdentityProviderUserObjectId()));
+        membershipRepository.saveAll(userMemberships);
+        log.info("Updated memberships for user with id {}", savedUser.getId());
+    }
+
 }

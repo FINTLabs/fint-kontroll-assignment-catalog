@@ -7,6 +7,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,6 +34,9 @@ public class UserServiceTest {
 
         when(user.convertedUserEquals(updatedUser)).thenReturn(false);
         when(user.hasStatusChanged(updatedUser)).thenReturn(true);
+        when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
+        when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
+
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
         User result = userService.updateUser(user, updatedUser);
@@ -49,12 +54,13 @@ public class UserServiceTest {
 
         when(user.convertedUserEquals(updatedUser)).thenReturn(false);
         when(user.hasStatusChanged(updatedUser)).thenReturn(false);
+        when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
+        when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
         User result = userService.updateUser(user, updatedUser);
 
         assertEquals(updatedUser, result);
-//        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
         verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
     }
@@ -69,7 +75,6 @@ public class UserServiceTest {
         User result = userService.updateUser(user, updatedUser);
 
         assertEquals(user, result);
-//        verify(updatedUser, never()).setStatusChanged(any(Date.class));
         verify(userRepository, never()).save(updatedUser);
         verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
     }

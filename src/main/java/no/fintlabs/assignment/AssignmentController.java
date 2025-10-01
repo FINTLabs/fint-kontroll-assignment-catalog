@@ -15,6 +15,7 @@ import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
 import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -42,6 +44,7 @@ public class AssignmentController {
     private final MembershipService membershipService;
     private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
+    private final ResourceService resourceService;
 
 
     public AssignmentController(AssignmentService assignmentService,
@@ -51,7 +54,7 @@ public class AssignmentController {
                                 AuthManager authManager,
                                 MembershipService membershipService,
                                 ResourceRepository resourceRepository,
-                                UpdateAssignedResourcesService updateAssignedResourcesService) {
+                                UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
 
         this.assignmentService = assignmentService;
         this.assignmentResponseFactory = assignmentResponseFactory;
@@ -61,7 +64,7 @@ public class AssignmentController {
         this.membershipService = membershipService;
         this.resourceRepository = resourceRepository;
         this.updateAssignedResourcesService = updateAssignedResourcesService;
-
+        this.resourceService = resourceService;
     }
 
     @GetMapping()
@@ -141,6 +144,56 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @PostMapping("/syncflattenedassignments/resource/{id}")
+    public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
+        log.info("Starting to sync assignments for resource: {}", resourceId);
+
+        assignmentService.getActiveAssignmentsByResource(resourceId)
+                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
+
+        log.info("Started syncing all flattened assignments for resource: {}", resourceId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    @OnlyDevelopers
+    @PostMapping("/publishallflattenedassignments/resource/{id}")
+    public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
+        log.info("Starting to publish flattened assignments for resource: {}", resourceId);
+
+        assignmentService.getActiveAssignmentsByResource(resourceId)
+                .forEach(flattenedAssignmentService::publishAllActive);
+
+        log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @OnlyDevelopers
+    @PostMapping("/syncandpublishflattenedassignmentsallresources")
+    public ResponseEntity<HttpStatus> syncAndPublishFlattenedassignmentsAllResources(@AuthenticationPrincipal Jwt jwt) {
+        log.info("Starting to sync and publish flattenedAssignments all resources");
+
+        resourceService.findAll().forEach(resource -> {
+            log.info("Starting to publish flattened assignments for resource: {}", resource);
+
+            assignmentService.getActiveAssignmentsByResource(resource.getId())
+                    .forEach(assignment -> {
+                        flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
+                        flattenedAssignmentService.publishAllActive(assignment);
+                    });
+            log.info("Finished publishing all flattened assignments for resource: {}", resource);
+        });
+
+        log.info("Finished publishing flattened assignments all resources");
+
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         long start = System.currentTimeMillis();
@@ -228,6 +281,20 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class UpdateAllResourceLocationOrgUnits {
+        private Boolean updateAllResourceLocationOrgUnits;
+    }
+
+    @PostMapping("/update-assignments-applicationresourcelocationorgunit")
+    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+        if (!validateIsAdmin(jwt)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
     @OnlyDevelopers
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
     public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@RequestBody UpdateAllResourceLocationOrgUnits updateAll) {

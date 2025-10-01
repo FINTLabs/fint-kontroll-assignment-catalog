@@ -12,6 +12,7 @@ import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.ResourceService;
 import no.fintlabs.slack.SlackMessenger;
 import no.fintlabs.user.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private AssignmentService assignmentServiceMock;
+
+    @MockBean
+    private ResourceService resourceServiceMock;
 
     @MockBean
     private ResourceRepository resourceRepositoryMock;

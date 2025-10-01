@@ -1,7 +1,6 @@
 package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.QueryHint;
-import lombok.NonNull;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
 import org.hibernate.jpa.AvailableHints;
 import org.springframework.data.domain.Page;
@@ -13,7 +12,6 @@ import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,11 +29,12 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     Optional<FlattenedAssignment> findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long userRef, Long resourceRef);
 
-    //Optional<List<FlattenedAssignment>> findByIdNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long id, Long userRef, Long resourceRef);
     List<FlattenedAssignment> findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long id, Long userRef, Long resourceRef);
 
+
+    List<FlattenedAssignment> findByUserRefAndAssignmentTerminationDateIsNull(Long userRef);
+
     List<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
-    //Optional<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
 
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.userRef = :userId AND fa.assignmentViaRoleRef = :roleId AND fa.assignmentTerminationDate IS NULL")
     List<Long> findFlattenedAssignmentIdsByUserAndRoleRef(@Param("userId") Long userId, @Param("roleId") Long roleId);
