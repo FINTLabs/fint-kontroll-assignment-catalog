@@ -6,9 +6,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
+import no.fintlabs.exception.ConflictException;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
@@ -20,20 +23,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -76,7 +70,7 @@ public class AssignmentController {
     public ResponseEntity<Map<String, Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
                                                                     @RequestParam(defaultValue = "0") int page,
                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                                                 ".pagesize:20}")
+                                                                            ".pagesize:20}")
                                                                     int size,
                                                                     @RequestParam(defaultValue = "ALLTYPES", required = false)
                                                                     String userType
@@ -89,30 +83,21 @@ public class AssignmentController {
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
         validateUserRoleRefs(request);
-        validateResource(request);
+        validateResource(request); //TODO is this correct validation?
         validateOrganizationUnitId(request);
 
         try {
             Assignment newAssignment =
                     assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
-        }
-        catch (AssignmentAlreadyExistsException exception) {
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
-        }
-        catch (Exception e) {
-            log.error("Error creating assignment", e);
-            return ResponseEntity.badRequest().build();
+        } catch (AssignmentAlreadyExistsException exception) {
+            throw new ConflictException("Assignment already exists");
         }
     }
 
+    @OnlyDevelopers
     @PostMapping("/republish")
-    public ResponseEntity<HttpStatus> republishAllAssignments() { //@AuthenticationPrincipal Jwt jwt) {
-
-        //TODO: implement when agreed on security solution
-        /*if (!validateIsAdmin(jwt)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have access to republish all assignments");
-        }*/
+    public ResponseEntity<HttpStatus> republishAllAssignments() {
 
         log.info("Republishing all assignments");
 
@@ -124,14 +109,10 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignments/{sync}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("sync") String sync) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
         boolean isSync;
-
         isSync = sync == null || sync.isEmpty();
 
         long start = System.currentTimeMillis();
@@ -146,12 +127,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignment/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
         long start = System.currentTimeMillis();
         log.info("Starting to sync assignment {}", id);
 
@@ -214,13 +192,8 @@ public class AssignmentController {
     }
 
 
-
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-
         long start = System.currentTimeMillis();
         log.info("Starting to sync assignment by userid {}", id);
 
@@ -241,16 +214,14 @@ public class AssignmentController {
         } catch (UserNotFoundException userNotFoundException) {
             log.error("Logged in user not found in the users table", userNotFoundException);
 
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Logged in user not found in the users table");
         }
         return new ResponseEntity<>(HttpStatus.GONE);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
     public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
 
         log.info("Syncing unconfirmed flattened assignments for assignmentId {}", assignmentId);
 
@@ -260,11 +231,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
     public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
 
         log.info("Publishing deleted flattened assignments");
 
@@ -274,11 +243,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncassignmentsformemberships")
     public ResponseEntity<HttpStatus> syncAssignmentsForMemberships(@AuthenticationPrincipal Jwt jwt, @RequestBody List<String> membershipIds) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
 
         log.info("Syncing assignments for memberships");
 
@@ -287,11 +254,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncassignmentsmissingidentityprovideruserobjectid")
     public ResponseEntity<HttpStatus> syncAssignmentsMissingIdentityProviderUserObjectId(@AuthenticationPrincipal Jwt jwt) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
 
         long start = System.currentTimeMillis();
         log.info("Syncing assignments missing identityProviderUserObjectId");
@@ -314,18 +279,10 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    private static class UpdateAllResourceLocationOrgUnits {
-        private Boolean updateAllResourceLocationOrgUnits;
-    }
-
+    @OnlyDevelopers
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
     public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
-        if (!validateIsAdmin(jwt)) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+
 
         boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
         long start = System.currentTimeMillis();
@@ -354,17 +311,9 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/test")
-    public void test() throws Exception{
-        throw new Exception("test");
-    }
-
     @OnlyDevelopers
     @PostMapping("/update-assigned-resources-usage")
-    public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt){
-//        if (!validateIsAdmin(jwt)) {
-//            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-//        }
+    public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt) {
 
         long start = System.currentTimeMillis();
         log.info("Start updating assignedResoursesUsage of assignment");
@@ -375,50 +324,46 @@ public class AssignmentController {
         log.info("Time taken to update all resourceAvailability entities for alle resources : {} ms", end - start);
 
 
-
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     private void validateResource(NewAssignmentRequest request) {
         if (request.resourceRef == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
         }
 
         resourceRepository.findById(request.resourceRef)
                 .ifPresentOrElse(
                         resource -> {
                             if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " does not have azure group id set");
+                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have azure group id set");
                             }
                         },
                         () -> {
                             log.error("Resource: {} not found", request.resourceRef);
-                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource " + request.resourceRef + " not found");
+                            throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
                         }
                 );
     }
 
     private void validateOrganizationUnitId(NewAssignmentRequest request) {
         if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
         }
     }
 
     private void validateUserRoleRefs(NewAssignmentRequest request) {
         if (request.userRef != null && request.roleRef != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
         }
     }
 
-    private boolean validateIsAdmin(Jwt jwt) {
-        boolean hasAdminAdminAccess = authManager.hasAdminAdminAccess(jwt);
-
-        if (!hasAdminAdminAccess) {
-            log.error("User does not have admin acccess");
-            return false;
-        }
-
-        return true;
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class UpdateAllResourceLocationOrgUnits {
+        private Boolean updateAllResourceLocationOrgUnits;
     }
 
 }
+
