@@ -123,7 +123,7 @@ jobs:
           use-kubelogin: 'true'
 
       - name: Deploy
-        uses: azure/k8s-deploy@v5.0.3
+        uses: azure/k8s-deploy@v5.0.4
         with:
           action: deploy
           manifests: ${{ steps.bake.outputs.manifestsBundle }}
