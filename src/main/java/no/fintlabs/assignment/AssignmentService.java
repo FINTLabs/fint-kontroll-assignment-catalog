@@ -21,10 +21,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -82,7 +79,7 @@ public class AssignmentService {
         enrichByResource(assignment, resourceRef);
 
         log.info("Incremented license for assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure" );
+                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure");
 
 
         log.info("Saving assignment {}", assignment);
@@ -118,10 +115,12 @@ public class AssignmentService {
         assignment.setAssignmentRemovedDate(new Date());
 
         log.info("Removed license from assignment {} : {}",
-                assignment.getId(),licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment)? "Success" : "Failure");
+                assignment.getId(), licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment) ? "Success" : "Failure");
 
+        if (!userName.isEmpty()) {
+            userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
+        }
 
-        userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
 
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
@@ -270,7 +269,7 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByUser(User user) {
-        if (user.getStatus().equalsIgnoreCase("disabled")) {
+        if (!user.getStatus().equalsIgnoreCase("ACTIVE")) {
             getActiveAssignmentsByUser(user.getId())
                     .forEach(assignment -> {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
@@ -279,7 +278,7 @@ public class AssignmentService {
                         flattenedAssignmentService.deleteFlattenedAssignments(assignment);
                         log.info("Removing license from assignment {}", assignment.getId());
                         log.info("Removed license from assignment {} : {}",
-                                assignment.getId(),licenseEnforcementService.updateAssignedLicense(assignment, -1L)? "Success" : "Failure");
+                                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
                     });
         }
     }
@@ -314,7 +313,7 @@ public class AssignmentService {
         assignmentRepository.flush();
 
         log.info("Done updating. Updated {} of {} assignments missing application resource location org unit",
-                 updatedAssignments.size(), ids.size());
+                updatedAssignments.size(), ids.size());
     }
 
     private Optional<Assignment> updateAssignmentWithNearestResource(Assignment assignment) {
@@ -325,6 +324,7 @@ public class AssignmentService {
                 .map(nearest -> {
                     assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
                     assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
+                    assignment.setIsInvalid(false);
                     return assignment;
                 });
     }
@@ -336,5 +336,22 @@ public class AssignmentService {
         assignmentRepository.flush();
         log.info("Updated {} assignments for user {}", assignments.size(), user.getId());
         flattenedAssignmentService.updateAssignmentsOnUserChange(user);
+    }
+
+    @Transactional
+    public void reassignLinkedAssignments(Long resourceRef, String orgUnitId) {
+        List<Assignment> existingAssignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(resourceRef, orgUnitId);
+        log.info("Found {} assignments for resource {} and orgUnitId {}", existingAssignments.size(), resourceRef, orgUnitId);
+        List<Assignment> updatedAssignments = new ArrayList<>();
+        existingAssignments.forEach(assignment -> {
+            updateAssignmentWithNearestResource(assignment).ifPresentOrElse(updatedAssignments::add, () -> {
+                log.info("Assignment {} is invalid and will not be reassigned", assignment.getId());
+                assignment.setIsInvalid(true);
+                updatedAssignments.add(assignment);
+            });
+        });
+        assignmentRepository.saveAll(updatedAssignments);
+        assignmentRepository.flush();
+        log.info("Done reassigning {} assignments for resource {} and orgUnitId {}", updatedAssignments.size(), resourceRef, orgUnitId);
     }
 }
