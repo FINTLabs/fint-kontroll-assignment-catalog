@@ -49,6 +49,7 @@ public class Resource extends AuditEntity {
     @JsonManagedReference(value = "resource-assignment")
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private Set<Assignment> assignments = new HashSet<>();
 
     public AssignmentResource toSimpleResource() {
