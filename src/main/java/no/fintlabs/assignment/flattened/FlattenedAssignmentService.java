@@ -203,10 +203,9 @@ public class FlattenedAssignmentService {
     }
 
     @Transactional
-    public void deleteFlattenedAssignments(Assignment assignment) {
+    public void deleteFlattenedAssignments(Assignment assignment, String deactivationReason) {
         log.info("Deactivate flattened assignments for assignment with id {}", assignment.getId());
 
-        String deactivationReason = "Assosiated assignment removed by user";
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
         saveDeactivatedFlattenedAssignments(flattenedAssignments, deactivationReason, assignment.getAssignmentRemovedDate());
         publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
