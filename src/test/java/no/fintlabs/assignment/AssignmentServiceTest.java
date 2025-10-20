@@ -28,8 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -288,7 +287,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(assignment);
-        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any());
+        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any(), anyString());
     }
 
     @Test
@@ -322,7 +321,7 @@ class AssignmentServiceTest {
         assignmentService.deactivateAssignmentsByUser(user);
 
         verify(assignmentRepository).saveAndFlush(assignment);
-        verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment);
+        verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment, "User is no longer active");
 
         assertNotNull(assignment.getAssignmentRemovedDate());
     }

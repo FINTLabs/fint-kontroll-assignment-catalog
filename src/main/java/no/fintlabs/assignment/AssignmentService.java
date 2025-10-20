@@ -275,7 +275,7 @@ public class AssignmentService {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
                         assignment.setAssignmentRemovedDate(new Date());
                         assignmentRepository.saveAndFlush(assignment);
-                        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "User is not active anymore");
+                        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "User is no longer active");
                         log.info("Removing license from assignment {}", assignment.getId());
                         log.info("Removed license from assignment {} : {}",
                                 assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
