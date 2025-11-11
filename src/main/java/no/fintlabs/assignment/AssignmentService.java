@@ -269,7 +269,7 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByUser(User user) {
-        if (!user.getStatus().equalsIgnoreCase("ACTIVE")) {
+        if (user.getStatus().equalsIgnoreCase("DISABLED") || user.getStatus().equalsIgnoreCase("INACTIVE")) {
             getActiveAssignmentsByUser(user.getId())
                     .forEach(assignment -> {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
