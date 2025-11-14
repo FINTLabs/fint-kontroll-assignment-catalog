@@ -346,4 +346,16 @@ public class FlattenedAssignmentService {
         flattenedAssignmentRepository.saveAll(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
     }
+
+    public void republishUnconfirmedFlattenedAssignments() {
+        flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdentityProviderGroupMembershipConfirmedIsFalse()
+                .parallelStream()
+                .forEach(assigmentEntityProducerService::publish);
+    }
+
+    public void republishSelectedFlattenedAssignments(List<Long> selectedIds) {
+        flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdIn(selectedIds)
+                .parallelStream()
+                .forEach(assigmentEntityProducerService::publish);
+    }
 }
