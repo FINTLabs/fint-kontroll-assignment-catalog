@@ -162,19 +162,15 @@ public class AssignmentController {
 
         flattenedAssignmentService.republishUnconfirmedFlattenedAssignments();
 
-        log.info("Started syncing all unconfirmed flattened assignments");
-
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @PostMapping("/republishselectedflattenedassignments")
     public ResponseEntity<HttpStatus> republishSelectedFlattenedAssignments(@Valid @RequestBody List<Long> ids) {
-        log.info("Starting to sync all unconfirmed assignments");
+        log.info("Selected {} flattened assignment to publish", ids.size());
 
         flattenedAssignmentService.republishSelectedFlattenedAssignments(ids);
-
-        log.info("Started syncing all unconfirmed flattened assignments");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
