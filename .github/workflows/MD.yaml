@@ -23,6 +23,7 @@ on:
           - afk-no
           - fridiks-no
           - nfk-no
+          - vlfk-no
 
 env:
   REGISTRY: ghcr.io
