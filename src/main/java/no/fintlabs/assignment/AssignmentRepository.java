@@ -18,13 +18,26 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
 
     List<Assignment> findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(Long roleId);
 
+    List<Assignment> findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(Long deviceGroupId);
+
     List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(Long userId);
 
     List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(Long userId);
 
-    List<Assignment> findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(Long resourceId);
+
+    @Query("SELECT a FROM Assignment a WHERE a.resourceRef = :resourceId AND a.assignmentRemovedDate IS NULL AND" +
+            "(a.userRef IS NOT NULL OR a.roleRef IS NOT NULL)")
+    List<Assignment> findActiveUserAssignmentsByResourceRef(Long resourceId);
+
+    @Query("SELECT a FROM Assignment a WHERE a.resourceRef = :resourceId AND a.assignmentRemovedDate IS NULL AND" +
+            " a.deviceGroupRef IS NOT NULL")
+    List<Assignment> findActiveDeviceAssignmentsByResourceRef(Long resourceId);
 
     List<Assignment> findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(Long resourceRef, String orgUnitId);
+
+    List<Assignment> findAllByDeviceGroupRefIsNotNullAndAssignmentRemovedDateIsNull();
+
+    List<Assignment> findAllByUserRefIsNotNullOrRoleRefIsNotNull();
 
     @Query("SELECT a.id FROM Assignment a WHERE a.role.id = :roleId AND a.user.id = :userId AND a.assignmentRemovedDate IS NULL")
     List<Long> findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(
