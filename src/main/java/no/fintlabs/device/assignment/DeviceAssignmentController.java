@@ -27,7 +27,6 @@ public class DeviceAssignmentController {
 
 
     @PostMapping
-    @OnlyDevelopers
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewDeviceAssignmentRequest request) {
         log.info("Creating assignment. Request - deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}", request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
 
@@ -67,13 +66,11 @@ public class DeviceAssignmentController {
     }
 
     @DeleteMapping("{id}")
-    @OnlyDevelopers
     public void deleteAssignment(@PathVariable("id") Long id) {
         deviceAssignmentService.deleteAssignment(id);
     }
 
     @PostMapping("/update-assigned-resources-usage")
-    @OnlyDevelopers
     // runs for both user and device assignments
     public void updateAssignedResourcesUsage() {
         log.info("Start updating resources usage for device assignments");
