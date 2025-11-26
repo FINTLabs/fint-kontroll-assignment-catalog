@@ -46,17 +46,13 @@ public class DeviceAssignmentService {
         // Ensure no duplicate assignment
         assertNoExistingActiveAssignment(resourceRef, deviceGroupRef);
 
+
         Assignment assignment = Assignment.builder()
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(resourceRef)
                 .organizationUnitId(organizationUnitId)
                 .resourceName(resource.getResourceName())
-                .assignmentId(String.format(
-                        "%s_deviceGroup_%s_%s",
-                        resourceRef,
-                        deviceGroup.getId(),
-                        LocalDateTime.now()
-                ))
+                .assignmentId(resourceRef + "_deviceGroup_" + LocalDateTime.now())
                 .azureAdGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
@@ -132,7 +128,7 @@ public class DeviceAssignmentService {
     }
 
     private boolean existingDeviceGroupAssignment(Long deviceGroupRef, Long resourceRef) {
-        return assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
+        return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
     }
 
     public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {

@@ -10,13 +10,13 @@ import java.util.UUID;
 @Setter
 public class DeviceResourceGroupMembership {
     private OperationType operation;
-    private UUID entraGroupRef;
-    private UUID entraDeviceRef;
+    private UUID azureGroupRef;
+    private UUID azureDeviceRef;
 
     @JsonCreator
-    public DeviceResourceGroupMembership(OperationType operation, UUID entraGroupRef, UUID entraDeviceRef) {
+    public DeviceResourceGroupMembership(OperationType operation, UUID azureGroupRef, UUID azureDeviceRef) {
         this.operation = operation;
-        this.entraGroupRef = entraGroupRef;
-        this.entraDeviceRef = entraDeviceRef;
+        this.azureGroupRef = azureGroupRef;
+        this.azureDeviceRef = azureDeviceRef;
     }
 }
