@@ -1,6 +1,5 @@
 package no.fintlabs.assignment.flattened;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
@@ -9,6 +8,7 @@ import no.fintlabs.user.User;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
