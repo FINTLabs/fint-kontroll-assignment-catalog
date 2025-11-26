@@ -3,6 +3,7 @@ package no.fintlabs.assignment;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
@@ -17,7 +18,6 @@ import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
-import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,16 +25,17 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/assignments")
+@RequiredArgsConstructor
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+    private final AuthManager authManager;
     private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
@@ -43,46 +44,13 @@ public class AssignmentController {
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
 
-
-    public AssignmentController(AssignmentService assignmentService,
-                                AssignmentResponseFactory assignmentResponseFactory,
-                                FlattenedAssignmentService flattenedAssignmentService,
-                                AssigmentEntityProducerService assigmentEntityProducerService,
-                                MembershipService membershipService,
-                                ResourceRepository resourceRepository,
-                                UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
-
-        this.assignmentService = assignmentService;
-        this.assignmentResponseFactory = assignmentResponseFactory;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
-        this.membershipService = membershipService;
-        this.resourceRepository = resourceRepository;
-        this.updateAssignedResourcesService = updateAssignedResourcesService;
-        this.resourceService = resourceService;
-    }
-
-    @GetMapping()
-    public ResponseEntity<Map<String, Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
-                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                            ".pagesize:20}")
-                                                                    int size,
-                                                                    @RequestParam(defaultValue = "ALLTYPES", required = false)
-                                                                    String userType
-    ) {
-
-        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt), page, size, userType);
-    }
-
     @PostMapping()
     @OnlyDevelopers
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
         validateUserRoleRefs(request);
-        validateResource(request); //TODO is this correct validation?
+        validateResource(request);
         validateOrganizationUnitId(request);
-
         try {
             Assignment newAssignment =
                     assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
@@ -115,7 +83,7 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Starting to sync all assignments");
 
-        List<Assignment> allAssignments = assignmentService.getAssignments();
+        List<Assignment> allAssignments = assignmentService.getAllUserAssignments();
         allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, isSync));
 
         long end = System.currentTimeMillis();
@@ -144,7 +112,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveAssignmentsByResource(resourceId)
+        assignmentService.getActiveUserAssignmentsByResource(resourceId)
                 .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
@@ -178,7 +146,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to publish flattened assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveAssignmentsByResource(resourceId)
+        assignmentService.getActiveUserAssignmentsByResource(resourceId)
                 .forEach(flattenedAssignmentService::publishAllActive);
 
         log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
@@ -194,7 +162,7 @@ public class AssignmentController {
         resourceService.findAll().forEach(resource -> {
             log.info("Starting to publish flattened assignments for resource: {}", resource);
 
-            assignmentService.getActiveAssignmentsByResource(resource.getId())
+            assignmentService.getActiveUserAssignmentsByResource(resource.getId())
                     .forEach(assignment -> {
                         flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
                         flattenedAssignmentService.publishAllActive(assignment);
@@ -208,7 +176,7 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         long start = System.currentTimeMillis();
@@ -305,7 +273,7 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
 
-        Set<Long> ids = assignmentService.getAssignments()
+        Set<Long> ids = assignmentService.getAllUserAssignments()
                 .stream()
                 .filter(assignment -> {
                     if (updateAllResourceLocationOrgUnits) {
@@ -330,6 +298,7 @@ public class AssignmentController {
 
     @OnlyDevelopers
     @PostMapping("/update-assigned-resources-usage")
+    // runs for both user and device assignments
     public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt) {
 
         long start = System.currentTimeMillis();

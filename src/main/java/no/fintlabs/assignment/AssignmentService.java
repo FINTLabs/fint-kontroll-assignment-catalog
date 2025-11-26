@@ -8,7 +8,7 @@ import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
-import no.fintlabs.resource.ResourceNotFoundException;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
@@ -102,8 +102,8 @@ public class AssignmentService {
                 .toList();
     }
 
-    public List<Assignment> getAssignments() {
-        return assignmentRepository.findAll();
+    public List<Assignment> getAllUserAssignments() {
+        return assignmentRepository.findAllByUserRefIsNotNullOrRoleRefIsNotNull();
     }
 
     public Assignment deleteAssignment(Long id) {
@@ -213,7 +213,7 @@ public class AssignmentService {
                 assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
             });
         }, () -> {
-            throw new ResourceNotFoundException(resourceRef.toString());
+            throw new ResourceNotFoundException("Resource not found for ref: " + resourceRef);
         });
     }
 
@@ -244,8 +244,8 @@ public class AssignmentService {
     public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
-    public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
-        return assignmentRepository.findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(resourceId);
+    public List<Assignment> getActiveUserAssignmentsByResource(Long resourceId) {
+        return assignmentRepository.findActiveUserAssignmentsByResourceRef(resourceId);
     }
 
     public List<Assignment> getInactiveAssignmentsByUser(Long userId) {

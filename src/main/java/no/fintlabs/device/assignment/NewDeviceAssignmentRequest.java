@@ -1,14 +1,14 @@
-package no.fintlabs.assignment;
+package no.fintlabs.device.assignment;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 @Getter
-public class NewAssignmentRequest {
+public class NewDeviceAssignmentRequest {
     @NotNull
     Long resourceRef;
-    Long userRef;
-    Long roleRef;
+    @NotNull
+    Long deviceGroupRef;
     @NotNull
     String organizationUnitId;
 }
