@@ -1,6 +1,5 @@
 package no.fintlabs.assignment.flattened;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
@@ -8,6 +7,7 @@ import no.fintlabs.membership.Membership;
 import no.fintlabs.user.User;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -345,6 +345,7 @@ public class FlattenedAssignmentService {
         flattenedAssignments.forEach(flattenedAssignment -> flattenedAssignment.setIdentityProviderUserObjectId(user.getIdentityProviderUserObjectId()));
         flattenedAssignmentRepository.saveAll(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
+        flattenedAssignments.forEach(assigmentEntityProducerService::publish);
     }
 
     public void republishUnconfirmedFlattenedAssignments() {

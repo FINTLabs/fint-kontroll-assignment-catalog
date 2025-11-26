@@ -18,27 +18,27 @@ public class AssignmentPublishingComponent {
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
-//    @Scheduled(
-//            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
-//            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
-//            timeUnit = TimeUnit.HOURS
-//    )
-//    public void publishFlattenedAssignmentsUnConfirmed() {
-//        log.info("Publishing unconfirmed flattened assignments");
-//
-//        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()
-//                .forEach(assigmentEntityProducerService::publish);
-//    }
-//
-//    @Scheduled(
-//            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
-//            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
-//            timeUnit = TimeUnit.HOURS
-//    )
-//    public void publishDeletedFlattenedAssignments() {
-//        log.info("Publishing deleted flattened assignments");
-//
-//        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
-//                .forEach(assigmentEntityProducerService::publishDeletion);
-//    }
+    @Scheduled(
+            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
+            timeUnit = TimeUnit.HOURS
+    )
+    public void publishFlattenedAssignmentsUnConfirmed() {
+        log.info("Publishing unconfirmed flattened assignments");
+
+        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()
+                .forEach(assigmentEntityProducerService::publish);
+    }
+
+    @Scheduled(
+            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
+            timeUnit = TimeUnit.HOURS
+    )
+    public void publishDeletedFlattenedAssignments() {
+        log.info("Publishing deleted flattened assignments");
+
+        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
+                .forEach(assigmentEntityProducerService::publishDeletion);
+    }
 }

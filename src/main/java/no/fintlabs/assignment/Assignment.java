@@ -59,6 +59,7 @@ public class Assignment extends AuditEntity {
     private String userUserType;
     @Column(name = "resource_ref")
     private Long resourceRef;
+    private Long deviceGroupRef;
     private String resourceName;
     private UUID azureAdGroupId;
     private String organizationUnitId;
@@ -143,5 +144,9 @@ public class Assignment extends AuditEntity {
     @JsonIgnore
     public boolean isGroupAssignment() {
         return roleRef != null && azureAdGroupId != null;
+    }
+    @JsonIgnore
+    public boolean isDeviceGroupAssignment() {
+        return deviceGroupRef != null && azureAdGroupId != null;
     }
 }
