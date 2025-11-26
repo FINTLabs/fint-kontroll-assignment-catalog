@@ -1,7 +1,7 @@
 package no.fintlabs.device;
 
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.entra.DeviceMembershipRepublisher;
+import no.fintlabs.device.azure.DeviceMembershipRepublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -98,18 +98,18 @@ class DeviceServiceTest {
     }
     @Test
     void saveOrUpdate_shouldRepublish_whenDataObjectIdHasChanged() {
-        UUID oldEntraId = UUID.randomUUID();
-        UUID newEntraId = UUID.randomUUID();
+        UUID oldAzureId = UUID.randomUUID();
+        UUID newAzureId = UUID.randomUUID();
 
         Device existing = Device.builder()
                 .id(1L)
-                .dataObjectId(oldEntraId)
+                .dataObjectId(oldAzureId)
                 .name("Device")
                 .build();
 
         Device incoming = Device.builder()
                 .id(1L)
-                .dataObjectId(newEntraId)
+                .dataObjectId(newAzureId)
                 .name("Device") // Name is same, but equals check in service will fail due to dataObjectId change
                 .build();
 

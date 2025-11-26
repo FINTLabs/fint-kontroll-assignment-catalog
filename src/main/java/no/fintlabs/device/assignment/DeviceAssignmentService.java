@@ -2,9 +2,10 @@ package no.fintlabs.device.assignment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
+import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -17,9 +18,6 @@ import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -35,40 +33,46 @@ public class DeviceAssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final ResourceRepository resourceRepository;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
-    private final AssignmentResourceEnricher assignmentResourceEnricher;
+    private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
-    @Transactional
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long deviceGroupRef) {
         log.info("Trying to create new assignment for resource {} and device group {}", resourceRef, deviceGroupRef);
 
         DeviceGroup deviceGroup = getDeviceGroupOrThrow(deviceGroupRef);
+        Resource resource = getResourceOrThrow(resourceRef);
 
         // Ensure no duplicate assignment
         assertNoExistingActiveAssignment(resourceRef, deviceGroupRef);
+
 
         Assignment assignment = Assignment.builder()
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(resourceRef)
                 .organizationUnitId(organizationUnitId)
+                .resourceName(resource.getResourceName())
+                .assignmentId(resourceRef + "_deviceGroup_" + LocalDateTime.now())
+                .azureAdGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
 
-        enrichByResource(assignment, resourceRef);
+        Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService
+                .getNearestApplicationResourceLocationForOrgUnit(resourceRef, assignment.getOrganizationUnitId());
 
-        boolean availableResourceLicenseCount = licenseEnforcementService.validateAssignmentCapacity(assignment);
-        log.info("Validated license capacity for resource {} : {}",
-                assignment.getResourceRef(), availableResourceLicenseCount ? "Success" : "Failure");
-        if(!availableResourceLicenseCount) {
-            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef());
+        nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
+            assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
+            assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
+        });
+        boolean updatedResourceLicenseCount = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment);
+        log.info("Incremented license count for resource {} : {}",
+                assignment.getResourceRef(), updatedResourceLicenseCount ? "Success" : "Failure");
+        if(!updatedResourceLicenseCount) {
+            throw new ConflictException("Can't update number of assigned licenses for resource " + assignment.getResourceRef());
         }
-
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
-
-        scheduleFlattenedAssignmentCreation(newAssignment);
 
         return newAssignment;
     }
@@ -85,22 +89,11 @@ public class DeviceAssignmentService {
         if (resource.getIdentityProviderGroupObjectId() == null) {
             throw new AssignmentException(
                     HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Resource " + id + " does not have Entra group id set"
+                    "Resource " + id + " does not have azure group id set"
             );
         }
 
         return resource;
-    }
-
-    private void enrichByResource(Assignment assignment, Long resourceRef) {
-        Resource resource = getResourceOrThrow(resourceRef);
-        assignment.setAssignmentId(String.format(
-                "%s_deviceGroup_%s_%s",
-                resourceRef,
-                assignment.getDeviceGroupRef(),
-                LocalDateTime.now()
-        ));
-        assignmentResourceEnricher.enrich(assignment, resourceRef, resource);
     }
 
     private void assertNoExistingActiveAssignment(Long resourceRef, Long deviceGroupRef) {
@@ -115,7 +108,6 @@ public class DeviceAssignmentService {
         return assignmentRepository.findAllByDeviceGroupRefIsNotNullAndAssignmentRemovedDateIsNull();
     }
 
-    @Transactional
     public void deleteAssignment(Long id) {
         log.info("Deleting assignment with id {}", id);
 
@@ -129,32 +121,14 @@ public class DeviceAssignmentService {
         }
 
         assignmentRepository.saveAndFlush(assignment);
+        licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
+
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "Associated assignment terminated by user");
-        licenseEnforcementService.recalculateAssignedResources(assignment);
 
     }
 
     private boolean existingDeviceGroupAssignment(Long deviceGroupRef, Long resourceRef) {
-        return assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
-    }
-
-    private void scheduleFlattenedAssignmentCreation(Assignment assignment) {
-        Runnable task = () -> {
-            log.info("Starting asynchronous flattened device assignment creation for assignment id {}", assignment.getId());
-            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(assignment);
-        };
-
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    task.run();
-                }
-            });
-            log.info("Scheduled flattened device assignment creation after commit for assignment id {}", assignment.getId());
-        } else {
-            task.run();
-        }
+        return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
     }
 
     public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {

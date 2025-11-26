@@ -4,7 +4,6 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationServic
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -16,14 +15,11 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -43,34 +39,21 @@ class DeviceAssignmentServiceTest {
     @Mock private ApplicationResourceLocationService applicationResourceLocationService;
     @Mock private OpaService opaService;
 
+    @InjectMocks
     private DeviceAssignmentService deviceAssignmentService;
 
     @Captor
     private ArgumentCaptor<Assignment> assignmentCaptor;
 
-    @BeforeEach
-    void setUp() {
-        deviceAssignmentService = new DeviceAssignmentService(
-                deviceGroupRepository,
-                userRepository,
-                assignmentRepository,
-                resourceRepository,
-                flattenedDeviceAssignmentService,
-                new AssignmentResourceEnricher(applicationResourceLocationService),
-                opaService,
-                licenseEnforcementService
-        );
-    }
-
     private DeviceGroup group(long id) {
         return DeviceGroup.builder().id(id).build();
     }
 
-    private Resource resource(long id, String name, UUID entraIdGroupId) {
+    private Resource resource(long id, String name, UUID azureGroupId) {
         Resource r = new Resource();
         r.setResourceId(String.valueOf(id));
         r.setResourceName(name);
-        r.setIdentityProviderGroupObjectId(entraIdGroupId);
+        r.setIdentityProviderGroupObjectId(azureGroupId);
         return r;
     }
 
@@ -102,7 +85,7 @@ class DeviceAssignmentServiceTest {
     }
 
     @Test
-    void createNewAssignment_shouldThrowUnprocessable_whenResourceHasNoEntraIdGroupId() {
+    void createNewAssignment_shouldThrowUnprocessable_whenResourceHasNoAzureGroupId() {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
         Resource r = resource(1L, "R", null);
@@ -121,7 +104,10 @@ class DeviceAssignmentServiceTest {
     void createNewAssignment_shouldThrowConflict_whenDuplicateAssignmentExists() {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+        Resource r = resource(1L, "R", UUID.randomUUID());
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
                 .thenReturn(Optional.of(new Assignment()));
 
         assertThrows(ConflictException.class, () ->
@@ -137,24 +123,25 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID entraIdGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", entraIdGroupId);
+        UUID azureGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+                .thenReturn(Optional.empty());
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
+        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
                 .thenReturn(false);
 
         assertThrows(ConflictException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
         );
 
-        verify(assignmentRepository, never()).saveAndFlush(any(Assignment.class));
-        verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignments(any(Assignment.class));
-        verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
-        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
+        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
+        verify(assignmentRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -162,9 +149,12 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID entraIdGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", entraIdGroupId);
+        UUID azureGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+                .thenReturn(Optional.empty());
 
         NearestResourceLocationDto nearest = mock(NearestResourceLocationDto.class);
         when(nearest.orgUnitId()).thenReturn("nearest-ou");
@@ -173,7 +163,7 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.of(nearest));
 
-        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
+        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -186,52 +176,13 @@ class DeviceAssignmentServiceTest {
         assertEquals(1L, saved.getResourceRef());
         assertEquals("Resource A", saved.getResourceName());
         assertEquals("ou-1", saved.getOrganizationUnitId());
-        assertEquals(entraIdGroupId, saved.getEntraGroupId());
+        assertEquals(azureGroupId, saved.getAzureAdGroupId());
         assertEquals(100L, saved.getDeviceGroupRef());
         assertEquals("nearest-ou", saved.getApplicationResourceLocationOrgUnitId());
         assertEquals("Nearest OU Name", saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
+        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
-        verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignments(saved);
-    }
-
-    @Test
-    void createNewAssignment_shouldScheduleFlattenedAssignmentsAfterCommit_whenTransactionSynchronizationIsActive() {
-        when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
-        when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
-
-        UUID entraIdGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", entraIdGroupId);
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
-        when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
-                .thenReturn(Optional.empty());
-        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
-                .thenReturn(true);
-        when(assignmentRepository.saveAndFlush(any(Assignment.class)))
-                .thenAnswer(invocation -> {
-                    Assignment assignment = invocation.getArgument(0);
-                    assignment.setId(123L);
-                    return assignment;
-                });
-
-        TransactionSynchronizationManager.initSynchronization();
-        try {
-            Assignment saved = deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L);
-
-            verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignments(any(Assignment.class));
-
-            List<TransactionSynchronization> synchronizations =
-                    new ArrayList<>(TransactionSynchronizationManager.getSynchronizations());
-            assertEquals(1, synchronizations.size());
-
-            synchronizations.forEach(TransactionSynchronization::afterCommit);
-
-            verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignments(saved);
-            verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
     }
 
     @Test
@@ -239,14 +190,17 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID entraIdGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", entraIdGroupId);
+        UUID azureGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+                .thenReturn(Optional.empty());
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
+        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -258,7 +212,7 @@ class DeviceAssignmentServiceTest {
         assertNull(saved.getApplicationResourceLocationOrgUnitId());
         assertNull(saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
+        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 
@@ -336,7 +290,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertEquals(123L, saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(saved);
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
@@ -357,7 +311,7 @@ class DeviceAssignmentServiceTest {
 
         verify(userRepository, never()).getUserByUserName(anyString());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(assignment);
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(assignment), eq("Associated assignment terminated by user"));
@@ -383,7 +337,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertNull(saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(saved);
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
     }

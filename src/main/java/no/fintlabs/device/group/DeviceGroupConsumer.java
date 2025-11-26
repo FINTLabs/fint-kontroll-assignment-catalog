@@ -2,9 +2,8 @@ package no.fintlabs.device.group;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
-import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
+import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
+import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -16,19 +15,19 @@ import org.springframework.stereotype.Component;
 public class DeviceGroupConsumer {
 
     private final DeviceGroupService deviceGroupService;
-    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @Bean
     public ConcurrentMessageListenerContainer<String, DeviceGroup> deviceGroupConsumerConfiguration(
-            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
+            EntityConsumerFactoryService entityConsumerFactoryService
     ) {
+        EntityTopicNameParameters kontrolldevice = EntityTopicNameParameters
+                .builder()
+                .resource("kontroll-device-group")
+                .build();
+
         return entityConsumerFactoryService
-                .createRecordListenerContainerFactory(
-                        DeviceGroup.class,
-                        this::processDeviceGroup,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
-                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("kontroll-device-group"));
+                .createFactory(DeviceGroup.class, this::processDeviceGroup)
+                .createContainer(kontrolldevice);
     }
 
     private void processDeviceGroup(ConsumerRecord<String, DeviceGroup> stringDeviceGroupConsumerRecord) {

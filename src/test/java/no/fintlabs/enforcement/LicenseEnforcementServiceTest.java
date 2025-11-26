@@ -3,19 +3,14 @@ package no.fintlabs.enforcement;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
-import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
-import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
-import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
-import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.role.Role;
+import no.fintlabs.role.RoleRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,199 +19,218 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class LicenseEnforcementServiceTest {
 
-    private static final UUID RESOURCE_ENTRA_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
-
     @Mock
     private ResourceRepository resourceRepository;
+
     @Mock
     private ApplicationResourceLocationRepository applicationResourceLocationRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
+
     @Mock
     private ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
-    @Mock
-    private AssignmentRepository assignmentRepository;
-    @Mock
-    private UserEntraMembershipRepository userEntraMembershipRepository;
-    @Mock
-    private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
-    @Mock
-    private FlattenedAssignmentRepository flattenedAssignmentRepository;
-    @Mock
-    private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
-    @Mock
-    private MembershipRepository membershipRepository;
-    @Mock
-    private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     @InjectMocks
     private LicenseEnforcementService licenseEnforcementService;
 
-    private Resource resource;
-    private ApplicationResourceLocation applicationResourceLocation;
-    private Assignment assignment;
+    private Resource resourceHardstop, resourceFree;
+    private ApplicationResourceLocation applicationResourceLocationHardstop, applicationResourceLocationFreeall;
+    private Assignment assignmentToUserHardstop, assignmentToRoleHardstop, assignmentToRoleFree, assignmentToUserFree;
+    private Role role;
+
 
     @BeforeEach
     void setUp() {
-        resource = Resource.builder()
+        resourceHardstop = Resource.builder()
                 .id(1L)
                 .resourceId("app1")
                 .resourceType("allTypes")
-                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .numberOfResourcesAssigned(100L)
-                .resourceLimit(10L)
+                .resourceLimit(200L)
                 .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
 
-        applicationResourceLocation = ApplicationResourceLocation.builder()
+        resourceFree = Resource.builder()
+                .id(2L)
+                .resourceId("app2")
+                .resourceType("allTypes")
+                .numberOfResourcesAssigned(1000L)
+                .licenseEnforcement(Handhevingstype.FREEALL.name())
+                .build();
+
+
+        applicationResourceLocationHardstop = ApplicationResourceLocation
+                .builder()
                 .id(1L)
                 .applicationResourceId(1L)
                 .resourceId("app1")
                 .orgUnitId("org1")
                 .orgUnitName("OrgUnit no 1")
-                .resourceLimit(10L)
+                .resourceLimit(50L)
                 .numberOfResourcesAssigned(30L)
                 .build();
 
-        assignment = Assignment.builder()
+        applicationResourceLocationFreeall = ApplicationResourceLocation
+                .builder()
+                .id(2L)
+                .applicationResourceId(2L)
+                .resourceId("app2")
+                .orgUnitId("org2")
+                .orgUnitName("OrgUnit no 2")
+                .numberOfResourcesAssigned(1000L)
+                .build();
+
+        assignmentToUserHardstop = Assignment.builder()
                 .id(111L)
+                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(1L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .entraUserId(UUID.randomUUID())
-                .entraGroupId(RESOURCE_ENTRA_ID)
+                .azureAdUserId(UUID.randomUUID())
                 .build();
 
+        assignmentToRoleHardstop = Assignment.builder()
+                .id(222L)
+                .assignerRef(222L)
+                .resourceRef(1L)
+                .roleRef(555L)
+                .organizationUnitId("org1")
+                .applicationResourceLocationOrgUnitId("org1")
+                .azureAdGroupId(UUID.randomUUID())
+                .build();
+
+        assignmentToRoleFree = Assignment.builder()
+                .id(333L)
+                .assignerRef(222L)
+                .resourceRef(2L)
+                .roleRef(555L)
+                .organizationUnitId("org1")
+                .applicationResourceLocationOrgUnitId("org1")
+                .azureAdGroupId(UUID.randomUUID())
+                .build();
+
+        assignmentToUserFree = Assignment.builder()
+                .id(444L)
+                .assignerRef(222L)
+                .userRef(333L)
+                .resourceRef(2L)
+                .organizationUnitId("org1")
+                .applicationResourceLocationOrgUnitId("org1")
+                .azureAdUserId(UUID.randomUUID())
+                .build();
+
+        role = Role.builder()
+                .id(1L)
+                .noOfMembers(10L)
+                .build();
+    }
+
+    @DisplayName("Test for user assignment. Resource has hardstop")
+    @Test
+    public void incrementAssignLicensesHardstopForUser() {
+
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationHardstop));
+
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
+
+        assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(101);
+        assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(31L);
+        assertThat(licenseUpdated).isTrue();
+    }
+
+    @DisplayName("Test for role assignment. Resource has hardstop")
+    @Test
+    public void incrementAssignLicensesHardstopForRole() {
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
+        given(roleRepository.findById(555L)).willReturn(Optional.ofNullable(role));
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToRoleHardstop.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationHardstop));
+
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToRoleHardstop);
+
+        assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(110);
+        assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(40L);
+        assertThat(licenseUpdated).isTrue();
+    }
+
+    @DisplayName("Test for user assignment. Resource has freeforall")
+    @Test
+    public void incrementAssignLicensesFreeAllForUser() {
+
+        given(resourceRepository.lockByResourceId(2L)).willReturn(resourceFree);
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(resourceFree.getId(), assignmentToRoleFree.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationFreeall));
+
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserFree);
+
+        assertThat(resourceFree.getNumberOfResourcesAssigned()).isEqualTo(1001);
+        assertThat(applicationResourceLocationFreeall.getNumberOfResourcesAssigned()).isEqualTo(1001L);
+        assertThat(licenseUpdated).isTrue();
+    }
+
+    @DisplayName("Test for role assignment. Resource has freeforall")
+    @Test
+    public void incrementAssignLicensesFreeAllForRole() {
+        given(resourceRepository.lockByResourceId(2L)).willReturn(resourceFree);
+        given(roleRepository.findById(555L)).willReturn(Optional.ofNullable(role));
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(assignmentToRoleFree.getResourceRef(), assignmentToRoleFree.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationFreeall));
+
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToRoleFree);
+
+        assertThat(resourceFree.getNumberOfResourcesAssigned()).isEqualTo(1010);
+        assertThat(applicationResourceLocationFreeall.getNumberOfResourcesAssigned()).isEqualTo(1010L);
+        assertThat(licenseUpdated).isTrue();
+    }
+
+    @DisplayName("Test for user assignment. Resource has hardstop and assigment exceeded resourceLimit for resource")
+    @Test
+    public void doNotAssignLicensesHardstopForUserExeededResourceLimit() {
+        resourceHardstop.setResourceLimit(100L);
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationHardstop));
         ReflectionTestUtils.setField(licenseEnforcementService, "hardstopEnabled", true);
+
+        boolean lisensUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
+
+        assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(100L);
+        assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(30L);
+        assertThat(lisensUpdated).isFalse();
     }
 
+    @DisplayName("Test for user assignment. Resource has hardstop and assigment exceeded resourceLimit for applicationResourceLocation")
     @Test
-    void updateAssignedLicenseRecalculatesFromActiveMembershipRows() {
-        givenLockedResourceAndLocation();
-        givenActiveMembershipCounts(2L, 3L, 1L, 2L);
+    public void doNotAssignLicensesHardstopForUserExeededConsumerResourceLimit() {
+        applicationResourceLocationHardstop.setResourceLimit(30L);
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
+        given(applicationResourceLocationRepository
+                .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
+                .willReturn(List.of(applicationResourceLocationHardstop));
+        ReflectionTestUtils.setField(licenseEnforcementService, "hardstopEnabled", true);
 
-        boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
+        boolean licenseUpdated = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignmentToUserHardstop);
 
-        assertThat(updated).isTrue();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(5L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(3L);
-        verify(resourceRepository).save(resource);
-        verify(applicationResourceLocationRepository).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(applicationResourceLocation, resource);
-    }
-
-    @Test
-    void updateAssignedLicenseReturnsFalseWhenResourceLimitWouldBeExceededByActiveMembershipCount() {
-        resource.setResourceLimit(4L);
-        givenLockedResourceAndLocation();
-        givenActiveMembershipCounts(2L, 3L, 1L, 2L);
-
-        boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
-
-        assertThat(updated).isFalse();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
-    }
-
-    @Test
-    void updateAssignedLicenseReturnsFalseWhenLocationLimitWouldBeExceededByActiveMembershipCount() {
-        applicationResourceLocation.setResourceLimit(2L);
-        givenLockedResourceAndLocation();
-        givenActiveMembershipCounts(2L, 3L, 1L, 2L);
-
-        boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
-
-        assertThat(updated).isFalse();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
-    }
-
-    @Test
-    void updateAssignedLicenseUpdatesResourceWhenNoLocationsExist() {
-        given(resourceRepository.lockByResourceId(1L)).willReturn(resource);
-        given(applicationResourceLocationRepository.lockByApplicationResourceId(1L)).willReturn(List.of());
-        given(userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(RESOURCE_ENTRA_ID, MembershipStatus.ACTIVE))
-                .willReturn(2L);
-        given(deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(RESOURCE_ENTRA_ID, MembershipStatus.ACTIVE))
-                .willReturn(3L);
-
-        boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
-
-        assertThat(updated).isTrue();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(5L);
-        verify(resourceRepository).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
-    }
-
-    @Test
-    void validateAssignmentCapacityAllowsProjectedDirectUserMembershipAtLimit() {
-        resource.setResourceLimit(10L);
-        applicationResourceLocation.setResourceLimit(10L);
-        givenLockedResourceAndLocation();
-        givenActiveMembershipCounts(9L, 0L, 9L, 0L);
-        given(userEntraMembershipRepository.existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(
-                assignment.getEntraUserId(),
-                RESOURCE_ENTRA_ID,
-                MembershipStatus.ACTIVE))
-                .willReturn(false);
-
-        boolean allowed = licenseEnforcementService.validateAssignmentCapacity(assignment);
-
-        assertThat(allowed).isTrue();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-    }
-
-    @Test
-    void validateAssignmentCapacityReturnsFalseWhenProjectedDirectUserMembershipExceedsLimit() {
-        resource.setResourceLimit(9L);
-        givenLockedResourceAndLocation();
-        givenActiveMembershipCounts(9L, 0L, 1L, 0L);
-        given(userEntraMembershipRepository.existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(
-                assignment.getEntraUserId(),
-                RESOURCE_ENTRA_ID,
-                MembershipStatus.ACTIVE))
-                .willReturn(false);
-
-        boolean allowed = licenseEnforcementService.validateAssignmentCapacity(assignment);
-
-        assertThat(allowed).isFalse();
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-    }
-
-    private void givenLockedResourceAndLocation() {
-        given(resourceRepository.lockByResourceId(1L)).willReturn(resource);
-        given(applicationResourceLocationRepository.lockByApplicationResourceId(1L))
-                .willReturn(List.of(applicationResourceLocation));
-    }
-
-    private void givenActiveMembershipCounts(long userResourceCount, long deviceResourceCount, long userLocationCount, long deviceLocationCount) {
-        given(userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(RESOURCE_ENTRA_ID, MembershipStatus.ACTIVE))
-                .willReturn(userResourceCount);
-        given(deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(RESOURCE_ENTRA_ID, MembershipStatus.ACTIVE))
-                .willReturn(deviceResourceCount);
-        given(flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org1", MembershipStatus.ACTIVE))
-                .willReturn(userLocationCount);
-        given(flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org1", MembershipStatus.ACTIVE))
-                .willReturn(deviceLocationCount);
+        assertThat(resourceHardstop.getNumberOfResourcesAssigned()).isEqualTo(100L);
+        assertThat(applicationResourceLocationHardstop.getNumberOfResourcesAssigned()).isEqualTo(30L);
+        assertThat(licenseUpdated).isFalse();
     }
 }

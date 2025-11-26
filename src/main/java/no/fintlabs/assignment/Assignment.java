@@ -142,4 +142,8 @@ public class Assignment extends AuditEntity {
     public boolean isDeviceGroupAssignment() {
         return deviceGroupRef != null && entraGroupId != null;
     }
+    @JsonIgnore
+    public boolean isDeviceGroupAssignment() {
+        return deviceGroupRef != null && azureAdGroupId != null;
+    }
 }

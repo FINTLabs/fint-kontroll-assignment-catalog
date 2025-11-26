@@ -15,8 +15,6 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     @Query("select a from ApplicationResourceLocation a where a.applicationResourceId = ?1 and a.orgUnitId = ?2")
     List<ApplicationResourceLocation> findByApplicationResourceIdAndOrgUnitId(Long applicationResourceId, String orgUnitId);
 
-    List<ApplicationResourceLocation> findByApplicationResourceId(Long applicationResourceId);
-
 
     @Query("SELECT new no.fintlabs.applicationresourcelocation.NearestResourceLocationDto(arl.orgUnitId, arl.orgUnitName) " +
             "FROM ApplicationResourceLocation arl " +
@@ -30,9 +28,12 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     @Query("""
                 select arl
                 from ApplicationResourceLocation arl
-                where arl.applicationResourceId = :resourceId
+                where arl.applicationResourceId = :resourceId and arl.orgUnitId = :orgUnitId
             """)
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
-    List<ApplicationResourceLocation> lockByApplicationResourceId(@Param("resourceId") Long resourceId);
+    List<ApplicationResourceLocation> lockByResourceAndOrgUnit(@Param("resourceId") Long resourceId,
+                                                               @Param("orgUnitId") String orgUnitId);
 
 }
+
+
