@@ -1,7 +1,7 @@
 package no.fintlabs.device;
 
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.entra.DeviceMembershipRepublisher;
+import no.fintlabs.device.azure.DeviceMembershipRepublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

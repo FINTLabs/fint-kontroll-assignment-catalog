@@ -2,9 +2,12 @@ package no.fintlabs.device.assignment;
 
 import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.*;
-import no.fintlabs.device.entra.DeviceEntraMembership;
-import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.device.AzureStatus;
+import no.fintlabs.device.Device;
+import no.fintlabs.device.DeviceAssigmentEntityProducerService;
+import no.fintlabs.device.KontrollStatus;
+import no.fintlabs.device.azureInfo.DeviceAzureInfo;
+import no.fintlabs.device.azureInfo.DeviceAzureInfoRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.junit.jupiter.api.Test;
@@ -27,8 +30,6 @@ class FlattenedDeviceAssignmentServiceTest {
 
     @Mock
     private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
-    @Mock
-    private DeviceRepository deviceRepository;
 
     @Mock
     private DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
@@ -37,7 +38,7 @@ class FlattenedDeviceAssignmentServiceTest {
     private EntityManager entityManager;
 
     @Mock
-    private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
+    private DeviceAzureInfoRepository deviceAzureInfoRepository;
 
     @InjectMocks
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
@@ -54,7 +55,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Set<FlattenedDeviceAssignment> result = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
 
         assertTrue(result.isEmpty());
-        verifyNoInteractions(deviceEntraMembershipRepository);
+        verifyNoInteractions(deviceAzureInfoRepository);
     }
 
     @Test
@@ -76,19 +77,17 @@ class FlattenedDeviceAssignmentServiceTest {
         when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(100L))
                 .thenReturn(List.of(membership));
 
-        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(any(), any()))
+        when(deviceAzureInfoRepository.findByDeviceAzureIdAndResourceAzureId(any(), any()))
                 .thenReturn(Optional.empty());
-
-        when(deviceRepository.findById(any())).thenReturn(Optional.of(device));
 
         Set<FlattenedDeviceAssignment> result = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
 
         assertEquals(1, result.size());
         FlattenedDeviceAssignment fda = result.iterator().next();
         assertEquals(device.getId(), fda.getDeviceRef());
-        assertNotNull(fda.getDeviceEntraMembership());
-        assertEquals(MembershipStatus.ACTIVE, fda.getDeviceEntraMembership().getMembershipStatus());
-        assertEquals(EntraStatus.NOT_SENT, fda.getDeviceEntraMembership().getEntraStatus());
+        assertNotNull(fda.getAzureInfo());
+        assertEquals(KontrollStatus.ACTIVE, fda.getAzureInfo().getKontrollStatus());
+        assertEquals(AzureStatus.NOT_SENT, fda.getAzureInfo().getAzureStatus());
     }
 
     @Test
@@ -106,37 +105,35 @@ class FlattenedDeviceAssignmentServiceTest {
                 .device(device)
                 .build();
 
-        DeviceEntraMembership existingInfo = DeviceEntraMembership.builder()
-                .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraStatus.SENT)
+        DeviceAzureInfo existingInfo = DeviceAzureInfo.builder()
+                .kontrollStatus(KontrollStatus.INACTIVE)
+                .azureStatus(AzureStatus.SENT)
                 .build();
 
         when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(100L))
                 .thenReturn(List.of(membership));
 
-        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(any(), any()))
+        when(deviceAzureInfoRepository.findByDeviceAzureIdAndResourceAzureId(any(), any()))
                 .thenReturn(Optional.of(existingInfo));
-
-        when(deviceRepository.findById(any())).thenReturn(Optional.of(device));
 
         Set<FlattenedDeviceAssignment> result = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
 
         assertEquals(1, result.size());
         FlattenedDeviceAssignment fda = result.iterator().next();
-        assertEquals(existingInfo, fda.getDeviceEntraMembership());
-        assertEquals(MembershipStatus.ACTIVE, fda.getDeviceEntraMembership().getMembershipStatus());
-        assertEquals(EntraStatus.NOT_SENT, fda.getDeviceEntraMembership().getEntraStatus());
+        assertEquals(existingInfo, fda.getAzureInfo());
+        assertEquals(KontrollStatus.ACTIVE, fda.getAzureInfo().getKontrollStatus());
+        assertEquals(AzureStatus.NOT_SENT, fda.getAzureInfo().getAzureStatus());
     }
 
     @Test
     void saveAndPublishFlattenedAssignmentsBatch_shouldSaveAndPublish_whenStatusIsNotSent() {
-        DeviceEntraMembership info = DeviceEntraMembership.builder()
-                .entraStatus(EntraStatus.NOT_SENT)
+        DeviceAzureInfo info = DeviceAzureInfo.builder()
+                .azureStatus(AzureStatus.NOT_SENT)
                 .build();
         FlattenedDeviceAssignment fda = FlattenedDeviceAssignment.builder()
                 .id(1L)
                 .assignmentId(10L)
-                .deviceEntraMembership(info)
+                .azureInfo(info)
                 .build();
 
         List<FlattenedDeviceAssignment> assignments = List.of(fda);
@@ -146,20 +143,20 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(assignments);
 
         verify(flattenedDeviceAssignmentRepository).saveAll(assignments);
-        verify(deviceAssigmentEntityProducerService).publish(info, false);
+        verify(deviceAssigmentEntityProducerService).publish(info);
         verify(flattenedDeviceAssignmentRepository).flush();
         verify(entityManager).clear();
     }
 
     @Test
     void saveAndPublishFlattenedAssignmentsBatch_shouldNotPublish_whenStatusIsSent() {
-        DeviceEntraMembership info = DeviceEntraMembership.builder()
-                .entraStatus(EntraStatus.SENT)
+        DeviceAzureInfo info = DeviceAzureInfo.builder()
+                .azureStatus(AzureStatus.SENT)
                 .build();
         FlattenedDeviceAssignment fda = FlattenedDeviceAssignment.builder()
                 .id(1L)
                 .assignmentId(10L)
-                .deviceEntraMembership(info)
+                .azureInfo(info)
                 .build();
 
         List<FlattenedDeviceAssignment> assignments = List.of(fda);
@@ -169,7 +166,7 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(assignments);
 
         verify(flattenedDeviceAssignmentRepository).saveAll(assignments);
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
+        verify(deviceAssigmentEntityProducerService, never()).publish(any());
     }
 
     @Test
@@ -185,8 +182,8 @@ class FlattenedDeviceAssignmentServiceTest {
         List<FlattenedDeviceAssignment> assignments = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             assignments.add(FlattenedDeviceAssignment.builder().id((long) i).assignmentId(1L)
-                    .deviceEntraMembership(DeviceEntraMembership.builder().deviceEntraId(UUID.randomUUID()).resourceEntraId(UUID.randomUUID())
-                            .entraStatus(EntraStatus.NOT_SENT).membershipStatus(MembershipStatus.ACTIVE).build()).build());
+                    .azureInfo(DeviceAzureInfo.builder().deviceAzureId(UUID.randomUUID()).resourceAzureId(UUID.randomUUID())
+                            .azureStatus(AzureStatus.NOT_SENT).kontrollStatus(KontrollStatus.ACTIVE).build()).build());
         }
 
         // Lenient stubbing because we call saveAll twice with sublists
@@ -207,11 +204,11 @@ class FlattenedDeviceAssignmentServiceTest {
 
         // Mocking FDA and AzureInfo to control the logic flow
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceAzureInfo azureInfo = mock(DeviceAzureInfo.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
+        when(fda.getAzureInfo()).thenReturn(azureInfo);
         // Important: this condition triggers the publish logic
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(azureInfo.getAzureStatus()).thenReturn(AzureStatus.SENT);
         when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
@@ -224,8 +221,8 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(flattenedDeviceAssignmentRepository).saveAll(any());
         verify(entityManager).flush();
 
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
-        verify(azureInfo).setMembershipStatus(MembershipStatus.INACTIVE);
+        verify(deviceAssigmentEntityProducerService).publish(azureInfo);
+        verify(azureInfo).setKontrollStatus(KontrollStatus.INACTIVE);
     }
 
     @Test
@@ -235,11 +232,11 @@ class FlattenedDeviceAssignmentServiceTest {
         assignment.setAssignmentRemovedDate(new Date());
 
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceAzureInfo azureInfo = mock(DeviceAzureInfo.class);
         FlattenedDeviceAssignment otherFda = mock(FlattenedDeviceAssignment.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(fda.getAzureInfo()).thenReturn(azureInfo);
+        when(azureInfo.getAzureStatus()).thenReturn(AzureStatus.SENT);
         when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(List.of(otherFda)); // Not empty
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
@@ -248,7 +245,7 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "reason");
 
         verify(flattenedDeviceAssignmentRepository).saveAll(any());
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
+        verify(deviceAssigmentEntityProducerService, never()).publish(any());
     }
 
     @Test
@@ -262,11 +259,11 @@ class FlattenedDeviceAssignmentServiceTest {
         FlattenedDeviceAssignment existingFda = FlattenedDeviceAssignment.builder()
                 .id(100L)
                 .deviceRef(10L)
-                .deviceEntraMembership(mock(DeviceEntraMembership.class))
+                .azureInfo(mock(DeviceAzureInfo.class))
                 .assignmentId(assignment.getId())
                 .build();
-        when(existingFda.getDeviceEntraMembership().getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
-        when(existingFda.getDeviceEntraMembership().getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(existingFda.getAzureInfo().getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
+        when(existingFda.getAzureInfo().getAzureStatus()).thenReturn(AzureStatus.SENT);
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(existingFda));
@@ -281,7 +278,7 @@ class FlattenedDeviceAssignmentServiceTest {
         when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(100L))
                 .thenReturn(List.of(membership20));
 
-        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(any(), any()))
+        when(deviceAzureInfoRepository.findByDeviceAzureIdAndResourceAzureId(any(), any()))
                 .thenReturn(Optional.empty());
 
         // Mock saving new
@@ -289,7 +286,6 @@ class FlattenedDeviceAssignmentServiceTest {
                 list.stream().anyMatch(f -> f.getDeviceRef() == 20L)
         ))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(deviceRepository.findById(any())).thenReturn(Optional.of(device20));
         flattenedDeviceAssignmentService.syncFlattenedAssignments(assignment);
 
         // Verify Termination of old (device 10)
@@ -299,17 +295,17 @@ class FlattenedDeviceAssignmentServiceTest {
 
         // Verify Creation of new (device 20)
         verify(flattenedDeviceAssignmentRepository).saveAll(argThat((List<FlattenedDeviceAssignment> list) ->
-                list.size() == 1 && list.getFirst().getDeviceRef() == 20L
+                list.size() == 1 && list.get(0).getDeviceRef() == 20L
         ));
     }
 
     @Test
     void deactivateAssignmentsForMembership_shouldTerminateAndPublish() {
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceAzureInfo azureInfo = mock(DeviceAzureInfo.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(fda.getAzureInfo()).thenReturn(azureInfo);
+        when(azureInfo.getAzureStatus()).thenReturn(AzureStatus.SENT);
         when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
 
         when(flattenedDeviceAssignmentRepository.findByDeviceRefAndAssignmentViaGroupRefAndTerminationDateIsNull(1L, 100L))
@@ -320,6 +316,6 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(fda).setTerminationDate(any());
         verify(fda).setTerminationReason("Role membership deactivated");
         verify(flattenedDeviceAssignmentRepository).saveAll(anyList());
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
+        verify(deviceAssigmentEntityProducerService).publish(azureInfo);
     }
 }
