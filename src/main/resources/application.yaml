@@ -13,7 +13,7 @@ fint:
           initial-delay: 2
           fixed-delay: 48
       deletion:
-          initial-delay: 2
+          initial-delay: 14
           fixed-delay: 48
       license-enforcement:
         hardstop-enable: true
