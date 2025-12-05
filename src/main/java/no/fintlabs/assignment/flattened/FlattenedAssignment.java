@@ -36,7 +36,6 @@ import java.util.UUID;
 @Table(name = "FlattenedAssignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
-@EntityListeners({AuditingEntityListener.class})
 public class FlattenedAssignment {
 
     @Id
@@ -63,10 +62,10 @@ public class FlattenedAssignment {
 
     private Instant createdDate;
     private Instant modifiedDate;
-    @CreatedBy
-    private String createdBy;
-    @LastModifiedBy
-    private String modifiedBy;
+//    @CreatedBy
+//    private String createdBy;
+//    @LastModifiedBy
+//    private String modifiedBy;
 
     @PrePersist
     public void onCreate() {
