@@ -14,6 +14,7 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 
 @Slf4j
@@ -138,6 +139,7 @@ public class AzureAdGroupMemberShipConsumer {
                     log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
                             assignment.getId());
                     assignment.setIdentityProviderGroupMembershipConfirmed(true);
+                    assignment.setModifiedDate(Instant.now());
                 })
                 .toList();
         FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
@@ -162,6 +164,7 @@ public class AzureAdGroupMemberShipConsumer {
                     assigmentEntityProducerService.publishDeletion(assignment);
                 } else {
                     assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+                    assignment.setModifiedDate(Instant.now());
                     toSave.add(assignment);
                 }
             });
