@@ -1,11 +1,6 @@
 package no.fintlabs.assignment.flattened;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +15,10 @@ import no.fintlabs.audit.AuditEntity;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.LastModifiedDate;
 
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -57,7 +55,10 @@ public class FlattenedAssignment extends AuditEntity {
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
     private String assignmentTerminationReason;
-
-    @UpdateTimestamp
     private Instant modifiedDate;
+
+    @PreUpdate
+    public void onUpdate() {
+        modifiedDate = ZonedDateTime.now(ZoneId.of("Europe/Paris")).toInstant();
+    }
 }
