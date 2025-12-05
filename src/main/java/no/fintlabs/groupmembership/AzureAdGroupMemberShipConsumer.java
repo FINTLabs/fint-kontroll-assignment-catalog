@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -47,6 +48,7 @@ public class AzureAdGroupMemberShipConsumer {
     }
 
     @Async
+    @Transactional
     void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
         AzureAdGroupMembership membership = record.value();
 
@@ -104,8 +106,7 @@ public class AzureAdGroupMemberShipConsumer {
     }
 
     private Optional<FlattenedAssignment> getNewest(List<FlattenedAssignment> flattenedAssignments) {
-        return flattenedAssignments.stream()
-                .max(Comparator.comparing(FlattenedAssignment::getId));
+        return flattenedAssignments.stream().max(Comparator.comparing(FlattenedAssignment::getId));
     }
 
 
