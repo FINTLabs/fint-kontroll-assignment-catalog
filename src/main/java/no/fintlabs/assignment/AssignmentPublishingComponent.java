@@ -30,15 +30,15 @@ public class AssignmentPublishingComponent {
                 .forEach(assigmentEntityProducerService::publish);
     }
 
-    @Scheduled(
-            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
-            timeUnit = TimeUnit.HOURS
-    )
-    public void publishDeletedFlattenedAssignments() {
-        log.info("Publishing deleted flattened assignments");
-
-        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
-                .forEach(assigmentEntityProducerService::publishDeletion);
-    }
+//    @Scheduled(
+//            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
+//            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
+//            timeUnit = TimeUnit.HOURS
+//    )
+//    public void publishDeletedFlattenedAssignments() {
+//        log.info("Publishing deleted flattened assignments");
+//
+//        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
+//                .forEach(assigmentEntityProducerService::publishDeletion);
+//    }
 }

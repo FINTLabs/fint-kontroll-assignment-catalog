@@ -132,7 +132,7 @@ public class AzureAdGroupMemberShipConsumer {
 
     private void handleValidMembershipUpdate(AzureAdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
         List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
-                .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
+                .filter(assignment -> assignment.getAssignmentTerminationDate() == null)
                 .peek(assignment -> {
                     log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
                             assignment.getId());
