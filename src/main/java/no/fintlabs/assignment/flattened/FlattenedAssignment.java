@@ -17,7 +17,10 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.audit.AuditEntity;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.LastModifiedDate;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
@@ -54,4 +57,7 @@ public class FlattenedAssignment extends AuditEntity {
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
     private String assignmentTerminationReason;
+
+    @UpdateTimestamp
+    private Instant modifiedDate;
 }
