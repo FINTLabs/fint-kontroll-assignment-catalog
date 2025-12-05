@@ -144,7 +144,7 @@ public class FlattenedAssignmentService {
             saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, false);
         }
     }
-
+    @Transactional
     public void saveFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate) {
         log.info("saveFlattened - Saving {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
