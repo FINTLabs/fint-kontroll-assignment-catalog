@@ -13,7 +13,11 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.audit.AuditEntity;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -32,7 +36,8 @@ import java.util.UUID;
 @Table(name = "FlattenedAssignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
-public class FlattenedAssignment extends AuditEntity {
+@EntityListeners({AuditingEntityListener.class})
+public class FlattenedAssignment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,10 +60,23 @@ public class FlattenedAssignment extends AuditEntity {
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
     private String assignmentTerminationReason;
+
+    private Instant createdDate;
     private Instant modifiedDate;
+    @CreatedBy
+    private String createdBy;
+    @LastModifiedBy
+    private String modifiedBy;
+
+    @PrePersist
+    public void onCreate() {
+        createdDate = Instant.now();
+        modifiedDate = Instant.now();
+    }
 
     @PreUpdate
     public void onUpdate() {
-        modifiedDate = ZonedDateTime.now(ZoneId.of("Europe/Paris")).toInstant();
+        modifiedDate = Instant.now();
     }
+
 }
