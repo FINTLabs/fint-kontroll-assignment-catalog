@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +38,14 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdentityProviderGroupMembershipConfirmedIsFalse();
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdIn(List<Long> ids);
+
+    @Query("""
+    SELECT f
+    FROM FlattenedAssignment f
+    WHERE f.assignmentTerminationDate IS NULL
+      AND (f.modifiedDate IS NULL OR f.modifiedDate < :before)
+    """)
+    List<FlattenedAssignment> findActiveAndNotModifiedSince(@Param("before") Instant before);
 
     List<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
 

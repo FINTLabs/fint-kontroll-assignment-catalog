@@ -25,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,6 +172,17 @@ public class AssignmentController {
         log.info("Selected {} flattened assignment to publish", ids.size());
 
         flattenedAssignmentService.republishSelectedFlattenedAssignments(ids);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    @OnlyDevelopers
+    @PostMapping("/republishnotmodifiedsince")
+    public ResponseEntity<HttpStatus> republishAllActiveNotModifiedSince(@Valid @RequestBody Instant date) {
+        log.info("Requested to republish assignments not modified since {}", date.toString());
+
+        flattenedAssignmentService.republishActiveNotModifiedSince(date);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

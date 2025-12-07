@@ -1,6 +1,7 @@
 package no.fintlabs.assignment.flattened;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
@@ -9,6 +10,7 @@ import no.fintlabs.user.User;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
@@ -355,6 +357,12 @@ public class FlattenedAssignmentService {
 
     public void republishSelectedFlattenedAssignments(List<Long> selectedIds) {
         flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdIn(selectedIds)
+                .parallelStream()
+                .forEach(assigmentEntityProducerService::publish);
+    }
+
+    public void republishActiveNotModifiedSince(Instant date) {
+        flattenedAssignmentRepository.findActiveAndNotModifiedSince(date)
                 .parallelStream()
                 .forEach(assigmentEntityProducerService::publish);
     }
