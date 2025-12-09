@@ -345,6 +345,7 @@ public class FlattenedAssignmentService {
         flattenedAssignments.forEach(flattenedAssignment -> flattenedAssignment.setIdentityProviderUserObjectId(user.getIdentityProviderUserObjectId()));
         flattenedAssignmentRepository.saveAll(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
+        flattenedAssignments.forEach(assigmentEntityProducerService::publish);
     }
 
     public void republishUnconfirmedFlattenedAssignments() {
