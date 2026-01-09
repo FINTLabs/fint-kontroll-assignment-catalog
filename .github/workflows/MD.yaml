@@ -73,7 +73,7 @@ jobs:
           echo "Environment: ${{ steps.environment.outputs.result }}"
           echo "OrgId: $ORG"
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - uses: actions/setup-java@v5
         with:
