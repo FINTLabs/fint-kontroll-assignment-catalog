@@ -27,7 +27,7 @@ public class AzureAdGroupDeviceMembershipConsumer {
     private final DeviceAzureInfoRepository deviceAzureInfoRepository;
     private final DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
 
-    @Bean
+   // @Bean TODO fix
     public ConcurrentMessageListenerContainer<String, AzureAdDeviceGroupMembership> azureAdDeviceMembershipConsumer(
             EventConsumerFactoryService eventConsumerFactoryService
     ) {
