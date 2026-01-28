@@ -105,7 +105,7 @@ public class AzureAdGroupMemberShipConsumer {
 
     private Optional<FlattenedAssignment> getNewest(List<FlattenedAssignment> flattenedAssignments) {
         return flattenedAssignments.stream()
-                .max(Comparator.comparing(FlattenedAssignment::getAssignmentCreationDate));
+                .max(Comparator.comparing(FlattenedAssignment::getId));
     }
 
 
