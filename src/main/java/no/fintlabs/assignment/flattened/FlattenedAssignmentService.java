@@ -297,19 +297,29 @@ public class FlattenedAssignmentService {
             flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
         });
     }
-
+//TODO optimize query to check existence only
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
 
         log.info("Checking if other active flattened assignment exists for user {} and resource {}",
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
-        List<FlattenedAssignment> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                flattenedAssignment.getAssignmentViaRoleRef(),
-                flattenedAssignment.getUserRef(),
-                flattenedAssignment.getResourceRef()
-        );
 
+        List<FlattenedAssignment> otherActiveAssignments = new ArrayList<>();
+        if (flattenedAssignment.getAssignmentViaRoleRef() == null) {
+           Optional<FlattenedAssignment> optionalFlattenedAssignment = flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                    flattenedAssignment.getUserRef(),
+                    flattenedAssignment.getResourceRef()
+            );
+            optionalFlattenedAssignment.ifPresent(otherActiveAssignments::add);
+        }
+        else {
+            otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotOrAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                    flattenedAssignment.getAssignmentViaRoleRef(),
+                    flattenedAssignment.getUserRef(),
+                    flattenedAssignment.getResourceRef()
+            );
+        }
         if (otherActiveAssignments.isEmpty()) {
             log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",
                     flattenedAssignment.getUserRef(),

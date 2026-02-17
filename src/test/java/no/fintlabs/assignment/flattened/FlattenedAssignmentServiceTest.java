@@ -148,7 +148,7 @@ public class FlattenedAssignmentServiceTest {
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
 
-        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotOrAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
                 .thenReturn(new ArrayList<>());
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
@@ -164,7 +164,7 @@ public class FlattenedAssignmentServiceTest {
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
 
-        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotOrAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
                 .thenReturn(List.of(new FlattenedAssignment()));
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
