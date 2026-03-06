@@ -35,6 +35,7 @@ public class Resource extends AuditEntity {
     private String resourceId;
     private String groupObjectId;
     private UUID identityProviderGroupObjectId;
+    private String identityProviderGroupName;
     private String resourceName;
     private String resourceType;
     private String licenseEnforcement;
