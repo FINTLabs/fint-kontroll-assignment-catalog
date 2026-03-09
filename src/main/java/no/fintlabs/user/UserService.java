@@ -4,9 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.role.AssignmentRoleService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,32 +29,39 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Page<User> findBySearchCriteria(Specification<User> spec, Pageable page) {
-        return userRepository.findAll(spec, page);
-    }
-
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 
-    public User updateUser(User user, User updatedUser) {
-        if (!user.convertedUserEquals(updatedUser)) {
+    public User updateUser(User existing, User updatedUser) {
+        if (!existing.convertedUserEquals(updatedUser)) {
             User savedUser = saveUser(updatedUser);
 
-            if (user.hasStatusChanged(updatedUser)) {
-                assignmentService.deactivateAssignmentsByUser(updatedUser);
+            if (statusChanged(existing, updatedUser) && !updatedUser.getStatus().equalsIgnoreCase("ACTIVE")) {
+                assignmentService.deactivateAssignmentsByUserId(updatedUser.getId());
             }
-            if (!updatedUser.getIdentityProviderUserObjectId().equals(user.getIdentityProviderUserObjectId())) {
+
+            if (!updatedUser.getIdentityProviderUserObjectId().equals(existing.getIdentityProviderUserObjectId())) {
                 assignmentService.updateAllAssignmentsOnUserChange(savedUser);
                 membershipService.updateUserMemberships(savedUser);
             }
             return savedUser;
         } else {
-            return user;
+            return existing;
         }
+    }
+
+    public boolean statusChanged(User existing, User incoming) {
+        return existing.getStatus() != null && !existing.getStatus().equalsIgnoreCase(incoming.getStatus());
     }
 
     public User saveUser(User user) {
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public void deactivateAssignmentsAndDeleteUser(Long userId) {
+        assignmentService.deactivateAssignmentsByUserId(userId);
+        userRepository.deleteById(userId);
     }
 }

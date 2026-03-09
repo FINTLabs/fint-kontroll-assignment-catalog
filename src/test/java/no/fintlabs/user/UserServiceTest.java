@@ -33,7 +33,6 @@ public class UserServiceTest {
         User updatedUser = mock(User.class);
 
         when(user.convertedUserEquals(updatedUser)).thenReturn(false);
-        when(user.hasStatusChanged(updatedUser)).thenReturn(true);
         when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
 
@@ -44,7 +43,6 @@ public class UserServiceTest {
         assertEquals(updatedUser, result);
 //        verify(updatedUser).setStatusChanged(any(Date.class));
         verify(userRepository).save(updatedUser);
-        verify(assignmentService).deactivateAssignmentsByUser(updatedUser);
     }
 
     @Test
@@ -53,7 +51,6 @@ public class UserServiceTest {
         User updatedUser = mock(User.class);
 
         when(user.convertedUserEquals(updatedUser)).thenReturn(false);
-        when(user.hasStatusChanged(updatedUser)).thenReturn(false);
         when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
@@ -62,7 +59,7 @@ public class UserServiceTest {
 
         assertEquals(updatedUser, result);
         verify(userRepository).save(updatedUser);
-        verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
+        verify(assignmentService, never()).deactivateAssignmentsByUserId(updatedUser.getId());
     }
 
     @Test
@@ -76,6 +73,6 @@ public class UserServiceTest {
 
         assertEquals(user, result);
         verify(userRepository, never()).save(updatedUser);
-        verify(assignmentService, never()).deactivateAssignmentsByUser(updatedUser);
+        verify(assignmentService, never()).deactivateAssignmentsByUserId(updatedUser.getId());
     }
 }

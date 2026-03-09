@@ -1,5 +1,6 @@
 package no.fintlabs.user;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
@@ -12,18 +13,12 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class UserConsumer {
 
     private final FintCache<Long, User> userCache;
 
     private final UserService userService;
-    private final AssignmentService assignmentService;
-
-    public UserConsumer(UserService userService, AssignmentService assignmentService, FintCache<Long, User> userCache) {
-        this.userCache = userCache;
-        this.userService = userService;
-        this.assignmentService = assignmentService;
-    }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, KontrollUser> userConsumerConfiguration(
@@ -41,9 +36,18 @@ public class UserConsumer {
 
     void process(ConsumerRecord<String, KontrollUser> consumerRecord) {
         KontrollUser kontrollUser = consumerRecord.value();
-        log.info("Processing user: {}", kontrollUser.getId());
+        if (kontrollUser == null) {
+            log.info("Skipping tombstone for key={}", consumerRecord.key());
+            return;
+        }
 
+        log.info("Processing user: {}", kontrollUser.getId());
         User convertedUser = UserMapper.fromKontrollUser(kontrollUser);
+
+        if ("DELETED".equalsIgnoreCase(convertedUser.getStatus())) {
+            handleDeletedUser(convertedUser);
+            return;
+        }
 
         userCache.getOptional(convertedUser.getId())
                 .ifPresentOrElse(
@@ -52,6 +56,13 @@ public class UserConsumer {
                 );
     }
 
+    private void handleDeletedUser(User user) {
+        log.info("User status=DELETED. Deactivating assignments and deleting user: {}", user.getId());
+
+        userService.deactivateAssignmentsAndDeleteUser(user.getId());
+
+        userCache.remove(user.getId());
+    }
     private void handleCachedUser(User cachedUser, User convertedUser) {
         if (!cachedUser.convertedUserEquals(convertedUser)) {
             updateUserInCache(convertedUser, "User found in cache, but not equal, updating user: {}");
@@ -74,8 +85,8 @@ public class UserConsumer {
                 );
     }
 
-    private void updateUser(User user, User updatedUser) {
-        User saveduser = userService.updateUser(user, updatedUser);
+    private void updateUser(User existing, User updatedUser) {
+        User saveduser = userService.updateUser(existing, updatedUser);
         userCache.put(saveduser.getId(), saveduser);
     }
 

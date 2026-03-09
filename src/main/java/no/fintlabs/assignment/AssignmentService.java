@@ -268,9 +268,8 @@ public class AssignmentService {
                 });
     }
 
-    public void deactivateAssignmentsByUser(User user) {
-        if (user.getStatus().equalsIgnoreCase("DISABLED") || user.getStatus().equalsIgnoreCase("INACTIVE")) {
-            getActiveAssignmentsByUser(user.getId())
+    public void deactivateAssignmentsByUserId(Long userId) {
+            getActiveAssignmentsByUser(userId)
                     .forEach(assignment -> {
                         log.info("Deactivating assignment with id: {}", assignment.getId());
                         assignment.setAssignmentRemovedDate(new Date());
@@ -280,7 +279,7 @@ public class AssignmentService {
                         log.info("Removed license from assignment {} : {}",
                                 assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
                     });
-        }
+
     }
 
     @Async

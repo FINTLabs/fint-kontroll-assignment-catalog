@@ -318,7 +318,7 @@ class AssignmentServiceTest {
         List<Assignment> assignments = List.of(assignment);
         when(assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(user.getId())).thenReturn(assignments);
 
-        assignmentService.deactivateAssignmentsByUser(user);
+        assignmentService.deactivateAssignmentsByUserId(user.getId());
 
         verify(assignmentRepository).saveAndFlush(assignment);
         verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment, "User is no longer active");

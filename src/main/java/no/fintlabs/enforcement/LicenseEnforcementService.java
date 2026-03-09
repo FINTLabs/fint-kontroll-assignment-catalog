@@ -74,7 +74,8 @@ public class LicenseEnforcementService {
         if (assignments.isEmpty()) {
             log.info("No assignment found for role {} with id : {}", role.getRoleName(), role.getId());
         }
-        Long difference = role.getNoOfMembers() - existingNoOfMembers;
+        Long roleNoOfMembers = role.getNoOfMembers() != null ? role.getNoOfMembers() : 0L;
+        Long difference = roleNoOfMembers - existingNoOfMembers;
 
         for (Assignment assignment : assignments) {
             updateAssignedLicense(assignment, difference);
