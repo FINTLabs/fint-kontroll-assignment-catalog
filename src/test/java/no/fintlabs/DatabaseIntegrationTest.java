@@ -25,5 +25,6 @@ public abstract class DatabaseIntegrationTest {
         registry.add("spring.flyway.user", postgreSQLContainer::getUsername);
         registry.add("spring.flyway.password", postgreSQLContainer::getPassword);
         registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("spring.flyway.baseline-on-migrate", () -> "true");
     }
 }
