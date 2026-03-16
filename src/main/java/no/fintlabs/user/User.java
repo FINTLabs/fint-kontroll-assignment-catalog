@@ -1,12 +1,7 @@
 package no.fintlabs.user;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,8 +12,10 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.audit.AuditEntity;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
@@ -28,29 +25,30 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString
-//@RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name = "Users")
+@Table(name = "users")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
-public class User extends AuditEntity {
+public class User {
 
     @Id
     private Long id;
-    private Long userRef;
-    private String userObjectId;
     private String userName;
     private UUID identityProviderUserObjectId;
     private String firstName;
     private String lastName;
     private String userType;
-    //private String displayName;
     private String organisationUnitId;
     private String organisationUnitName;
     private String status;
     private Date statusChanged;
+    @CreationTimestamp
+    @Column(updatable = false)
+    private Instant createdDate;
+    @UpdateTimestamp
+    private Instant modifiedDate;
 
     @OneToMany(mappedBy = "user",
             fetch = FetchType.LAZY,
@@ -71,13 +69,6 @@ public class User extends AuditEntity {
                 .organisationUnitId(organisationUnitId)
                 .organisationUnitName(organisationUnitName)
                 .build();
-    }
-
-    private Long getAssignmentId(Long resourceRef) {
-        return assignments.stream()
-                .filter(assignment -> assignment.getResourceRef().equals(resourceRef))
-                .map(Assignment::getId)
-                .toList().get(0);
     }
 
     public String getDisplayname() {
@@ -103,8 +94,6 @@ public class User extends AuditEntity {
         }
         final User user = (User) o;
         return Objects.equals(id, user.id) &&
-               Objects.equals(userRef, user.userRef) &&
-               Objects.equals(userObjectId, user.userObjectId) &&
                Objects.equals(userName, user.userName) &&
                Objects.equals(identityProviderUserObjectId, user.identityProviderUserObjectId) &&
                Objects.equals(firstName, user.firstName) &&
@@ -138,7 +127,7 @@ public class User extends AuditEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, userRef, userObjectId, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName, status, statusChanged);
+        return Objects.hash(id, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName, status, statusChanged);
     }
 }
 
