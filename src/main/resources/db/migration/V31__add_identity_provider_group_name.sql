@@ -1,0 +1,1 @@
+alter table assignment_resources ADD identity_provider_group_name varchar(255);
