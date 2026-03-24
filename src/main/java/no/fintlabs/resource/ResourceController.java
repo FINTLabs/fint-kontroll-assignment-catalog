@@ -31,33 +31,24 @@ public class ResourceController {
     }
 
     @GetMapping("role/{roleId}/resources")
-    public ResponseEntity<Map<String, Object>> getResourcesByRoleId(@AuthenticationPrincipal Jwt jwt,
+    public ResponseEntity<?> getResourcesByRoleId(@AuthenticationPrincipal Jwt jwt,
                                                                     @PathVariable Long roleId,
                                                                     @RequestParam(defaultValue = "0") int page,
                                                                     @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
                                                                     @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
                                                                     @RequestParam(value = "orgUnits", required = false) List<String> orgUnits,
-                                                                    @RequestParam(value = "search", required = false) String search
+                                                                    @RequestParam(value = "search", required = false) String search,
+                                                                    @RequestParam(value = "resourcefilter", required = false) List<Long> resourceIds
     ) {
+        if (roleId == null) {
+            return ResponseEntity.badRequest().body("roleId is required");
+        }
+
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
-        log.info("Fetching resources for role with Id: " + roleId);
-        return resourceResponseFactory.toResponseEntity(null, roleId, resourceType, orgUnits, orgUnitsInScope, search, page, size);
-    }
+        log.info("Fetching resources for roleId: {}", roleId);
 
-    @GetMapping("user/{userId}/resources")
-    public ResponseEntity<Map<String, Object>> getResourcesByUserId(@AuthenticationPrincipal Jwt jwt,
-                                                                    @PathVariable Long userId,
-                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
-                                                                    @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
-                                                                    @RequestParam(value = "orgUnits", required = false) List<String> orgUnits,
-                                                                    @RequestParam(value = "search", required = false) String search
-    ) {
-        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
-        log.info("Org units returned from scope: {}", orgUnitsInScope);
-        log.info("Fetching resources for user with Id: " + userId);
-        return resourceResponseFactory.toResponseEntity(userId, null, resourceType, orgUnits, orgUnitsInScope, search, page, size);
+        return resourceResponseFactory.toResponseEntity(null, roleId, resourceType, orgUnits, orgUnitsInScope, search, resourceIds, page, size);
     }
 
     @GetMapping("/v2/role/{roleId}/resources")
@@ -65,7 +56,7 @@ public class ResourceController {
                                                    @PathVariable Long roleId,
                                                    @RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                                ".pagesize:20}")
+                                                           ".pagesize:20}")
                                                    int size,
                                                    @RequestParam(value = "resourceType", defaultValue = "ALLTYPES")
                                                    String resourceType,
@@ -86,6 +77,23 @@ public class ResourceController {
                 userAssignmentResources = assignmentResourceService.findUserAssignmentResourcesByRole(roleId, resourceType, orgUnits, orgUnitsInScope, resourceIds, search, page, size);
 
         return ResourceResponseFactory.resourceAssignmentUsersToResponseEntity(userAssignmentResources);
+    }
+
+    @GetMapping("user/{userId}/resources")
+    public ResponseEntity<Map<String, Object>> getResourcesByUserId(@AuthenticationPrincipal Jwt jwt,
+                                                                    @PathVariable Long userId,
+                                                                    @RequestParam(defaultValue = "0") int page,
+                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+                                                                    @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
+                                                                    @RequestParam(value = "orgUnits", required = false) List<String> orgUnits,
+                                                                    @RequestParam(value = "search", required = false) String search
+    ) {
+        List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("user");
+        log.info("Org units returned from scope: {}", orgUnitsInScope);
+        log.info("Fetching resources for user with Id: " + userId);
+
+
+        return resourceResponseFactory.toResponseEntity(userId, null, resourceType, orgUnits, orgUnitsInScope, search, null, page, size);
     }
 
     @GetMapping("/v2/user/{userId}/resources")
