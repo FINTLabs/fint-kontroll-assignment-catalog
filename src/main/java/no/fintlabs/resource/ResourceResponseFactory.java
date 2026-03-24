@@ -24,10 +24,11 @@ public class ResourceResponseFactory {
             List<String> orgUnits,
             List<String> orgUnitsInScope,
             String searchString,
+            List<Long> resourceIds,
             int pageNumber,
             int pageSize
     ){
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(userId, roleId, resourceType, orgUnits, orgUnitsInScope,searchString);
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(userId, roleId, resourceType, orgUnits, orgUnitsInScope,searchString, resourceIds);
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,
                 Sort.by("resourceName").ascending());

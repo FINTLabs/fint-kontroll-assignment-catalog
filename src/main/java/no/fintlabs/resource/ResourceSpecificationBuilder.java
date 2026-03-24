@@ -15,6 +15,7 @@ public class ResourceSpecificationBuilder {
     private final List<String> orgUnits;
     private final List<String> orgUnitsInScope;
     private final String searchString;
+    private final List<Long> resourceIds;
 
     public ResourceSpecificationBuilder(
             Long userId,
@@ -22,7 +23,8 @@ public class ResourceSpecificationBuilder {
             String resourceType,
             List<String> orgUnits,
             List<String> orgUnitsInScope,
-            String searchString
+            String searchString,
+            List<Long> resourceIds
     ) {
         this.userId = userId;
         this.roleId = roleId;
@@ -30,6 +32,7 @@ public class ResourceSpecificationBuilder {
         this.orgUnits = orgUnits;
         this.orgUnitsInScope = orgUnitsInScope;
         this.searchString = searchString;
+        this.resourceIds = resourceIds;
     }
 
     public Specification<Resource> build() {
@@ -47,6 +50,9 @@ public class ResourceSpecificationBuilder {
         if (!isEmptyString(searchString)) {
             spec = spec.and(nameLike(searchString.toLowerCase()));
         }
+        if (resourceIds != null && !resourceIds.isEmpty()) {
+            spec = spec.and(resourceInResourceList(resourceIds));
+        }
 
         return spec;
     }
@@ -62,6 +68,10 @@ public class ResourceSpecificationBuilder {
 
     private Specification<Resource> belongsToOrgUnit(List<String> orgUnits) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("organisationUnitId")).value(orgUnits);
+
+    }
+    private Specification<Resource> resourceInResourceList(List<Long> resourceIds) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("id")).value(resourceIds);
 
     }
 
