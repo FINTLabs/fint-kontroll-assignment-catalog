@@ -46,7 +46,7 @@ public class ResourceController {
 
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
-        log.info("Fetching resources for roleId: {}", roleId);
+        log.info("Fetching resources for roleId: {} with this resource filter {}", roleId, resourceIds);
 
         return resourceResponseFactory.toResponseEntity(null, roleId, resourceType, orgUnits, orgUnitsInScope, search, resourceIds, page, size);
     }
