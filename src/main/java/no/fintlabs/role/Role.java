@@ -57,6 +57,7 @@ public class Role extends AuditEntity {
     @JsonManagedReference(value = "role-assignment")
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private Set<Assignment> assignments = new HashSet<>();
 
     public AssignmentRole toAssignmentRole() {

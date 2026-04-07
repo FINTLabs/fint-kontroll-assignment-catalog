@@ -1,5 +1,6 @@
 package no.fintlabs.membership;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
@@ -7,13 +8,13 @@ import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class MembershipConsumer {
 
     private final MembershipRepository membershipRepository;
@@ -22,11 +23,6 @@ public class MembershipConsumer {
 
     private final FintCache<String, Membership> membershipCache;
 
-    public MembershipConsumer(MembershipRepository membershipRepository, MembershipService membershipService, FintCache<String, Membership> membershipCache) {
-        this.membershipRepository = membershipRepository;
-        this.membershipCache = membershipCache;
-        this.membershipService = membershipService;
-    }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Membership> membershipConsumerConfiguration(
@@ -36,20 +32,33 @@ public class MembershipConsumer {
                         Membership.class,
                         this::processMemberships)
                 .createContainer(EntityTopicNameParameters.builder()
-                                         .resource("role-catalog-membership")
-                                         .build());
-        //container.setConcurrency(5);
+                        .resource("role-catalog-membership")
+                        .build());
         return container;
     }
 
-   // @Async
     void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
         Membership incomingMembership = consumerRecord.value();
-
+        if (incomingMembership == null) {
+            handleTombstone(consumerRecord.key());
+            return;
+        }
         membershipCache.getOptional(incomingMembership.getId())
                 .ifPresentOrElse(
                         cachedMembership -> handleCachedMembership(cachedMembership, incomingMembership)
                         , () -> handleMembership(incomingMembership));
+    }
+
+    private void handleTombstone(String key) {
+        log.info("Received tombstone for membership with id {}", key);
+        membershipRepository.findById(key).ifPresent(m ->
+                {
+                    membershipCache.remove(key);
+                    membershipService.deactivateFlattenedAssignmentsForMembership(m);
+                    membershipRepository.deleteById(key);
+                }
+        );
+
     }
 
     private void handleCachedMembership(Membership cachedMembership, Membership incomingMembership) {

@@ -91,9 +91,7 @@ public class User extends AuditEntity {
         return string == null || string.isEmpty();
     }
 
-    public boolean hasStatusChanged(User updatedUser) {
-        return getStatus() != null && !getStatus().equalsIgnoreCase(updatedUser.getStatus());
-    }
+
 
     @Override
     public boolean equals(Object o) {

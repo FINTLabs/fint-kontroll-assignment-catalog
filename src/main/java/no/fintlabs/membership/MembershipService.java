@@ -30,11 +30,11 @@ public class MembershipService {
         return membershipRepository.save(membership);
     }
 
-    public List<Membership> getMembersAssignedToRole(Specification specification) {
+    public List<Membership> getMembersAssignedToRole(Specification<Membership> specification) {
         return membershipRepository.findAll(specification);
     }
 
-    public List<Membership> getRolesAssignedToMember(Specification specification) {
+    public List<Membership> getRolesAssignedToMember(Specification<Membership> specification) {
         return membershipRepository.findAll(specification);
     }
 
