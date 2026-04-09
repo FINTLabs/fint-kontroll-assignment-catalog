@@ -60,7 +60,7 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
     public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull() {
 
         List<FlattenedAssignment> otherActiveFlattenedAssignments =
-                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotOrAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                         2L,
                         20L,
                         10L
@@ -73,7 +73,7 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
     public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull_should_return_empty_list() {
 
         List<FlattenedAssignment> otherActiveFlattenedAssignments =
-                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotOrAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                         2L,
                         10L,
                         10L
