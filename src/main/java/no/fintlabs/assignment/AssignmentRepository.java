@@ -20,6 +20,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
 
     List<Assignment> findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(Long deviceGroupId);
 
+    Optional<Assignment> findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(Long deviceGroupId, Long resourceId);
+
     List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(Long userId);
 
     List<Assignment> findAssignmentsByUserRefAndAssignmentRemovedDateIsNotNull(Long userId);
