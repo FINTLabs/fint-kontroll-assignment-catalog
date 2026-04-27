@@ -6,8 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.device.*;
-import no.fintlabs.device.azureInfo.DeviceAzureInfo;
-import no.fintlabs.device.azureInfo.DeviceAzureInfoRepository;
+import no.fintlabs.device.entraInfo.DeviceEntraInfo;
+import no.fintlabs.device.entraInfo.DeviceEntraInfoRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.springframework.scheduling.annotation.Async;
@@ -32,9 +32,8 @@ public class FlattenedDeviceAssignmentService {
     private final DeviceGroupMembershipRepository deviceGroupMembershipRepository;
     private final DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
     private final EntityManager entityManager;
-    private final DeviceAzureInfoRepository deviceAzureInfoRepository;
+    private final DeviceEntraInfoRepository deviceEntraInfoRepository;
     private final AssignmentRepository assignmentRepository;
-    private final DeviceRepository deviceRepository;
 
     @Async
     public void createAndPublishFlattenedAssignments(Assignment assignment) {
@@ -61,9 +60,9 @@ public class FlattenedDeviceAssignmentService {
             List<DeviceGroupMembership> memberships,
             Assignment assignment
     ) {
-        log.info("Preparing {} memberships from role {} for new assignment {} for flattened assignment creation",
+        log.info("Preparing {} memberships from deviceGroup {} for new assignment {} for flattened assignment creation",
                 memberships.size(),
-                assignment.getRoleRef(),
+                assignment.getDeviceGroupRef(),
                 assignment.getId());
 
         Set<FlattenedDeviceAssignment> flattenedAssignments = new HashSet<>();
@@ -85,13 +84,13 @@ public class FlattenedDeviceAssignmentService {
         flattenedAssignment.setIdentityProviderDeviceObjectId(deviceAzureId);
         flattenedAssignment.setDeviceRef(membership.getDevice().getId());
 
-        DeviceAzureInfo azureInfo = deviceAzureInfoRepository
+        DeviceEntraInfo azureInfo = deviceEntraInfoRepository
                 .findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId)
                 .map(this::getAzureInfoForNewFlattenedAssignment)
-                .orElseGet(() -> DeviceAzureInfo.builder()
+                .orElseGet(() -> DeviceEntraInfo.builder()
                         .deviceAzureId(deviceAzureId)
                         .resourceAzureId(resourceAzureId)
-                        .azureStatus(AzureStatus.NOT_SENT)
+                        .entraStatus(EntraStatus.NOT_SENT)
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
                 );
@@ -101,13 +100,13 @@ public class FlattenedDeviceAssignmentService {
         return flattenedAssignment;
     }
 
-    private DeviceAzureInfo getAzureInfoForNewFlattenedAssignment(DeviceAzureInfo info) {
+    private DeviceEntraInfo getAzureInfoForNewFlattenedAssignment(DeviceEntraInfo info) {
         boolean needsReset =
                 info.getKontrollStatus() == KontrollStatus.INACTIVE ||
-                        AzureStatus.inactiveStatuses().contains(info.getAzureStatus());
+                        EntraStatus.inactiveStatuses().contains(info.getEntraStatus());
 
         if (needsReset) {
-            info.setAzureStatus(AzureStatus.NOT_SENT);
+            info.setEntraStatus(EntraStatus.NOT_SENT);
             info.setKontrollStatus(KontrollStatus.ACTIVE);
             info.setSentToAzureAt(null);
             info.setDeletionSentToAzureAt(null);
@@ -136,8 +135,7 @@ public class FlattenedDeviceAssignmentService {
                             flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
 
-            log.info("saveAndPublish - Publishing {} new flattened assignments to azure", savedFlattened.size());
-            savedFlattened.stream().map(FlattenedDeviceAssignment::getAzureInfo).filter(deviceAzureInfo -> deviceAzureInfo.getAzureStatus().equals(AzureStatus.NOT_SENT))
+            savedFlattened.stream().map(FlattenedDeviceAssignment::getEntraInfo).filter(deviceAzureInfo -> deviceAzureInfo.getEntraStatus().equals(EntraStatus.NOT_SENT))
                     .distinct().forEach(deviceAssigmentEntityProducerService::publish);
 
             flattenedDeviceAssignmentRepository.flush();
@@ -165,10 +163,10 @@ public class FlattenedDeviceAssignmentService {
 
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedDeviceAssignment> flattenedDeviceAssignments) {
         flattenedDeviceAssignments.forEach(flattenedAssignment -> {
-            DeviceAzureInfo deviceAzureInfo = flattenedAssignment.getAzureInfo();
-            if (AzureStatus.activeStatuses().contains(deviceAzureInfo.getAzureStatus()) && deviceAzureInfo.getFlattenedDeviceAssignments().isEmpty()) {
-                deviceAzureInfo.setKontrollStatus(KontrollStatus.INACTIVE);
-                deviceAssigmentEntityProducerService.publish(deviceAzureInfo);
+            DeviceEntraInfo deviceEntraInfo = flattenedAssignment.getEntraInfo();
+            if (EntraStatus.activeStatuses().contains(deviceEntraInfo.getEntraStatus()) && deviceEntraInfo.getFlattenedDeviceAssignments().isEmpty()) {
+                deviceEntraInfo.setKontrollStatus(KontrollStatus.INACTIVE);
+                deviceAssigmentEntityProducerService.publish(deviceEntraInfo);
             }
         });
     }
@@ -263,7 +261,7 @@ public class FlattenedDeviceAssignmentService {
 
         for (FlattenedDeviceAssignment flattenedDeviceAssignment : assignments) {
             flattenedDeviceAssignment.setIdentityProviderDeviceObjectId(azureDeviceId);
-            flattenedDeviceAssignment.getAzureInfo().setDeviceAzureId(azureDeviceId);
+            flattenedDeviceAssignment.getEntraInfo().setDeviceAzureId(azureDeviceId);
         }
 
         log.info("Updated device azure id for {} flattened assignments", assignments.size());
@@ -271,7 +269,7 @@ public class FlattenedDeviceAssignmentService {
             @Override
             public void afterCommit() {
                 for (FlattenedDeviceAssignment assignment : assignments) {
-                    deviceAssigmentEntityProducerService.publish(assignment.getAzureInfo());
+                    deviceAssigmentEntityProducerService.publish(assignment.getEntraInfo());
                 }
             }
         });

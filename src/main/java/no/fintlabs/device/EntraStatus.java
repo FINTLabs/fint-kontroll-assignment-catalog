@@ -2,7 +2,7 @@ package no.fintlabs.device;
 
 import java.util.List;
 
-public enum AzureStatus {
+public enum EntraStatus {
     NOT_SENT,
     SENT,
     CONFIRMED,
@@ -12,10 +12,10 @@ public enum AzureStatus {
     ERROR,
     NEEDS_REPUBLISH;
 
-    public static List<AzureStatus> activeStatuses() {
+    public static List<EntraStatus> activeStatuses() {
         return List.of(NOT_SENT, SENT, CONFIRMED);
     }
-    public static List<AzureStatus> inactiveStatuses() {
+    public static List<EntraStatus> inactiveStatuses() {
         return List.of(TO_BE_DELETED, DELETION_SENT, DELETION_CONFIRMED);
     }
 }
