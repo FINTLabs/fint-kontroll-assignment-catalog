@@ -1,8 +1,8 @@
-package no.fintlabs.device.azureInfo;
+package no.fintlabs.device.entraInfo;
 
 import jakarta.persistence.*;
 import lombok.*;
-import no.fintlabs.device.AzureStatus;
+import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.KontrollStatus;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Getter
 @Setter
-public class DeviceAzureInfo {
+public class DeviceEntraInfo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +31,7 @@ public class DeviceAzureInfo {
     private UUID resourceAzureId;
     @Enumerated(EnumType.STRING)
     @Column(name = "azure_status", nullable = false)
-    private AzureStatus azureStatus;
+    private EntraStatus entraStatus;
     @Enumerated(EnumType.STRING)
     @Column(name = "kontroll_status", nullable = false)
     private KontrollStatus kontrollStatus;
@@ -42,14 +42,14 @@ public class DeviceAzureInfo {
     @Column(name = "created_date", nullable = false)
     private Date createdDate;
 
-    @OneToMany(mappedBy = "azureInfo", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "entraInfo", cascade = CascadeType.PERSIST)
     @SQLRestriction("termination_date IS NULL")
     @Builder.Default
     private List<FlattenedDeviceAssignment> flattenedDeviceAssignments = new ArrayList<>();
 
     public void addFlattenedAssignment(FlattenedDeviceAssignment assignment) {
         flattenedDeviceAssignments.add(assignment);
-        assignment.setAzureInfo(this);
+        assignment.setEntraInfo(this);
     }
 
 

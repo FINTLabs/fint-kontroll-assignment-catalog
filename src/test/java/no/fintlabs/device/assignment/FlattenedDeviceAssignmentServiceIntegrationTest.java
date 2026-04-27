@@ -2,12 +2,12 @@ package no.fintlabs.device.assignment;
 
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.AzureStatus;
+import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import no.fintlabs.device.KontrollStatus;
-import no.fintlabs.device.azureInfo.DeviceAzureInfo;
-import no.fintlabs.device.azureInfo.DeviceAzureInfoRepository;
+import no.fintlabs.device.entraInfo.DeviceEntraInfo;
+import no.fintlabs.device.entraInfo.DeviceEntraInfoRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
 
     @Autowired
-    private DeviceAzureInfoRepository deviceAzureInfoRepository;
+    private DeviceEntraInfoRepository deviceEntraInfoRepository;
 
     @Autowired
     private TestEntityManager testEntityManager;
@@ -100,15 +100,15 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(fda.getIdentityProviderDeviceObjectId()).isEqualTo(deviceAzureId);
 
         // Assert azure info persisted/linked
-        DeviceAzureInfo azureInfo = fda.getAzureInfo();
+        DeviceEntraInfo azureInfo = fda.getEntraInfo();
         assertThat(azureInfo).isNotNull();
         assertThat(azureInfo.getId()).isNotNull();
         assertThat(azureInfo.getDeviceAzureId()).isEqualTo(deviceAzureId);
         assertThat(azureInfo.getResourceAzureId()).isEqualTo(resourceAzureId);
-        assertThat(azureInfo.getAzureStatus()).isEqualTo(AzureStatus.NOT_SENT);
+        assertThat(azureInfo.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
         assertThat(azureInfo.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceAzureInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
     }
 
     @Test
@@ -120,11 +120,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceAzureInfo existing = deviceAzureInfoRepository.saveAndFlush(
-                DeviceAzureInfo.builder()
+        DeviceEntraInfo existing = deviceEntraInfoRepository.saveAndFlush(
+                DeviceEntraInfo.builder()
                         .deviceAzureId(deviceAzureId)
                         .resourceAzureId(resourceAzureId)
-                        .azureStatus(AzureStatus.SENT)
+                        .entraStatus(EntraStatus.SENT)
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
         );
@@ -155,12 +155,12 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         List<FlattenedDeviceAssignment> allFlattened = flattenedDeviceAssignmentRepository.findAll();
         assertThat(allFlattened).hasSize(1);
 
-        DeviceAzureInfo used = allFlattened.getFirst().getAzureInfo();
+        DeviceEntraInfo used = allFlattened.getFirst().getEntraInfo();
         assertThat(used.getId()).isEqualTo(existing.getId());
-        assertThat(used.getAzureStatus()).isEqualTo(AzureStatus.SENT);
+        assertThat(used.getEntraStatus()).isEqualTo(EntraStatus.SENT);
         assertThat(used.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceAzureInfo.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraInfo.class));
     }
 
     @Test
@@ -172,11 +172,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceAzureInfo existing = deviceAzureInfoRepository.saveAndFlush(
-                DeviceAzureInfo.builder()
+        DeviceEntraInfo existing = deviceEntraInfoRepository.saveAndFlush(
+                DeviceEntraInfo.builder()
                         .deviceAzureId(deviceAzureId)
                         .resourceAzureId(resourceAzureId)
-                        .azureStatus(AzureStatus.DELETION_SENT)
+                        .entraStatus(EntraStatus.DELETION_SENT)
                         .kontrollStatus(KontrollStatus.INACTIVE)
                         .sentToAzureAt(new Date())
                         .deletionSentToAzureAt(new Date())
@@ -206,13 +206,13 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         var flattened = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattened.stream().toList());
 
-        DeviceAzureInfo refreshed = deviceAzureInfoRepository.findById(existing.getId()).orElseThrow();
-        assertThat(refreshed.getAzureStatus()).isEqualTo(AzureStatus.NOT_SENT);
+        DeviceEntraInfo refreshed = deviceEntraInfoRepository.findById(existing.getId()).orElseThrow();
+        assertThat(refreshed.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
         assertThat(refreshed.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
         assertThat(refreshed.getSentToAzureAt()).isNull();
         assertThat(refreshed.getDeletionSentToAzureAt()).isNull();
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceAzureInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
     }
 
     @Test
@@ -223,11 +223,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceAzureInfo info = deviceAzureInfoRepository.saveAndFlush(
-                DeviceAzureInfo.builder()
+        DeviceEntraInfo info = deviceEntraInfoRepository.saveAndFlush(
+                DeviceEntraInfo.builder()
                         .deviceAzureId(deviceAzureId)
                         .resourceAzureId(resourceAzureId)
-                        .azureStatus(AzureStatus.SENT)
+                        .entraStatus(EntraStatus.SENT)
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
         );
@@ -285,11 +285,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceAzureInfo info = deviceAzureInfoRepository.saveAndFlush(
-                DeviceAzureInfo.builder()
+        DeviceEntraInfo info = deviceEntraInfoRepository.saveAndFlush(
+                DeviceEntraInfo.builder()
                         .deviceAzureId(deviceAzureId)
                         .resourceAzureId(resourceAzureId)
-                        .azureStatus(AzureStatus.SENT) // must be "active" for deletion publish branch
+                        .entraStatus(EntraStatus.SENT) // must be "active" for deletion publish branch
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
         );
@@ -336,10 +336,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(a1, "first-termination");
 
         // DeviceAzureInfo should NOT be marked inactive yet (one active assignment remains)
-        DeviceAzureInfo afterFirst = deviceAzureInfoRepository.findById(info.getId()).orElseThrow();
+        DeviceEntraInfo afterFirst = deviceEntraInfoRepository.findById(info.getId()).orElseThrow();
         assertThat(afterFirst.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceAzureInfo.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraInfo.class));
 
         // Reset mock interactions to only assert behavior for the second termination
         clearInvocations(deviceAssigmentEntityProducerService);
@@ -355,10 +355,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
 
         // Now there are no active assignments => DeviceAzureInfo becomes INACTIVE and publish happens
-        DeviceAzureInfo afterSecond = deviceAzureInfoRepository.findById(info.getId()).orElseThrow();
+        DeviceEntraInfo afterSecond = deviceEntraInfoRepository.findById(info.getId()).orElseThrow();
         assertThat(afterSecond.getKontrollStatus()).isEqualTo(KontrollStatus.INACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceAzureInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
     }
 
 }

@@ -128,7 +128,7 @@ public class DeviceAssignmentService {
     }
 
     private boolean existingDeviceGroupAssignment(Long deviceGroupRef, Long resourceRef) {
-        return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
+        return assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
     }
 
     public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
