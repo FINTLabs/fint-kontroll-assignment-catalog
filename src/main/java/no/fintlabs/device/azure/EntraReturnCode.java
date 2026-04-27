@@ -1,6 +1,6 @@
 package no.fintlabs.device.azure;
 
-public enum AzureReturnCode {
+public enum EntraReturnCode {
     ADDED,
     REMOVED,
     ERROR,
