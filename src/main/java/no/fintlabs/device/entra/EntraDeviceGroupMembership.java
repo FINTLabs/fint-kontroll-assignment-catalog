@@ -1,4 +1,4 @@
-package no.fintlabs.device.azure;
+package no.fintlabs.device.entra;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,15 +13,15 @@ import java.util.UUID;
 @Builder
 public class EntraDeviceGroupMembership {
     private EntraReturnCode code;
-    private UUID entraResourceRef;
+    private UUID entraGroupRef;
     private UUID entraDeviceRef;
 
     @JsonCreator
     public EntraDeviceGroupMembership(@JsonProperty("code") EntraReturnCode code,
-                                      @JsonProperty("entraResourceRef") UUID entraResourceRef,
+                                      @JsonProperty("entraGroupRef") UUID entraGroupRef,
                                       @JsonProperty("entraDeviceRef") UUID entraDeviceRef) {
         this.code = code;
-        this.entraResourceRef = entraResourceRef;
+        this.entraGroupRef = entraGroupRef;
         this.entraDeviceRef = entraDeviceRef;
     }
 }

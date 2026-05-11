@@ -1,4 +1,4 @@
-package no.fintlabs.device.entraInfo;
+package no.fintlabs.device.entra;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,21 +14,21 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "device_azure_info")
+@Table(name = "device_entra_membership")
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class DeviceEntraInfo {
+public class DeviceEntraMembership {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "device_azure_id", nullable = false)
-    private UUID deviceAzureId;
-    @Column(name = "resource_azure_id", nullable = false)
-    private UUID resourceAzureId;
+    @Column(name = "device_entra_id", nullable = false)
+    private UUID deviceEntraId;
+    @Column(name = "resource_entra_id", nullable = false)
+    private UUID resourceEntraId;
     @Enumerated(EnumType.STRING)
     @Column(name = "azure_status", nullable = false)
     private EntraStatus entraStatus;
@@ -42,14 +42,14 @@ public class DeviceEntraInfo {
     @Column(name = "created_date", nullable = false)
     private Date createdDate;
 
-    @OneToMany(mappedBy = "entraInfo", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "deviceEntraMembership", cascade = CascadeType.PERSIST)
     @SQLRestriction("termination_date IS NULL")
     @Builder.Default
     private List<FlattenedDeviceAssignment> flattenedDeviceAssignments = new ArrayList<>();
 
     public void addFlattenedAssignment(FlattenedDeviceAssignment assignment) {
         flattenedDeviceAssignments.add(assignment);
-        assignment.setEntraInfo(this);
+        assignment.setDeviceEntraMembership(this);
     }
 
 
