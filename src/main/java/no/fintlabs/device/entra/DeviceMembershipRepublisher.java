@@ -23,13 +23,13 @@ public class DeviceMembershipRepublisher {
     public void republishFailedAssignments() {
         List<DeviceEntraMembership> deviceEntraMemberships = deviceEntraMembershipRepository.findAllByEntraStatus(EntraStatus.NEEDS_REPUBLISH);
         log.info("Sending to kafka device assignments that need republishing. Found {} entries", deviceEntraMemberships.size());
-        deviceEntraMemberships.forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
+        deviceEntraMemberships.forEach(deviceAssigmentEntityProducerService::publish);
     }
 
     public void republishErrorAssignmentsForDevice(Device device) {
         List<DeviceEntraMembership> deviceEntraMemberships = deviceEntraMembershipRepository.findAllByEntraStatusAndDeviceEntraId(EntraStatus.ERROR, UUID.fromString(device.getSourceId()));
         log.info("Sending to kafka device with id {} assignments that returned an error before. Found {} entries", device.getId(), deviceEntraMemberships.size());
-        deviceEntraMemberships.forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, true));
+        deviceEntraMemberships.forEach(deviceAssigmentEntityProducerService::publish);
     }
 
 

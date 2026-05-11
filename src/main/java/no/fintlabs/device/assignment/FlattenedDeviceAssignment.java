@@ -2,7 +2,7 @@ package no.fintlabs.device.assignment;
 
 import jakarta.persistence.*;
 import lombok.*;
-import no.fintlabs.device.entraInfo.DeviceEntraInfo;
+import no.fintlabs.device.entra.DeviceEntraMembership;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -42,7 +42,7 @@ public class FlattenedDeviceAssignment  {
     private Date modifiedDate;
 
     @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "azure_info_id", updatable = false)
-    private DeviceEntraInfo entraInfo;
+    @JoinColumn(name = "device_entra_membership_id", updatable = false)
+    private DeviceEntraMembership deviceEntraMembership;
 
 }

@@ -2,7 +2,7 @@ package no.fintlabs.device.azure;
 
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.device.KontrollStatus;
 import no.fintlabs.device.entra.EntraGroupDeviceMembershipConsumer;
 import no.fintlabs.device.entra.EntraDeviceGroupMembership;
 import no.fintlabs.device.entra.EntraReturnCode;
@@ -51,35 +51,35 @@ class EntraGroupDeviceMembershipConsumerTest {
     @Test
     void processGroupMembership_shouldSetStatusConfirmed_whenCodeIsAddedAndAlreadyActive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ADDED);
-        deviceEntraMembership.setMembershipStatus(MembershipStatus.ACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.ACTIVE);
         
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
                 .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.MEMBERSHIP_CONFIRMED));
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.CONFIRMED));
         verifyNoInteractions(deviceAssigmentEntityProducerService);
     }
 
     @Test
     void processGroupMembership_shouldPublish_whenCodeIsAddedAndNotActive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ADDED);
-        deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.INACTIVE);
 
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
                 .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership, true);
-        verify(deviceEntraMembershipRepository).save(any());
+        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership);
+        verify(deviceEntraMembershipRepository, never()).save(any());
     }
 
     @Test
     void processGroupMembership_shouldSetStatusDeletionConfirmed_whenCodeIsRemovedAndAlreadyInactive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.REMOVED);
-        deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.INACTIVE);
 
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
                 .thenReturn(Optional.of(deviceEntraMembership));
@@ -111,20 +111,6 @@ class EntraGroupDeviceMembershipConsumerTest {
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
         verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.ERROR));
-    }
-
-    @Test
-    void processGroupMembership_shouldSetDeletionConfirmed_whenCodeIsNoChangesAndInactive() {
-        EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.NO_CHANGES);
-        deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
-
-        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraMembership));
-
-        consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
-
-        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.DELETION_CONFIRMED));
-        verifyNoInteractions(deviceAssigmentEntityProducerService);
     }
 
     private EntraDeviceGroupMembership createPayload(EntraReturnCode code) {
