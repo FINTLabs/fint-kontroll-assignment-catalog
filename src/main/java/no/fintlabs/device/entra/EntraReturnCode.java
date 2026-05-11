@@ -1,4 +1,4 @@
-package no.fintlabs.device.azure;
+package no.fintlabs.device.entra;
 
 public enum EntraReturnCode {
     ADDED,
