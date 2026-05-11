@@ -107,7 +107,7 @@ class DeviceAssignmentServiceTest {
         Resource r = resource(1L, "R", UUID.randomUUID());
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
 
-        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
                 .thenReturn(Optional.of(new Assignment()));
 
         assertThrows(ConflictException.class, () ->
@@ -126,9 +126,6 @@ class DeviceAssignmentServiceTest {
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
-
-        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
-                .thenReturn(Optional.empty());
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
@@ -152,9 +149,6 @@ class DeviceAssignmentServiceTest {
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
-
-        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
-                .thenReturn(Optional.empty());
 
         NearestResourceLocationDto nearest = mock(NearestResourceLocationDto.class);
         when(nearest.orgUnitId()).thenReturn("nearest-ou");
@@ -193,9 +187,6 @@ class DeviceAssignmentServiceTest {
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
-
-        when(assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
-                .thenReturn(Optional.empty());
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());

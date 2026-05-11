@@ -1,7 +1,7 @@
 package no.fintlabs.device;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.device.entraInfo.DeviceEntraInfo;
+import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.kafka.event.EventProducer;
 import no.fintlabs.kafka.event.EventProducerFactory;
 import no.fintlabs.kafka.event.EventProducerRecord;
@@ -34,19 +34,19 @@ public class DeviceAssigmentEntityProducerService {
         entityTopicService.ensureTopic(resourceGroupMembershipTopicNameParameters, 0);
     }
 
-    public void publish(DeviceEntraInfo deviceEntraInfo) {
-        if (deviceEntraInfo.getEntraStatus().equals(EntraStatus.ERROR)) {
-            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraInfo.getId());
+    public void publish(DeviceEntraMembership deviceEntraMembership) {
+        if (deviceEntraMembership.getEntraStatus().equals(EntraStatus.ERROR)) {
+            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
         }
-        log.info("Publishing to Azure - deviceEntraInfo: {}", deviceEntraInfo);
-        if (deviceEntraInfo.getKontrollStatus().equals(KontrollStatus.ACTIVE)) {
-            publish(deviceEntraInfo.getResourceAzureId(), deviceEntraInfo.getDeviceAzureId(), OperationType.ADD);
-            deviceEntraInfo.setEntraStatus(EntraStatus.SENT);
-            deviceEntraInfo.setSentToAzureAt(new Date());
+        log.info("Publishing to Azure - deviceEntraInfo: {}", deviceEntraMembership);
+        if (deviceEntraMembership.getKontrollStatus().equals(KontrollStatus.ACTIVE)) {
+            publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
+            deviceEntraMembership.setEntraStatus(EntraStatus.SENT);
+            deviceEntraMembership.setSentToAzureAt(new Date());
         } else {
-            publish(deviceEntraInfo.getResourceAzureId(), deviceEntraInfo.getDeviceAzureId(), OperationType.REMOVE);
-            deviceEntraInfo.setEntraStatus(EntraStatus.DELETION_SENT);
-            deviceEntraInfo.setDeletionSentToAzureAt(new Date());
+            publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.REMOVE);
+            deviceEntraMembership.setEntraStatus(EntraStatus.DELETION_SENT);
+            deviceEntraMembership.setDeletionSentToAzureAt(new Date());
         }
     }
 
