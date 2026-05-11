@@ -6,8 +6,8 @@ import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import no.fintlabs.device.KontrollStatus;
-import no.fintlabs.device.entraInfo.DeviceEntraInfo;
-import no.fintlabs.device.entraInfo.DeviceEntraInfoRepository;
+import no.fintlabs.device.entra.DeviceEntraMembership;
+import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
 
     @Autowired
-    private DeviceEntraInfoRepository deviceEntraInfoRepository;
+    private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     @Autowired
     private TestEntityManager testEntityManager;
@@ -100,15 +100,15 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(fda.getIdentityProviderDeviceObjectId()).isEqualTo(deviceAzureId);
 
         // Assert azure info persisted/linked
-        DeviceEntraInfo azureInfo = fda.getEntraInfo();
+        DeviceEntraMembership azureInfo = fda.getDeviceEntraMembership();
         assertThat(azureInfo).isNotNull();
         assertThat(azureInfo.getId()).isNotNull();
-        assertThat(azureInfo.getDeviceAzureId()).isEqualTo(deviceAzureId);
-        assertThat(azureInfo.getResourceAzureId()).isEqualTo(resourceAzureId);
+        assertThat(azureInfo.getDeviceEntraId()).isEqualTo(deviceAzureId);
+        assertThat(azureInfo.getResourceEntraId()).isEqualTo(resourceAzureId);
         assertThat(azureInfo.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
         assertThat(azureInfo.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
     }
 
     @Test
@@ -120,10 +120,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceEntraInfo existing = deviceEntraInfoRepository.saveAndFlush(
-                DeviceEntraInfo.builder()
-                        .deviceAzureId(deviceAzureId)
-                        .resourceAzureId(resourceAzureId)
+        DeviceEntraMembership existing = deviceEntraMembershipRepository.saveAndFlush(
+                DeviceEntraMembership.builder()
+                        .deviceEntraId(deviceAzureId)
+                        .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT)
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
@@ -155,12 +155,12 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         List<FlattenedDeviceAssignment> allFlattened = flattenedDeviceAssignmentRepository.findAll();
         assertThat(allFlattened).hasSize(1);
 
-        DeviceEntraInfo used = allFlattened.getFirst().getEntraInfo();
+        DeviceEntraMembership used = allFlattened.getFirst().getDeviceEntraMembership();
         assertThat(used.getId()).isEqualTo(existing.getId());
         assertThat(used.getEntraStatus()).isEqualTo(EntraStatus.SENT);
         assertThat(used.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraInfo.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class));
     }
 
     @Test
@@ -172,10 +172,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceEntraInfo existing = deviceEntraInfoRepository.saveAndFlush(
-                DeviceEntraInfo.builder()
-                        .deviceAzureId(deviceAzureId)
-                        .resourceAzureId(resourceAzureId)
+        DeviceEntraMembership existing = deviceEntraMembershipRepository.saveAndFlush(
+                DeviceEntraMembership.builder()
+                        .deviceEntraId(deviceAzureId)
+                        .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.DELETION_SENT)
                         .kontrollStatus(KontrollStatus.INACTIVE)
                         .sentToAzureAt(new Date())
@@ -206,13 +206,13 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         var flattened = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattened.stream().toList());
 
-        DeviceEntraInfo refreshed = deviceEntraInfoRepository.findById(existing.getId()).orElseThrow();
+        DeviceEntraMembership refreshed = deviceEntraMembershipRepository.findById(existing.getId()).orElseThrow();
         assertThat(refreshed.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
         assertThat(refreshed.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
         assertThat(refreshed.getSentToAzureAt()).isNull();
         assertThat(refreshed.getDeletionSentToAzureAt()).isNull();
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
     }
 
     @Test
@@ -223,10 +223,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceEntraInfo info = deviceEntraInfoRepository.saveAndFlush(
-                DeviceEntraInfo.builder()
-                        .deviceAzureId(deviceAzureId)
-                        .resourceAzureId(resourceAzureId)
+        DeviceEntraMembership info = deviceEntraMembershipRepository.saveAndFlush(
+                DeviceEntraMembership.builder()
+                        .deviceEntraId(deviceAzureId)
+                        .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT)
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
@@ -238,7 +238,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceRef(40L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(resourceAzureId)
-                        .azureInfo(info)
+                        .deviceEntraMembership(info)
                         .assignmentCreationDate(new Date())
                         .terminationDate(null)
                         .build()
@@ -285,10 +285,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         UUID deviceAzureId = UUID.randomUUID();
         UUID resourceAzureId = UUID.randomUUID();
 
-        DeviceEntraInfo info = deviceEntraInfoRepository.saveAndFlush(
-                DeviceEntraInfo.builder()
-                        .deviceAzureId(deviceAzureId)
-                        .resourceAzureId(resourceAzureId)
+        DeviceEntraMembership info = deviceEntraMembershipRepository.saveAndFlush(
+                DeviceEntraMembership.builder()
+                        .deviceEntraId(deviceAzureId)
+                        .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT) // must be "active" for deletion publish branch
                         .kontrollStatus(KontrollStatus.ACTIVE)
                         .build()
@@ -304,7 +304,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceRef(1L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(resourceAzureId)
-                        .azureInfo(info)
+                        .deviceEntraMembership(info)
                         .assignmentCreationDate(new Date())
                         .terminationDate(null)
                         .build()
@@ -316,7 +316,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceRef(1L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(resourceAzureId)
-                        .azureInfo(info)
+                        .deviceEntraMembership(info)
                         .assignmentCreationDate(new Date())
                         .terminationDate(null)
                         .build()
@@ -336,10 +336,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(a1, "first-termination");
 
         // DeviceAzureInfo should NOT be marked inactive yet (one active assignment remains)
-        DeviceEntraInfo afterFirst = deviceEntraInfoRepository.findById(info.getId()).orElseThrow();
+        DeviceEntraMembership afterFirst = deviceEntraMembershipRepository.findById(info.getId()).orElseThrow();
         assertThat(afterFirst.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraInfo.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class));
 
         // Reset mock interactions to only assert behavior for the second termination
         clearInvocations(deviceAssigmentEntityProducerService);
@@ -355,10 +355,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
 
         // Now there are no active assignments => DeviceAzureInfo becomes INACTIVE and publish happens
-        DeviceEntraInfo afterSecond = deviceEntraInfoRepository.findById(info.getId()).orElseThrow();
+        DeviceEntraMembership afterSecond = deviceEntraMembershipRepository.findById(info.getId()).orElseThrow();
         assertThat(afterSecond.getKontrollStatus()).isEqualTo(KontrollStatus.INACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraInfo.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
     }
 
 }
