@@ -3,8 +3,11 @@ package no.fintlabs.device.azure;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import no.fintlabs.device.KontrollStatus;
-import no.fintlabs.device.entraInfo.DeviceEntraInfo;
-import no.fintlabs.device.entraInfo.DeviceEntraInfoRepository;
+import no.fintlabs.device.entra.EntraGroupDeviceMembershipConsumer;
+import no.fintlabs.device.entra.EntraDeviceGroupMembership;
+import no.fintlabs.device.entra.EntraReturnCode;
+import no.fintlabs.device.entra.DeviceEntraMembership;
+import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,100 +23,100 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AzureAdGroupDeviceMembershipConsumerTest {
+class EntraGroupDeviceMembershipConsumerTest {
 
     @Mock
-    private DeviceEntraInfoRepository deviceEntraInfoRepository;
+    private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     @Mock
     private DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
 
     @InjectMocks
-    private AzureAdGroupDeviceMembershipConsumer consumer;
+    private EntraGroupDeviceMembershipConsumer consumer;
 
     private UUID deviceAzureId;
     private UUID resourceAzureId;
-    private DeviceEntraInfo deviceEntraInfo;
+    private DeviceEntraMembership deviceEntraMembership;
 
     @BeforeEach
     void setUp() {
         deviceAzureId = UUID.randomUUID();
         resourceAzureId = UUID.randomUUID();
-        deviceEntraInfo = DeviceEntraInfo.builder()
-                .deviceAzureId(deviceAzureId)
-                .resourceAzureId(resourceAzureId)
+        deviceEntraMembership = DeviceEntraMembership.builder()
+                .deviceEntraId(deviceAzureId)
+                .resourceEntraId(resourceAzureId)
                 .build();
     }
 
     @Test
     void processGroupMembership_shouldSetStatusConfirmed_whenCodeIsAddedAndAlreadyActive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ADDED);
-        deviceEntraInfo.setKontrollStatus(KontrollStatus.ACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.ACTIVE);
         
-        when(deviceEntraInfoRepository.findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraInfo));
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
+                .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceEntraInfoRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.CONFIRMED));
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.CONFIRMED));
         verifyNoInteractions(deviceAssigmentEntityProducerService);
     }
 
     @Test
     void processGroupMembership_shouldPublish_whenCodeIsAddedAndNotActive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ADDED);
-        deviceEntraInfo.setKontrollStatus(KontrollStatus.INACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.INACTIVE);
 
-        when(deviceEntraInfoRepository.findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraInfo));
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
+                .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceAssigmentEntityProducerService).publish(deviceEntraInfo);
-        verify(deviceEntraInfoRepository, never()).save(any());
+        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership);
+        verify(deviceEntraMembershipRepository, never()).save(any());
     }
 
     @Test
     void processGroupMembership_shouldSetStatusDeletionConfirmed_whenCodeIsRemovedAndAlreadyInactive() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.REMOVED);
-        deviceEntraInfo.setKontrollStatus(KontrollStatus.INACTIVE);
+        deviceEntraMembership.setKontrollStatus(KontrollStatus.INACTIVE);
 
-        when(deviceEntraInfoRepository.findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraInfo));
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
+                .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceEntraInfoRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.DELETION_CONFIRMED));
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.DELETION_CONFIRMED));
     }
 
     @Test
     void processGroupMembership_shouldSetStatusNeedsRepublish_whenCodeIsFailed() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.FAILED);
 
-        when(deviceEntraInfoRepository.findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraInfo));
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
+                .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceEntraInfoRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.NEEDS_REPUBLISH));
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.NEEDS_REPUBLISH));
     }
 
     @Test
     void processGroupMembership_shouldSetStatusError_whenCodeIsError() {
         EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ERROR);
 
-        when(deviceEntraInfoRepository.findByDeviceAzureIdAndResourceAzureId(deviceAzureId, resourceAzureId))
-                .thenReturn(Optional.of(deviceEntraInfo));
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId))
+                .thenReturn(Optional.of(deviceEntraMembership));
 
         consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
 
-        verify(deviceEntraInfoRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.ERROR));
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraStatus.ERROR));
     }
 
     private EntraDeviceGroupMembership createPayload(EntraReturnCode code) {
         return EntraDeviceGroupMembership.builder()
                 .entraDeviceRef(deviceAzureId)
-                .entraResourceRef(resourceAzureId)
+                .entraGroupRef(resourceAzureId)
                 .code(code)
                 .build();
     }
