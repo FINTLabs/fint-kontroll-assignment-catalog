@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.device.KontrollStatus;
 import no.fintlabs.kafka.event.EventConsumerFactoryService;
 import no.fintlabs.kafka.event.topic.EventTopicNameParameters;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -53,49 +53,45 @@ public class EntraGroupDeviceMembershipConsumer {
             switch (entraResponse.getCode()) {
                 case ADDED -> confirmMembershipAdded(deviceEntraMembership, key);
                 case REMOVED -> confirmMembershipRemoved(deviceEntraMembership, key);
-                case ERROR -> markAsError(deviceEntraMembership, key);
+                case ERROR -> saveError(deviceEntraMembership, key);
                 case FAILED -> markAsFailed(deviceEntraMembership, key);
-                case NO_CHANGES -> handleNoChangesResponse(deviceEntraMembership, key);
-
+                case NO_CHANGES ->
+                        log.warn("No changes for device {} in group {}, messageKey: {}", entraResponse.getEntraDeviceRef(), entraResponse.getEntraGroupRef(), record.key());
             }
-            deviceEntraMembershipRepository.save(deviceEntraMembership);
-        }
-    }
-
-    private void handleNoChangesResponse(DeviceEntraMembership deviceEntraMembership, String key) {
-        log.info("Received no changes response for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-        if (deviceEntraMembership.getMembershipStatus() == MembershipStatus.ACTIVE) {
-            deviceEntraMembership.setEntraStatus(EntraStatus.MEMBERSHIP_CONFIRMED);
-        } else if (deviceEntraMembership.getMembershipStatus() == MembershipStatus.INACTIVE) {
-            deviceEntraMembership.setEntraStatus(EntraStatus.DELETION_CONFIRMED);
         }
     }
 
     private void markAsFailed(DeviceEntraMembership deviceEntraMembership, String key) {
         log.warn("Received failed status for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
         deviceEntraMembership.setEntraStatus(EntraStatus.NEEDS_REPUBLISH);
+        deviceEntraMembershipRepository.save(deviceEntraMembership);
     }
 
-    private void markAsError(DeviceEntraMembership deviceEntraMembership, String key) {
+    private void saveError(DeviceEntraMembership deviceEntraMembership, String key) {
         log.warn("Received error for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
         deviceEntraMembership.setEntraStatus(EntraStatus.ERROR);
+        deviceEntraMembershipRepository.save(deviceEntraMembership);
+
     }
 
     private void confirmMembershipRemoved(DeviceEntraMembership deviceEntraMembership, String key) {
-        if (deviceEntraMembership.getMembershipStatus() != MembershipStatus.INACTIVE) {
+        if (deviceEntraMembership.getKontrollStatus() != KontrollStatus.INACTIVE) {
             log.info("Received confirmation for removal of device {} from group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-            deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
+            deviceAssigmentEntityProducerService.publish(deviceEntraMembership);
         } else {
             deviceEntraMembership.setEntraStatus(EntraStatus.DELETION_CONFIRMED);
+            deviceEntraMembershipRepository.save(deviceEntraMembership);
         }
     }
 
     private void confirmMembershipAdded(DeviceEntraMembership deviceEntraMembership, String key) {
-        if (deviceEntraMembership.getMembershipStatus() != MembershipStatus.ACTIVE) {
+        if (deviceEntraMembership.getKontrollStatus() != KontrollStatus.ACTIVE) {
             log.info("Received confirmation for addition of device {} to group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-            deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
+            deviceAssigmentEntityProducerService.publish(deviceEntraMembership);
         } else {
-            deviceEntraMembership.setEntraStatus(EntraStatus.MEMBERSHIP_CONFIRMED);
+            deviceEntraMembership.setEntraStatus(EntraStatus.CONFIRMED);
+            deviceEntraMembershipRepository.save(deviceEntraMembership);
         }
     }
+
 }
