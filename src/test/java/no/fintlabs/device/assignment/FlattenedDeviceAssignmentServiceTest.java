@@ -5,7 +5,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.KontrollStatus;
+import no.fintlabs.device.MembershipStatus;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
@@ -86,7 +86,7 @@ class FlattenedDeviceAssignmentServiceTest {
         FlattenedDeviceAssignment fda = result.iterator().next();
         assertEquals(device.getId(), fda.getDeviceRef());
         assertNotNull(fda.getDeviceEntraMembership());
-        assertEquals(KontrollStatus.ACTIVE, fda.getDeviceEntraMembership().getKontrollStatus());
+        assertEquals(MembershipStatus.ACTIVE, fda.getDeviceEntraMembership().getMembershipStatus());
         assertEquals(EntraStatus.NOT_SENT, fda.getDeviceEntraMembership().getEntraStatus());
     }
 
@@ -106,7 +106,7 @@ class FlattenedDeviceAssignmentServiceTest {
                 .build();
 
         DeviceEntraMembership existingInfo = DeviceEntraMembership.builder()
-                .kontrollStatus(KontrollStatus.INACTIVE)
+                .membershipStatus(MembershipStatus.INACTIVE)
                 .entraStatus(EntraStatus.SENT)
                 .build();
 
@@ -121,7 +121,7 @@ class FlattenedDeviceAssignmentServiceTest {
         assertEquals(1, result.size());
         FlattenedDeviceAssignment fda = result.iterator().next();
         assertEquals(existingInfo, fda.getDeviceEntraMembership());
-        assertEquals(KontrollStatus.ACTIVE, fda.getDeviceEntraMembership().getKontrollStatus());
+        assertEquals(MembershipStatus.ACTIVE, fda.getDeviceEntraMembership().getMembershipStatus());
         assertEquals(EntraStatus.NOT_SENT, fda.getDeviceEntraMembership().getEntraStatus());
     }
 
@@ -143,7 +143,7 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(assignments);
 
         verify(flattenedDeviceAssignmentRepository).saveAll(assignments);
-        verify(deviceAssigmentEntityProducerService).publish(info);
+        verify(deviceAssigmentEntityProducerService).publish(info, false);
         verify(flattenedDeviceAssignmentRepository).flush();
         verify(entityManager).clear();
     }
@@ -166,7 +166,7 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(assignments);
 
         verify(flattenedDeviceAssignmentRepository).saveAll(assignments);
-        verify(deviceAssigmentEntityProducerService, never()).publish(any());
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
     }
 
     @Test
@@ -183,7 +183,7 @@ class FlattenedDeviceAssignmentServiceTest {
         for (int i = 0; i < 1000; i++) {
             assignments.add(FlattenedDeviceAssignment.builder().id((long) i).assignmentId(1L)
                     .deviceEntraMembership(DeviceEntraMembership.builder().deviceEntraId(UUID.randomUUID()).resourceEntraId(UUID.randomUUID())
-                            .entraStatus(EntraStatus.NOT_SENT).kontrollStatus(KontrollStatus.ACTIVE).build()).build());
+                            .entraStatus(EntraStatus.NOT_SENT).membershipStatus(MembershipStatus.ACTIVE).build()).build());
         }
 
         // Lenient stubbing because we call saveAll twice with sublists
@@ -221,8 +221,8 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(flattenedDeviceAssignmentRepository).saveAll(any());
         verify(entityManager).flush();
 
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo);
-        verify(azureInfo).setKontrollStatus(KontrollStatus.INACTIVE);
+        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
+        verify(azureInfo).setMembershipStatus(MembershipStatus.INACTIVE);
     }
 
     @Test
@@ -245,7 +245,7 @@ class FlattenedDeviceAssignmentServiceTest {
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "reason");
 
         verify(flattenedDeviceAssignmentRepository).saveAll(any());
-        verify(deviceAssigmentEntityProducerService, never()).publish(any());
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
     }
 
     @Test
@@ -295,7 +295,7 @@ class FlattenedDeviceAssignmentServiceTest {
 
         // Verify Creation of new (device 20)
         verify(flattenedDeviceAssignmentRepository).saveAll(argThat((List<FlattenedDeviceAssignment> list) ->
-                list.size() == 1 && list.get(0).getDeviceRef() == 20L
+                list.size() == 1 && list.getFirst().getDeviceRef() == 20L
         ));
     }
 
@@ -316,6 +316,6 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(fda).setTerminationDate(any());
         verify(fda).setTerminationReason("Role membership deactivated");
         verify(flattenedDeviceAssignmentRepository).saveAll(anyList());
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo);
+        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
     }
 }

@@ -66,15 +66,11 @@ public class Assignment extends AuditEntity {
     private String applicationResourceLocationOrgUnitId;
     @Column(name = "resource_consumer_org_unit_name")
     private String applicationResourceLocationOrgUnitName;
-    private Long assignerRef;
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;
     private String assignerUserName;
-    private Long assignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
-    private Date validFrom;
-    private Date validTo;
     @Builder.Default
     private Boolean isInvalid = false;
 
@@ -123,7 +119,6 @@ public class Assignment extends AuditEntity {
                 .entraUserRef(entraUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
-                .assignerRef(assignerRef)
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
