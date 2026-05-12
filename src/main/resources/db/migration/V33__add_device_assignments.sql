@@ -1,13 +1,13 @@
-create table device_entra_membership
+create table device_entra_memberships
 (
     id                        BIGSERIAL PRIMARY KEY    NOT NULL,
     device_entra_id           UUID                     NOT NULL,
     resource_entra_id         UUID                     NOT NULL,
     created_date              TIMESTAMP WITH TIME ZONE NOT NULL,
-    membership_state           VARCHAR(255)             NOT NULL,
+    membership_status           VARCHAR(255)             NOT NULL,
     entra_status            VARCHAR(255)             NOT NULL,
-    sent_to_ms_graph_gw_at          TIMESTAMP WITH TIME ZONE,
-    deletion_sent_to_ms_graph_gw_at TIMESTAMP WITH TIME ZONE,
+    sent_to_entra_at          TIMESTAMP WITH TIME ZONE,
+    deletion_sent_to_entra_at TIMESTAMP WITH TIME ZONE,
     CONSTRAINT uk_device_resource UNIQUE (device_entra_id, resource_entra_id)
 );
 
@@ -31,7 +31,7 @@ create table flattened_device_assignments
     CONSTRAINT fk_device_assignments_assignment FOREIGN KEY (assignment_id) REFERENCES assignments (id),
     CONSTRAINT fk_device_assignments_resource FOREIGN KEY (resource_ref) REFERENCES assignment_resources (id),
     CONSTRAINT fk_device_assignments_group FOREIGN KEY (assignment_via_group_ref) REFERENCES device_groups (id),
-    CONSTRAINT fk_device_assignments_device_entra_membership FOREIGN KEY (device_entra_membership_id) REFERENCES device_entra_membership (id)
+    CONSTRAINT fk_device_assignments_device_entra_membership FOREIGN KEY (device_entra_membership_id) REFERENCES device_entra_memberships (id)
 );
 
 CREATE INDEX idx_device_assignments_assignment_id ON flattened_device_assignments (assignment_id);
