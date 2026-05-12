@@ -91,7 +91,7 @@ public class FlattenedDeviceAssignmentService {
                         .deviceEntraId(deviceAzureId)
                         .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.NOT_SENT)
-                        .kontrollStatus(KontrollStatus.ACTIVE)
+                        .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
                 );
 
@@ -102,14 +102,14 @@ public class FlattenedDeviceAssignmentService {
 
     private DeviceEntraMembership getAzureInfoForNewFlattenedAssignment(DeviceEntraMembership info) {
         boolean needsReset =
-                info.getKontrollStatus() == KontrollStatus.INACTIVE ||
+                info.getMembershipStatus() == MembershipStatus.INACTIVE ||
                         EntraStatus.inactiveStatuses().contains(info.getEntraStatus());
 
         if (needsReset) {
             info.setEntraStatus(EntraStatus.NOT_SENT);
-            info.setKontrollStatus(KontrollStatus.ACTIVE);
-            info.setSentToAzureAt(null);
-            info.setDeletionSentToAzureAt(null);
+            info.setMembershipStatus(MembershipStatus.ACTIVE);
+            info.setSentToEntraAt(null);
+            info.setDeletionSentToEntraAt(null);
         }
 
         return info;
@@ -136,7 +136,7 @@ public class FlattenedDeviceAssignmentService {
             );
 
             savedFlattened.stream().map(FlattenedDeviceAssignment::getDeviceEntraMembership).filter(deviceAzureInfo -> deviceAzureInfo.getEntraStatus().equals(EntraStatus.NOT_SENT))
-                    .distinct().forEach(deviceAssigmentEntityProducerService::publish);
+                    .distinct().forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
 
             flattenedDeviceAssignmentRepository.flush();
             entityManager.clear();
@@ -164,9 +164,9 @@ public class FlattenedDeviceAssignmentService {
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedDeviceAssignment> flattenedDeviceAssignments) {
         flattenedDeviceAssignments.forEach(flattenedAssignment -> {
             DeviceEntraMembership deviceEntraMembership = flattenedAssignment.getDeviceEntraMembership();
-            if (EntraStatus.activeStatuses().contains(deviceEntraMembership.getEntraStatus()) && deviceEntraMembership.getFlattenedDeviceAssignments().isEmpty()) {
-                deviceEntraMembership.setKontrollStatus(KontrollStatus.INACTIVE);
-                deviceAssigmentEntityProducerService.publish(deviceEntraMembership);
+            if ((EntraStatus.activeStatuses().contains(deviceEntraMembership.getEntraStatus()) || EntraStatus.ERROR.equals(deviceEntraMembership.getEntraStatus())) && deviceEntraMembership.getFlattenedDeviceAssignments().isEmpty()) {
+                deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
+                deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
             }
         });
     }
@@ -191,13 +191,13 @@ public class FlattenedDeviceAssignmentService {
                 .collect(Collectors.toMap(
                         FlattenedDeviceAssignment::getDeviceRef,
                         Function.identity(),
-                        (a, b) -> a // in case of duplicates, keep first
+                        (a, b) -> a
                 ));
 
         List<FlattenedDeviceAssignment> toTerminate = new ArrayList<>();
         List<FlattenedDeviceAssignment> toCreate = new ArrayList<>();
 
-        // Determine which existing assignments should be terminated
+
         for (FlattenedDeviceAssignment existing : existingActiveAssignments) {
             Long deviceRef = existing.getDeviceRef();
             if (!requiredByDeviceRef.containsKey(deviceRef)) {
@@ -207,7 +207,7 @@ public class FlattenedDeviceAssignmentService {
             }
         }
 
-        // Determine which new assignments must be created
+
         for (FlattenedDeviceAssignment required : requiredFlattenedAssignments) {
             Long deviceRef = required.getDeviceRef();
             if (!existingByDeviceRef.containsKey(deviceRef)) {
@@ -269,7 +269,7 @@ public class FlattenedDeviceAssignmentService {
             @Override
             public void afterCommit() {
                 for (FlattenedDeviceAssignment assignment : assignments) {
-                    deviceAssigmentEntityProducerService.publish(assignment.getDeviceEntraMembership());
+                    deviceAssigmentEntityProducerService.publish(assignment.getDeviceEntraMembership(), false);
                 }
             }
         });
