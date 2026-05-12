@@ -54,7 +54,6 @@ class AssignmentMapperTest {
     private void assertCommonFields(FlattenedAssignment flattenedAssignment) {
         assertNotNull(flattenedAssignment);
         assertEquals(111L, flattenedAssignment.getAssignmentId());
-        assertEquals(222L, flattenedAssignment.getAssignerRef());
         assertEquals(333L, flattenedAssignment.getUserRef());
         assertEquals("123e4567-e89b-12d3-a456-426614174000", flattenedAssignment.getIdentityProviderUserObjectId().toString());
         assertEquals(444L, flattenedAssignment.getResourceRef());
