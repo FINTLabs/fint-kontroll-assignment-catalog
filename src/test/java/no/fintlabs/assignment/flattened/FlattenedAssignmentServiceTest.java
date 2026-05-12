@@ -41,7 +41,6 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(id);
         assignment.setAssignmentId("A-" + id);
         assignment.setUserRef(10L);
-        assignment.setAssignerRoleRef(20L);
         assignment.setEntraUserId(UUID.randomUUID());
         return assignment;
     }

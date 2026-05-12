@@ -10,7 +10,6 @@ public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
@@ -41,7 +40,6 @@ public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
@@ -59,7 +57,6 @@ public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed, boolean identityProviderGroupMembershipDeletionConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
