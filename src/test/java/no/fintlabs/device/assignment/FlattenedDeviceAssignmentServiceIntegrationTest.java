@@ -5,7 +5,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.KontrollStatus;
+import no.fintlabs.device.MembershipStatus;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
@@ -106,9 +106,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(azureInfo.getDeviceEntraId()).isEqualTo(deviceAzureId);
         assertThat(azureInfo.getResourceEntraId()).isEqualTo(resourceAzureId);
         assertThat(azureInfo.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
-        assertThat(azureInfo.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
+        assertThat(azureInfo.getMembershipStatus()).isEqualTo(MembershipStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class), anyBoolean());
     }
 
     @Test
@@ -125,7 +125,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceEntraId(deviceAzureId)
                         .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT)
-                        .kontrollStatus(KontrollStatus.ACTIVE)
+                        .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
         );
 
@@ -158,9 +158,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         DeviceEntraMembership used = allFlattened.getFirst().getDeviceEntraMembership();
         assertThat(used.getId()).isEqualTo(existing.getId());
         assertThat(used.getEntraStatus()).isEqualTo(EntraStatus.SENT);
-        assertThat(used.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
+        assertThat(used.getMembershipStatus()).isEqualTo(MembershipStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class), anyBoolean());
     }
 
     @Test
@@ -177,9 +177,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceEntraId(deviceAzureId)
                         .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.DELETION_SENT)
-                        .kontrollStatus(KontrollStatus.INACTIVE)
-                        .sentToAzureAt(new Date())
-                        .deletionSentToAzureAt(new Date())
+                        .membershipStatus(MembershipStatus.INACTIVE)
+                        .sentToEntraAt(new Date())
+                        .deletionSentToEntraAt(new Date())
                         .build()
         );
 
@@ -208,11 +208,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
         DeviceEntraMembership refreshed = deviceEntraMembershipRepository.findById(existing.getId()).orElseThrow();
         assertThat(refreshed.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
-        assertThat(refreshed.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
-        assertThat(refreshed.getSentToAzureAt()).isNull();
-        assertThat(refreshed.getDeletionSentToAzureAt()).isNull();
+        assertThat(refreshed.getMembershipStatus()).isEqualTo(MembershipStatus.ACTIVE);
+        assertThat(refreshed.getSentToEntraAt()).isNull();
+        assertThat(refreshed.getDeletionSentToEntraAt()).isNull();
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class), anyBoolean());
     }
 
     @Test
@@ -228,7 +228,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceEntraId(deviceAzureId)
                         .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT)
-                        .kontrollStatus(KontrollStatus.ACTIVE)
+                        .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
         );
 
@@ -290,7 +290,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .deviceEntraId(deviceAzureId)
                         .resourceEntraId(resourceAzureId)
                         .entraStatus(EntraStatus.SENT) // must be "active" for deletion publish branch
-                        .kontrollStatus(KontrollStatus.ACTIVE)
+                        .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
         );
 
@@ -337,9 +337,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
         // DeviceAzureInfo should NOT be marked inactive yet (one active assignment remains)
         DeviceEntraMembership afterFirst = deviceEntraMembershipRepository.findById(info.getId()).orElseThrow();
-        assertThat(afterFirst.getKontrollStatus()).isEqualTo(KontrollStatus.ACTIVE);
+        assertThat(afterFirst.getMembershipStatus()).isEqualTo(MembershipStatus.ACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class));
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(DeviceEntraMembership.class), anyBoolean());
 
         // Reset mock interactions to only assert behavior for the second termination
         clearInvocations(deviceAssigmentEntityProducerService);
@@ -356,9 +356,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
         // Now there are no active assignments => DeviceAzureInfo becomes INACTIVE and publish happens
         DeviceEntraMembership afterSecond = deviceEntraMembershipRepository.findById(info.getId()).orElseThrow();
-        assertThat(afterSecond.getKontrollStatus()).isEqualTo(KontrollStatus.INACTIVE);
+        assertThat(afterSecond.getMembershipStatus()).isEqualTo(MembershipStatus.INACTIVE);
 
-        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class));
+        verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class), anyBoolean());
     }
 
 }
