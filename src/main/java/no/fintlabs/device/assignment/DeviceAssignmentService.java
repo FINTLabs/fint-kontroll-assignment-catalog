@@ -46,13 +46,17 @@ public class DeviceAssignmentService {
         // Ensure no duplicate assignment
         assertNoExistingActiveAssignment(resourceRef, deviceGroupRef);
 
-
         Assignment assignment = Assignment.builder()
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(resourceRef)
                 .organizationUnitId(organizationUnitId)
                 .resourceName(resource.getResourceName())
-                .assignmentId(resourceRef + "_deviceGroup_" + LocalDateTime.now())
+                .assignmentId(String.format(
+                        "%s_deviceGroup_%s_%s",
+                        resourceRef,
+                        deviceGroup.getId(),
+                        LocalDateTime.now()
+                ))
                 .azureAdGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
