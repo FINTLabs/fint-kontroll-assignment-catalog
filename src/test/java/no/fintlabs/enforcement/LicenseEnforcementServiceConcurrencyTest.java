@@ -85,7 +85,6 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
 
         assignmentToUserHardstop = Assignment.builder()
                 .id(111L)
-                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(RESOURCE_ID)
                 .organizationUnitId(ORG_ID)

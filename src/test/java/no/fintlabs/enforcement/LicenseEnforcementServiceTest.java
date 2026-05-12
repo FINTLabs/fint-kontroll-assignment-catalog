@@ -92,7 +92,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToUserHardstop = Assignment.builder()
                 .id(111L)
-                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(1L)
                 .organizationUnitId("org1")
@@ -102,7 +101,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToRoleHardstop = Assignment.builder()
                 .id(222L)
-                .assignerRef(222L)
                 .resourceRef(1L)
                 .roleRef(555L)
                 .organizationUnitId("org1")
@@ -112,7 +110,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToRoleFree = Assignment.builder()
                 .id(333L)
-                .assignerRef(222L)
                 .resourceRef(2L)
                 .roleRef(555L)
                 .organizationUnitId("org1")
@@ -122,7 +119,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToUserFree = Assignment.builder()
                 .id(444L)
-                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(2L)
                 .organizationUnitId("org1")

@@ -1,6 +1,6 @@
 package no.fintlabs.device;
 
-public enum KontrollStatus {
+public enum MembershipStatus {
     ACTIVE,
     INACTIVE
 }
