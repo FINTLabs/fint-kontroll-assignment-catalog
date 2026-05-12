@@ -2,8 +2,6 @@ package no.fintlabs.assignment.flattened;
 
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.membership.Membership;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -33,13 +31,7 @@ public class FlattenedAssignmentServiceTest {
     private FlattenedAssignmentMapper flattenedAssignmentMapper;
 
     @Mock
-    private UserEntraMembershipRepository userEntraMembershipRepository;
-
-    @Mock
     private AssigmentEntityProducerService assigmentEntityProducerService;
-
-    @Mock
-    private LicenseEnforcementService licenseEnforcementService;
 
     @InjectMocks
     private FlattenedAssignmentService flattenedAssignmentService;
@@ -49,7 +41,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(id);
         assignment.setAssignmentId("A-" + id);
         assignment.setUserRef(10L);
-        assignment.setEntraUserId(UUID.randomUUID());
+        assignment.setAzureAdUserId(UUID.randomUUID());
         return assignment;
     }
 
@@ -69,30 +61,6 @@ public class FlattenedAssignmentServiceTest {
         flattenedAssignment.setIdentityProviderUserObjectId(idp);
         return flattenedAssignment;
     }
-
-    @Test
-    void shouldRepublishActiveFlattenedAssignmentsInBatches() {
-        FlattenedAssignment first = flattenedAssignment(1L, null, UUID.randomUUID());
-        FlattenedAssignment second = flattenedAssignment(2L, null, UUID.randomUUID());
-        FlattenedAssignment third = flattenedAssignment(3L, null, UUID.randomUUID());
-
-        List<FlattenedAssignment> firstBatch = new ArrayList<>(Collections.nCopies(500, first));
-        firstBatch.set(499, second);
-
-        when(flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(0L), any()))
-                .thenReturn(firstBatch);
-        when(flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(2L), any()))
-                .thenReturn(List.of(third));
-
-        flattenedAssignmentService.republishAllActiveFlattenedAssignments();
-
-        verify(assigmentEntityProducerService, times(499)).rePublish(first);
-        verify(assigmentEntityProducerService).rePublish(second);
-        verify(assigmentEntityProducerService).rePublish(third);
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-        verify(flattenedAssignmentRepository).findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(0L), any());
-        verify(flattenedAssignmentRepository).findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(2L), any());
-    }
     @Test
     public void shouldCreateUserAssignment_manual() {
         Assignment assignment = assignment(1L);
@@ -110,7 +78,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setEntraGroupId(UUID.randomUUID());
+        assignment.setAzureAdGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
 
@@ -137,7 +105,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setEntraGroupId(UUID.randomUUID());
+        assignment.setAzureAdGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
@@ -157,7 +125,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
-        assignment.setEntraUserId(UUID.randomUUID());
+        assignment.setAzureAdUserId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
@@ -175,14 +143,12 @@ public class FlattenedAssignmentServiceTest {
     public void shouldPublishDeletionWhenNoOtherActiveFlattenedAssignmentsExist() {
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setId(1L);
         flattenedAssignment.setAssignmentViaRoleRef(1L);
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
-        flattenedAssignment.setAssignmentTerminationDate(new Date());
 
-        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
-                .thenReturn(0L);
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+                .thenReturn(new ArrayList<>());
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
@@ -193,36 +159,16 @@ public class FlattenedAssignmentServiceTest {
     public void shouldNotPublishDeletionWhenOtherActiveFlattenedAssignmentsExist() {
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setId(1L);
         flattenedAssignment.setAssignmentViaRoleRef(1L);
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
-        flattenedAssignment.setAssignmentTerminationDate(new Date());
 
-        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
-                .thenReturn(1L);
+        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
+                .thenReturn(List.of(new FlattenedAssignment()));
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
         verify(assigmentEntityProducerService, times(0)).publishDeletion(flattenedAssignment);
-    }
-
-    @Test
-    public void shouldNotPublishDeletionForDirectAssignmentWhenRoleAssignmentStillExists() {
-
-        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setId(1L);
-        flattenedAssignment.setAssignmentViaRoleRef(null);
-        flattenedAssignment.setUserRef(2L);
-        flattenedAssignment.setResourceRef(3L);
-        flattenedAssignment.setAssignmentTerminationDate(new Date());
-
-        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
-                .thenReturn(1L);
-
-        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
-
-        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment);
     }
 
 
