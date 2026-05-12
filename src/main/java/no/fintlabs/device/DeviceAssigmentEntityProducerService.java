@@ -2,6 +2,7 @@ package no.fintlabs.device;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.entra.DeviceEntraMembership;
+import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.kafka.event.EventProducer;
 import no.fintlabs.kafka.event.EventProducerFactory;
 import no.fintlabs.kafka.event.EventProducerRecord;
@@ -19,35 +20,39 @@ public class DeviceAssigmentEntityProducerService {
 
     private final EventProducer<DeviceResourceGroupMembership> eventProducer;
     private final EventTopicNameParameters resourceGroupMembershipTopicNameParameters;
+    private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     public DeviceAssigmentEntityProducerService(
             EventProducerFactory entityProducerFactory,
-            EventTopicService entityTopicService
+            EventTopicService entityTopicService,
+            DeviceEntraMembershipRepository deviceEntraMembershipRepository
     ) {
         eventProducer = entityProducerFactory.createProducer(DeviceResourceGroupMembership.class);
+        this.deviceEntraMembershipRepository = deviceEntraMembershipRepository;
 
         resourceGroupMembershipTopicNameParameters = EventTopicNameParameters
                 .builder()
-                .eventName("kontroll-resource-group-membership-device")
+                .eventName("resource-group-membership-device")
                 .build();
         // TODO set it up with correct values
         entityTopicService.ensureTopic(resourceGroupMembershipTopicNameParameters, 0);
     }
 
-    public void publish(DeviceEntraMembership deviceEntraMembership) {
-        if (deviceEntraMembership.getEntraStatus().equals(EntraStatus.ERROR)) {
+    public void publish(DeviceEntraMembership deviceEntraMembership, boolean force) {
+        if (deviceEntraMembership.getEntraStatus().equals(EntraStatus.ERROR) || force) {
             log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
         }
-        log.info("Publishing to Azure - deviceEntraInfo: {}", deviceEntraMembership);
-        if (deviceEntraMembership.getKontrollStatus().equals(KontrollStatus.ACTIVE)) {
+        log.info("Publishing to Azure - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
+        if (deviceEntraMembership.getMembershipStatus().equals(MembershipStatus.ACTIVE)) {
             publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
             deviceEntraMembership.setEntraStatus(EntraStatus.SENT);
-            deviceEntraMembership.setSentToAzureAt(new Date());
+            deviceEntraMembership.setSentToEntraAt(new Date());
         } else {
             publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.REMOVE);
             deviceEntraMembership.setEntraStatus(EntraStatus.DELETION_SENT);
-            deviceEntraMembership.setDeletionSentToAzureAt(new Date());
+            deviceEntraMembership.setDeletionSentToEntraAt(new Date());
         }
+        deviceEntraMembershipRepository.save(deviceEntraMembership);
     }
 
     private void publish(UUID azureAdGroupId, UUID azureDeviceId, OperationType action) {
