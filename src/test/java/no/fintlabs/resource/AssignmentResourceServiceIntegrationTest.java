@@ -28,6 +28,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
@@ -527,7 +528,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, kompavdList, null, List.of(2L));
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, null, null, List.of(2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(1);
@@ -577,7 +580,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null, kompavdList, null, List.of(1L,2L));
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null, null, null, List.of(1L,2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(2);
