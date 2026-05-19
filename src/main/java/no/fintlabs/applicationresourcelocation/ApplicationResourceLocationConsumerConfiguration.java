@@ -1,8 +1,8 @@
 package no.fintlabs.applicationresourcelocation;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,15 +16,11 @@ public class ApplicationResourceLocationConsumerConfiguration {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, ApplicationResourceLocation> applicationResourceLocationConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService,
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService,
             ApplicationResourceLocationRepository applicationResourceLocationRepository,
             ApplicationResourceLocationService applicationResourceLocationService) {
-        EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
-                .builder()
-                .resource("applicationresourcelocation-extended")
-                .build();
 
-        return entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         ApplicationResourceLocation.class,
                         (ConsumerRecord<String, ApplicationResourceLocation> consumerRecord) -> {
 
@@ -55,8 +51,10 @@ public class ApplicationResourceLocationConsumerConfiguration {
                                 applicationResourceLocationRepository.save(incoming);
                                 log.info("Created ApplicationResourceLocation {}", incoming.getId());
                             }
-                        })
-                .createContainer(entityTopicNameParameters);
+                        },
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        null)
+                .createContainer(KafkaEntityTopics.topicNameParameters("applicationresourcelocation-extended"));
     }
 
 

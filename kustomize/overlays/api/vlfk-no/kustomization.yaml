@@ -56,10 +56,13 @@ patches:
         path: "/spec/env/3/value"
         value: "false"
       - op: add
-        path: "/spec/env/4"
+        path: "/spec/env/5"
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"
+      - op: replace
+        path: "/spec/env/4/value"
+        value: "vlfk-no"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog

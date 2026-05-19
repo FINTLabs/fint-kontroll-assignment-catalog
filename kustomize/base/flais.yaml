@@ -33,6 +33,8 @@ spec:
       value: 'fint-kontroll-assignment-catalog'
     - name: fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable
       value: "false"
+    - name: novari.kafka.topic.org-id
+      value: 'orgid med space'
   envFrom:
     - configMapRef:
         name: fint-kontroll-assignment-catalog-config

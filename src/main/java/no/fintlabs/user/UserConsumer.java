@@ -2,10 +2,9 @@ package no.fintlabs.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -22,16 +21,16 @@ public class UserConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, KontrollUser> userConsumerConfiguration(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
-        EntityTopicNameParameters kontrolluser = EntityTopicNameParameters
-                .builder()
-                .resource("kontrolluser")
-                .build();
-
         return entityConsumerFactoryService
-                .createFactory(KontrollUser.class, this::process)
-                .createContainer(kontrolluser);
+                .createRecordListenerContainerFactory(
+                        KontrollUser.class,
+                        this::process,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        null
+                )
+                .createContainer(KafkaEntityTopics.topicNameParameters("kontrolluser"));
     }
 
     void process(ConsumerRecord<String, KontrollUser> consumerRecord) {

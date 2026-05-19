@@ -1,8 +1,8 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,16 +22,15 @@ public class ResourceConsumerConfiguration {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Resource> resourceConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
 
-        return entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Resource.class,
-                        this::processResource)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
-                                         .resource("resource-group")
-                                         .build());
+                        this::processResource,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        null)
+                .createContainer(KafkaEntityTopics.topicNameParameters("resource-group"));
     }
 
     void processResource(ConsumerRecord<String, Resource> record) {

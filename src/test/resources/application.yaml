@@ -30,9 +30,10 @@ spring:
       group-id: testGroup
       bootstrap-servers: localhost:9092
 
-fint:
+novari:
   kafka:
     application-id: fint-kontroll-assignment-catalog
+fint:
   application-id: fint-kontroll-assignment-catalog
   cache:
     defaultCacheEntryTimeToLiveMillis: 518400000

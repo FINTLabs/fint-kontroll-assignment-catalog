@@ -3,8 +3,8 @@ package no.fintlabs.membership;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -26,15 +26,14 @@ public class MembershipConsumer {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Membership> membershipConsumerConfiguration(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
-        ConcurrentMessageListenerContainer<String, Membership> container = entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Membership.class,
-                        this::processMemberships)
-                .createContainer(EntityTopicNameParameters.builder()
-                        .resource("role-catalog-membership")
-                        .build());
-        return container;
+                        this::processMemberships,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        null)
+                .createContainer(KafkaEntityTopics.topicNameParameters("role-catalog-membership"));
     }
 
     void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {
