@@ -34,6 +34,7 @@ public class FlattenedDeviceAssignmentService {
     private final EntityManager entityManager;
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     private final AssignmentRepository assignmentRepository;
+    private final DeviceRepository deviceRepository;
 
     @Async
     public void createAndPublishFlattenedAssignments(Assignment assignment) {
@@ -77,12 +78,13 @@ public class FlattenedDeviceAssignmentService {
     private FlattenedDeviceAssignment mapToFlattenedAssignment(DeviceGroupMembership membership,
                                                                Assignment assignment) {
 
-        UUID deviceAzureId = membership.getDevice().getDataObjectId();
+        Device device = getDeviceOrThrow(membership.getDeviceId());
+        UUID deviceAzureId = device.getDataObjectId();
         UUID resourceAzureId = assignment.getAzureAdGroupId();
 
         FlattenedDeviceAssignment flattenedAssignment = toFlattenedDeviceAssignment(assignment);
         flattenedAssignment.setIdentityProviderDeviceObjectId(deviceAzureId);
-        flattenedAssignment.setDeviceRef(membership.getDevice().getId());
+        flattenedAssignment.setDeviceRef(device.getId());
 
         DeviceEntraMembership azureInfo = deviceEntraMembershipRepository
                 .findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId)
@@ -98,6 +100,13 @@ public class FlattenedDeviceAssignmentService {
         azureInfo.addFlattenedAssignment(flattenedAssignment);
 
         return flattenedAssignment;
+    }
+    private Device getDeviceOrThrow(Long deviceId) {
+        return deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Device not found in database with id: " + deviceId +
+                                ". This indicates inconsistent data or a cascade delete issue."
+                ));
     }
 
     private DeviceEntraMembership getAzureInfoForNewFlattenedAssignment(DeviceEntraMembership info) {

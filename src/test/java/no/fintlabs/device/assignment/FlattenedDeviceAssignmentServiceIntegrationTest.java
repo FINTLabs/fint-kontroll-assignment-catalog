@@ -2,14 +2,15 @@ package no.fintlabs.device.assignment;
 
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.EntraStatus;
-import no.fintlabs.device.Device;
-import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.device.*;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -21,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,45 +49,83 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
     @Autowired
     private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
+    @Autowired
+    private AssignmentRepository assignmentRepository;
+    @Autowired
+    private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceGroupRepository deviceGroupRepository;
 
     @Autowired
     private TestEntityManager testEntityManager;
 
-    @MockBean
+    @Autowired
     private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     @MockBean
     private DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
 
+    Long deviceId, deviceGroupId, assignmentId;
+    UUID deviceAzureId, deviceGroupAzureId;
+    Device device;
+    DeviceGroup deviceGroup;
+    DeviceGroupMembership membership;
+    Assignment assignment;
+
+    @BeforeEach
+    void setUp() {
+        deviceId = 999999L;
+        deviceGroupId = 12345L;
+        assignmentId =  777L;
+        deviceAzureId = UUID.randomUUID();
+        deviceGroupAzureId = UUID.randomUUID();
+
+        device = Device.builder()
+                .id(deviceId)
+                .dataObjectId(deviceAzureId)
+                .build();
+
+        deviceRepository.saveAndFlush(device);
+
+        deviceGroup = DeviceGroup.builder()
+                .id(deviceGroupId)
+                .build();
+
+        deviceGroupRepository.saveAndFlush(deviceGroup);
+
+        membership = DeviceGroupMembership.builder()
+                .deviceId(deviceId)
+                .deviceGroupId(deviceGroupId)
+                .membershipStatus("ACTIVE")
+                .membershipStatusChanged(new Date())
+                .build();
+        deviceGroupMembershipRepository.saveAndFlush(membership);
+
+        assignment = new Assignment();
+        assignment.setId(assignmentId);
+        assignment.setDeviceGroupRef(deviceGroupId);
+        assignment.setAzureAdGroupId(deviceGroupAzureId);
+        assignmentRepository.saveAndFlush(assignment);
+    }
+
+    @Test
+    @Transactional
+    void createFlattenedAssignments_shouldFlattenedCreateAssignment_whenMembershipDeviceAssociationIsNull() {
+
+        Set<FlattenedDeviceAssignment> allFlattened =flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
+        assertThat(allFlattened).hasSize(1);
+
+        FlattenedDeviceAssignment fda = allFlattened.iterator().next();
+        assertThat(fda.getAssignmentId()).isEqualTo(assignmentId);
+        assertThat(fda.getDeviceRef()).isEqualTo(device.getId());
+        assertThat(fda.getIdentityProviderDeviceObjectId()).isEqualTo(deviceAzureId);
+        assertThat(fda.getIdentityProviderGroupObjectId()).isEqualTo(deviceGroupAzureId);
+    }
+
     @Test
     @Transactional
     void shouldCreateAndPersistFlattenedAssignments_andPublishWhenAzureStatusNotSent() {
-        Long assignmentId = 1L;
-        Long deviceGroupRef = 100L;
-
-        UUID deviceAzureId = UUID.randomUUID();
-        UUID resourceAzureId = UUID.randomUUID();
-
-        Assignment assignment = new Assignment();
-        assignment.setId(assignmentId);
-        assignment.setDeviceGroupRef(deviceGroupRef);
-        assignment.setAzureAdGroupId(resourceAzureId);
-
-        Device device = new Device();
-        device.setId(10L);
-        device.setDataObjectId(deviceAzureId);
-
-        DeviceGroupMembership membership = DeviceGroupMembership.builder()
-                .deviceId(device.getId())
-                .deviceGroupId(deviceGroupRef)
-                .membershipStatus("ACTIVE")
-                .membershipStatusChanged(new Date())
-                .device(device)
-                .build();
-
-        when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(deviceGroupRef))
-                .thenReturn(List.of(membership));
-
         // Act (avoid @Async wrapper for determinism)
         var flattened = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattened.stream().toList());
@@ -104,7 +144,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(azureInfo).isNotNull();
         assertThat(azureInfo.getId()).isNotNull();
         assertThat(azureInfo.getDeviceEntraId()).isEqualTo(deviceAzureId);
-        assertThat(azureInfo.getResourceEntraId()).isEqualTo(resourceAzureId);
+        assertThat(azureInfo.getResourceEntraId()).isEqualTo(deviceGroupAzureId);
         assertThat(azureInfo.getEntraStatus()).isEqualTo(EntraStatus.NOT_SENT);
         assertThat(azureInfo.getMembershipStatus()).isEqualTo(MembershipStatus.ACTIVE);
 
@@ -114,41 +154,15 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     @Test
     @Transactional
     void shouldReuseExistingAzureInfo_whenExistsAndIsActive() {
-        Long assignmentId = 2L;
-        Long deviceGroupRef = 200L;
-
-        UUID deviceAzureId = UUID.randomUUID();
-        UUID resourceAzureId = UUID.randomUUID();
 
         DeviceEntraMembership existing = deviceEntraMembershipRepository.saveAndFlush(
                 DeviceEntraMembership.builder()
                         .deviceEntraId(deviceAzureId)
-                        .resourceEntraId(resourceAzureId)
+                        .resourceEntraId(deviceGroupAzureId)
                         .entraStatus(EntraStatus.SENT)
                         .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
         );
-
-        Assignment assignment = new Assignment();
-        assignment.setId(assignmentId);
-        assignment.setDeviceGroupRef(deviceGroupRef);
-        assignment.setAzureAdGroupId(resourceAzureId);
-
-        Device device = new Device();
-        device.setId(20L);
-        device.setDataObjectId(deviceAzureId);
-
-        DeviceGroupMembership membership = DeviceGroupMembership.builder()
-                .deviceId(device.getId())
-                .deviceGroupId(deviceGroupRef)
-                .membershipStatus("ACTIVE")
-                .membershipStatusChanged(new Date())
-                .device(device)
-                .build();
-
-        when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(deviceGroupRef))
-                .thenReturn(List.of(membership));
-
         var flattened = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattened.stream().toList());
 
@@ -166,16 +180,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     @Test
     @Transactional
     void shouldResetExistingAzureInfo_whenExistingIsInactive() {
-        Long assignmentId = 3L;
-        Long deviceGroupRef = 300L;
-
-        UUID deviceAzureId = UUID.randomUUID();
-        UUID resourceAzureId = UUID.randomUUID();
 
         DeviceEntraMembership existing = deviceEntraMembershipRepository.saveAndFlush(
                 DeviceEntraMembership.builder()
                         .deviceEntraId(deviceAzureId)
-                        .resourceEntraId(resourceAzureId)
+                        .resourceEntraId(deviceGroupAzureId)
                         .entraStatus(EntraStatus.DELETION_SENT)
                         .membershipStatus(MembershipStatus.INACTIVE)
                         .sentToEntraAt(new Date())
@@ -183,25 +192,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .build()
         );
 
-        Assignment assignment = new Assignment();
-        assignment.setId(assignmentId);
-        assignment.setDeviceGroupRef(deviceGroupRef);
-        assignment.setAzureAdGroupId(resourceAzureId);
-
-        Device device = new Device();
-        device.setId(30L);
-        device.setDataObjectId(deviceAzureId);
-
-        DeviceGroupMembership membership = DeviceGroupMembership.builder()
-                .deviceId(device.getId())
-                .deviceGroupId(deviceGroupRef)
-                .membershipStatus("ACTIVE")
-                .membershipStatusChanged(new Date())
-                .device(device)
-                .build();
-
-        when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(deviceGroupRef))
-                .thenReturn(List.of(membership));
+        deviceGroupMembershipRepository.saveAndFlush(membership);
 
         var flattened = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattened.stream().toList());
@@ -218,15 +209,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     @Test
     @Transactional
     void shouldTerminateFlattenedAssignments_whenDeleteFlattenedDeviceAssignmentsCalled() {
-        Long assignmentId = 4L;
-
-        UUID deviceAzureId = UUID.randomUUID();
-        UUID resourceAzureId = UUID.randomUUID();
 
         DeviceEntraMembership info = deviceEntraMembershipRepository.saveAndFlush(
                 DeviceEntraMembership.builder()
                         .deviceEntraId(deviceAzureId)
-                        .resourceEntraId(resourceAzureId)
+                        .resourceEntraId(deviceGroupAzureId)
                         .entraStatus(EntraStatus.SENT)
                         .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
@@ -237,7 +224,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
                         .assignmentId(assignmentId)
                         .deviceRef(40L)
                         .identityProviderDeviceObjectId(deviceAzureId)
-                        .identityProviderGroupObjectId(resourceAzureId)
+                        .identityProviderGroupObjectId(deviceGroupAzureId)
                         .deviceEntraMembership(info)
                         .assignmentCreationDate(new Date())
                         .terminationDate(null)
@@ -256,28 +243,29 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(after.getFirst().getTerminationReason()).isEqualTo("test-reason");
     }
 
-    @Test
-    void cornercase_shouldThrowNullPointerException_whenMembershipHasNullDevice() {
-        Long deviceGroupRef = 999L;
-
-        Assignment assignment = new Assignment();
-        assignment.setId(99L);
-        assignment.setDeviceGroupRef(deviceGroupRef);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
-
-        DeviceGroupMembership membership = DeviceGroupMembership.builder()
-                .deviceId(1L)
-                .deviceGroupId(deviceGroupRef)
-                .membershipStatus("ACTIVE")
-                .membershipStatusChanged(new Date())
-                .device(null) // will NPE inside service
-                .build();
-
-        when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(deviceGroupRef))
-                .thenReturn(List.of(membership));
-
-        assertThrows(NullPointerException.class, () -> flattenedDeviceAssignmentService.createFlattenedAssignments(assignment));
-    }
+//    No longer relevant as the mapToFlattenedAssignment methods now fetches the azure device id directly from the device
+//    @Test
+//    void cornercase_shouldThrowNullPointerException_whenMembershipHasNullDevice() {
+//        Long deviceGroupRef = 999L;
+//
+//        Assignment assignment = new Assignment();
+//        assignment.setId(99L);
+//        assignment.setDeviceGroupRef(deviceGroupRef);
+//        assignment.setAzureAdGroupId(UUID.randomUUID());
+//
+//        DeviceGroupMembership membership = DeviceGroupMembership.builder()
+//                .deviceId(1L)
+//                .deviceGroupId(deviceGroupId)
+//                .membershipStatus("ACTIVE")
+//                .membershipStatusChanged(new Date())
+//                .device(null) // will NPE inside service
+//                .build();
+//
+//        when(deviceGroupMembershipRepository.findAllActiveByDeviceGroupRef(deviceGroupId))
+//                .thenReturn(List.of(membership));
+//
+//        assertThrows(NullPointerException.class, () -> flattenedDeviceAssignmentService.createFlattenedAssignments(assignment));
+//    }
 
     @Test
     @Transactional
@@ -360,5 +348,4 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
         verify(deviceAssigmentEntityProducerService, times(1)).publish(any(DeviceEntraMembership.class), anyBoolean());
     }
-
 }
