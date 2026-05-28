@@ -2,10 +2,7 @@ package no.fintlabs.device.assignment;
 
 import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.EntraStatus;
-import no.fintlabs.device.Device;
-import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.device.*;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
@@ -30,6 +27,8 @@ class FlattenedDeviceAssignmentServiceTest {
 
     @Mock
     private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
+    @Mock
+    private DeviceRepository deviceRepository;
 
     @Mock
     private DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
@@ -80,6 +79,8 @@ class FlattenedDeviceAssignmentServiceTest {
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(any(), any()))
                 .thenReturn(Optional.empty());
 
+        when(deviceRepository.findById(any())).thenReturn(Optional.of(device));
+
         Set<FlattenedDeviceAssignment> result = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
 
         assertEquals(1, result.size());
@@ -115,6 +116,8 @@ class FlattenedDeviceAssignmentServiceTest {
 
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(any(), any()))
                 .thenReturn(Optional.of(existingInfo));
+
+        when(deviceRepository.findById(any())).thenReturn(Optional.of(device));
 
         Set<FlattenedDeviceAssignment> result = flattenedDeviceAssignmentService.createFlattenedAssignments(assignment);
 
@@ -286,6 +289,7 @@ class FlattenedDeviceAssignmentServiceTest {
                 list.stream().anyMatch(f -> f.getDeviceRef() == 20L)
         ))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(deviceRepository.findById(any())).thenReturn(Optional.of(device20));
         flattenedDeviceAssignmentService.syncFlattenedAssignments(assignment);
 
         // Verify Termination of old (device 10)
