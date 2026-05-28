@@ -54,12 +54,13 @@ class DeviceGroupMembershipService {
             DeviceGroupMembership existing,
             DeviceGroupMembership incoming
     ) {
+        String existingMembershipStatus = new String(existing.getMembershipStatus());
         DeviceGroupMembership updated =
                 deviceGroupMembershipRepository.save(mapExistingFromIncoming(existing, incoming));
 
         log.info("Updated device group membership {}", existing.getDeviceId());
 
-        transition(existing.getMembershipStatus(), incoming.getMembershipStatus(), updated);
+        transition(existingMembershipStatus, incoming.getMembershipStatus(), updated);
     }
 
     private void transition(String from, String to, DeviceGroupMembership updated) {
