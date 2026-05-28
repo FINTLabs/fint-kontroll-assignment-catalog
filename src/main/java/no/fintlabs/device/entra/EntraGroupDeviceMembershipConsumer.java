@@ -98,5 +98,4 @@ public class EntraGroupDeviceMembershipConsumer {
             deviceEntraMembership.setEntraStatus(EntraStatus.MEMBERSHIP_CONFIRMED);
         }
     }
-
 }
