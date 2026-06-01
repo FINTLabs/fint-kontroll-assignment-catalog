@@ -30,7 +30,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @EnableFintFilter
 @EnableScheduling
 @ConfigurationPropertiesScan
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"no.fintlabs", "no.novari.kafka"})
 public class Application {
     public static void main(String[] args) {
         SlackMessenger slackMessenger = null;

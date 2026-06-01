@@ -2,8 +2,9 @@ package no.fintlabs.orgunitdistance;
 
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,20 +16,18 @@ public class OrgUnitDistanceConsumerConfiguration {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, OrgUnitDistance> orgUnitDistanceContainer(
-            EntityConsumerFactoryService entityConsumerFactoryService,
-            OrgUnitDistanceService orgUnitDistanceService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService,
+            OrgUnitDistanceService orgUnitDistanceService,
+            KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults
     ) {
-        EntityTopicNameParameters entityTopicNameParameters = EntityTopicNameParameters
-                .builder()
-                .resource("orgunitdistance")
-                .build();
-
-        return entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                 OrgUnitDistance.class,
-                (ConsumerRecord<String,OrgUnitDistance> consumerRecord) ->{
+                (ConsumerRecord<String,OrgUnitDistance> consumerRecord) -> {
                     log.debug("Processing orgunitdistance with id: {}", consumerRecord.value().getId());
                     orgUnitDistanceService.save(consumerRecord.value());
-                }
-        ).createContainer(entityTopicNameParameters);
+                },
+                KafkaEntityTopics.defaultListenerConfiguration(),
+                kafkaConsumerConfigurationDefaults.defaultErrorHandler()
+        ).createContainer(KafkaEntityTopics.topicNameParameters("orgunitdistance"));
     }
 }

@@ -3,9 +3,10 @@ package no.fintlabs.role;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.enforcement.LicenseEnforcementService;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -18,25 +19,30 @@ public class RoleConsumer {
     private final AssignmentService assignmentService;
     private final FintCache<Long, Role> roleCache;
     private final LicenseEnforcementService licenseEnforcementService;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
-    public RoleConsumer(RoleRepository roleRepository, AssignmentService assignmentService, FintCache<Long, Role> roleCache, LicenseEnforcementService licenseEnforcementService) {
+    public RoleConsumer(RoleRepository roleRepository,
+                        AssignmentService assignmentService,
+                        FintCache<Long, Role> roleCache,
+                        LicenseEnforcementService licenseEnforcementService,
+                        KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
         this.roleRepository = roleRepository;
         this.assignmentService = assignmentService;
         this.roleCache = roleCache;
         this.licenseEnforcementService = licenseEnforcementService;
+        this.kafkaConsumerConfigurationDefaults = kafkaConsumerConfigurationDefaults;
     }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Role> roleConsumerConfig(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
-        return entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Role.class,
-                        this::process)
-                .createContainer(EntityTopicNameParameters
-                        .builder()
-                        .resource("role-catalog-role")
-                        .build());
+                        this::process,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEntityTopics.topicNameParameters("role-catalog-role"));
     }
 
     void process(ConsumerRecord<String, Role> consumerRecord) {

@@ -41,3 +41,10 @@ fint:
     assignment-catalog:
       license-enforcement:
         hardstop-enable: true
+
+novari:
+  kafka:
+    application-id: fint-kontroll-assignment-catalog
+    topic:
+      org-id: fintlabs.no
+      domain-context: kontroll
