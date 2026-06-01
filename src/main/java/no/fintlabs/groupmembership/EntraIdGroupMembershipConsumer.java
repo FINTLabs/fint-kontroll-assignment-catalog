@@ -6,7 +6,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +18,7 @@ import java.util.*;
 
 @Slf4j
 @Configuration
-public class AzureAdGroupMemberShipConsumer {
+public class EntraIdGroupMembershipConsumer {
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
@@ -26,7 +26,7 @@ public class AzureAdGroupMemberShipConsumer {
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
 
-    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository,
+    public EntraIdGroupMembershipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository,
                                           AssigmentEntityProducerService assigmentEntityProducerService,
                                           FlattenedAssignmentService flattenedAssignmentService,
                                           KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
@@ -37,37 +37,91 @@ public class AzureAdGroupMemberShipConsumer {
     }
 
     @Bean
-    public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
+    public ConcurrentMessageListenerContainer<String, EntraIdGroupMembership> entraIdMembershipConsumer(
             ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
 
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
-                        AzureAdGroupMembership.class,
+                        EntraIdGroupMembership.class,
                         this::processGroupMembership,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaEventTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("azuread-resource-group-membership"));
+                .createContainer(KafkaEventTopics.topicNameParameters("graph-user-group-membership"));
 
     }
 
     @Async
-    void processGroupMembership(ConsumerRecord<String, AzureAdGroupMembership> record) {
-        AzureAdGroupMembership membership = record.value();
+    void processGroupMembership(ConsumerRecord<String, EntraIdGroupMembership> record) {
+        EntraIdGroupMembership membership = record.value();
 
         if (membership == null) {
-            handleDeletion(record);
-        } else {
-            handleUpdate(membership);
+            log.warn("Skipping null Entra membership result for key {}", record.key());
+            return;
+        }
+
+        if (membership.getCode() == null) {
+            log.warn("Skipping Entra membership result with missing code for key {}", record.key());
+            return;
+        }
+
+        switch (membership.getCode()) {
+            case ADDED -> handleUpdate(membership);
+            case REMOVED -> handleDeletion(membership);
+            case NO_CHANGES -> handleNoChanges(membership);
+            case ERROR, FAILED -> log.warn("Entra membership operation for groupref {} - userref {} completed with status {}",
+                    membership.getEntraGroupRef(),
+                    membership.getEntraUserRef(),
+                    membership.getCode());
+            default -> log.warn("Unhandled Entra membership status {} for key {}", membership.getCode(), record.key());
         }
     }
 
-    private void handleDeletion(ConsumerRecord<String, AzureAdGroupMembership> record) {
-        log.info("Handling deletion for empty body with key: {}", record.key());
+    private void handleNoChanges(EntraIdGroupMembership membership) {
+        log.info("Handling no-changes result with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
 
         try {
-            String[] ids = record.key().split("_");
-            UUID groupId = parseUUID(ids[0]);
-            UUID userId = parseUUID(ids[1]);
+            UUID groupId = membership.getEntraGroupRef();
+            UUID userId = membership.getEntraUserRef();
+
+            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
+
+            List<FlattenedAssignment> activeAssignmentsToConfirm = flattenedAssignments.stream()
+                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
+                    .peek(assignment -> {
+                        log.info("Membership already exists in Entra. Marking flattenedassignmentId {} as confirmed", assignment.getId());
+                        assignment.setIdentityProviderGroupMembershipConfirmed(true);
+                    })
+                    .toList();
+
+            List<FlattenedAssignment> deletedAssignmentsToConfirm = flattenedAssignments.stream()
+                    .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
+                    .peek(assignment -> {
+                        log.info("Membership already removed in Entra. Marking flattenedassignmentId {} deletion as confirmed", assignment.getId());
+                        assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
+                    })
+                    .toList();
+
+            List<FlattenedAssignment> assignmentsToSave = new ArrayList<>();
+            assignmentsToSave.addAll(activeAssignmentsToConfirm);
+            assignmentsToSave.addAll(deletedAssignmentsToConfirm);
+
+            if (!assignmentsToSave.isEmpty()) {
+                flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToSave);
+            }
+        } catch (Exception e) {
+            log.error("Failed to handle no-changes result for groupref {} - userref {}. Error: {}",
+                    membership.getEntraGroupRef(),
+                    membership.getEntraUserRef(),
+                    e.getMessage());
+        }
+    }
+
+    private void handleDeletion(EntraIdGroupMembership membership) {
+        log.info("Handling deletion result with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
+
+        try {
+            UUID groupId = membership.getEntraGroupRef();
+            UUID userId = membership.getEntraUserRef();
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
             FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
@@ -103,7 +157,10 @@ public class AzureAdGroupMemberShipConsumer {
                     });
 
         } catch (Exception e) {
-            log.error("Failed to handle deletion for azureref {}. Error: {}", record.key(), e.getMessage());
+            log.error("Failed to handle deletion for groupref {} - userref {}. Error: {}",
+                    membership.getEntraGroupRef(),
+                    membership.getEntraUserRef(),
+                    e.getMessage());
         }
     }
 
@@ -113,32 +170,32 @@ public class AzureAdGroupMemberShipConsumer {
     }
 
 
-    private void handleUpdate(AzureAdGroupMembership membership) {
-        log.debug("Received update with groupref {} - userref {}", membership.getAzureGroupRef(), membership.getAzureUserRef());
+    private void handleUpdate(EntraIdGroupMembership membership) {
+        log.debug("Received update with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
 
         try {
-            UUID groupId = membership.getAzureGroupRef();
-            UUID userId = membership.getAzureUserRef();
+            UUID groupId = membership.getEntraGroupRef();
+            UUID userId = membership.getEntraUserRef();
 
             List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
 
             if (flattenedAssignments.isEmpty()) {
                 assigmentEntityProducerService.publishDeletion(groupId, userId);
-                log.info("User assignment not found with id: {}, removing user from group: {} in azure", userId, groupId);
+                log.info("User assignment not found with id: {}, removing user from group: {} in Entra ID", userId, groupId);
             } else {
                 handleValidMembershipUpdate(membership, flattenedAssignments);
             }
 
         } catch (Exception e) {
-            log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(), e.getMessage());
+            log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getEntraGroupRef(), membership.getEntraUserRef(), e.getMessage());
         }
     }
 
-    private void handleValidMembershipUpdate(AzureAdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
+    private void handleValidMembershipUpdate(EntraIdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
         List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
                 .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
                 .peek(assignment -> {
-                    log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getAzureGroupRef(), membership.getAzureUserRef(),
+                    log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getEntraGroupRef(), membership.getEntraUserRef(),
                             assignment.getId());
                     assignment.setIdentityProviderGroupMembershipConfirmed(true);
                 })
@@ -172,15 +229,6 @@ public class AzureAdGroupMemberShipConsumer {
             if (!toSave.isEmpty()) {
                 flattenedAssignmentService.saveFlattenedAssignmentsBatch(toSave);
             }
-        }
-    }
-
-    private UUID parseUUID(String uuidString) {
-        try {
-            return UUID.fromString(uuidString);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid UUID format: {}", uuidString, e);
-            return null;
         }
     }
 }

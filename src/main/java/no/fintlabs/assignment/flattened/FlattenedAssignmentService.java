@@ -177,7 +177,7 @@ public class FlattenedAssignmentService {
                 savedFlattened.getAssignmentId());
 
         if (!isSync) {
-            log.info("saveAndPublishNewFlattenedAssignment - Publishing new flattened assignment to azure");
+            log.info("saveAndPublishNewFlattenedAssignment - Publishing new flattened assignment to Entra ID");
             assigmentEntityProducerService.publish(newflattenedAssignment);
         }
     }
@@ -195,7 +195,7 @@ public class FlattenedAssignmentService {
             );
 
             if (!isSync) {
-                log.info("saveAndPublish - Publishing {} new flattened assignments to azure", batch.size());
+                log.info("saveAndPublish - Publishing {} new flattened assignments to Entra ID", batch.size());
                 batch.forEach(assigmentEntityProducerService::publish);
             }
         }

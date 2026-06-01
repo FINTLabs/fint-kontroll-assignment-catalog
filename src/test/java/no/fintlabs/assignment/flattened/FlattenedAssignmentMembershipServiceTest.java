@@ -1,7 +1,6 @@
 package no.fintlabs.assignment.flattened;
 
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.MembershipSpecificationBuilder;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
-import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -44,7 +42,7 @@ public class FlattenedAssignmentMembershipServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         existingAssignments = new ArrayList<>();
     }

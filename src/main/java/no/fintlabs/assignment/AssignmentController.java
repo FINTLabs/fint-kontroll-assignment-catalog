@@ -13,7 +13,6 @@ import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
@@ -37,7 +36,6 @@ public class AssignmentController {
     private static final String DEVELOPER_ENDPOINTS_TAG = "Developer endpoints";
 
     private final AssignmentService assignmentService;
-    private final AuthManager authManager;
     private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
@@ -51,7 +49,6 @@ public class AssignmentController {
                                 AssignmentResponseFactory assignmentResponseFactory,
                                 FlattenedAssignmentService flattenedAssignmentService,
                                 AssigmentEntityProducerService assigmentEntityProducerService,
-                                AuthManager authManager,
                                 MembershipService membershipService,
                                 ResourceRepository resourceRepository,
                                 UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
@@ -60,7 +57,6 @@ public class AssignmentController {
         this.assignmentResponseFactory = assignmentResponseFactory;
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
-        this.authManager = authManager;
         this.membershipService = membershipService;
         this.resourceRepository = resourceRepository;
         this.updateAssignedResourcesService = updateAssignedResourcesService;
@@ -81,6 +77,7 @@ public class AssignmentController {
     }
 
     @PostMapping()
+    @OnlyDevelopers
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
         validateUserRoleRefs(request);
@@ -265,7 +262,7 @@ public class AssignmentController {
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
+    @OnlyDevelopers
     @DeleteMapping("{id}")
     public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
         log.info("Deleting assignment with id {}", id);
@@ -426,7 +423,7 @@ public class AssignmentController {
                 .ifPresentOrElse(
                         resource -> {
                             if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have azure group id set");
+                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have Entra ID group id set");
                             }
                         },
                         () -> {

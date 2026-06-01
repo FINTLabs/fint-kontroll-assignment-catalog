@@ -12,10 +12,10 @@ import java.util.UUID;
 public class SimpleAssignment {
     private Long id;
     private Long resourceRef;
-    private UUID azureGroupRef;
+    private UUID entraGroupRef;
     private String resourceName;
     private Long userRef;
-    private UUID  azureUserRef;
+    private UUID  entraUserRef;
     private String userDisplayname;
     private String userUsername;
     private String userType;

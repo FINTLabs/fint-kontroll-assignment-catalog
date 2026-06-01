@@ -5,7 +5,6 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
-import no.fintlabs.opa.OpaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +35,6 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     private MembershipRepository membershipRepository;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
-//    @MockBean
-//    private OpaService opaService;
 
     private Membership activeMembership, inactiveMembership;
     private UUID activeUserObjectId, inactiveUserObjectId, groupObjectId;
@@ -73,7 +70,7 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
         assignment.setId(1L);
         assignment.setRoleRef(1L);
         assignment.setResourceRef(15L);
-        assignment.setAzureAdGroupId(groupObjectId);
+        assignment.setEntraGroupId(groupObjectId);
 
 
         FlattenedAssignment flattenedAssignment1 = new FlattenedAssignment();

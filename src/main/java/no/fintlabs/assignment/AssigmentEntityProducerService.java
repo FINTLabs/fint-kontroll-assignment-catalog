@@ -2,42 +2,36 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.groupmembership.OperationType;
 import no.fintlabs.groupmembership.ResourceGroupMembership;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
-import no.novari.kafka.topic.EntityTopicService;
-import no.novari.kafka.topic.name.EntityTopicNameParameters;
-import org.springframework.stereotype.Service;
+import no.novari.kafka.topic.EventTopicService;
+import no.novari.kafka.topic.name.EventTopicNameParameters;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
-@Service
+@Component
 public class AssigmentEntityProducerService {
 
-    private final ParameterizedTemplate<ResourceGroupMembership> entityProducer;
-    private final EntityTopicNameParameters resourceGroupMembershipTopicNameParameters;
-    private final EntityTopicNameParameters fullResourceGroupMembershipTopicNameParameters;
+    private final ParameterizedTemplate<ResourceGroupMembership> membershipProducer;
+    private final EventTopicNameParameters resourceGroupMembershipTopicNameParameters;
 
     public AssigmentEntityProducerService(
-            ParameterizedTemplateFactory entityProducerFactory,
-            EntityTopicService entityTopicService
+            ParameterizedTemplateFactory producerFactory,
+            EventTopicService eventTopicService
     ) {
-        entityProducer = entityProducerFactory.createTemplate(ResourceGroupMembership.class);
+        membershipProducer = producerFactory.createTemplate(ResourceGroupMembership.class);
 
-        resourceGroupMembershipTopicNameParameters = KafkaEntityTopics.topicNameParameters("resource-group-membership");
-        entityTopicService.createOrModifyTopic(
+        resourceGroupMembershipTopicNameParameters = KafkaEventTopics.topicNameParameters("resource-group-membership-user");
+        eventTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
-                KafkaEntityTopics.compactedTopicConfiguration()
-        );
-
-        fullResourceGroupMembershipTopicNameParameters = KafkaEntityTopics.topicNameParameters("full-resource-group-membership");
-        entityTopicService.createOrModifyTopic(
-                fullResourceGroupMembershipTopicNameParameters,
-                KafkaEntityTopics.compactedTopicConfiguration(Duration.ofMinutes(5))
+                KafkaEventTopics.topicConfiguration()
         );
     }
 
@@ -67,7 +61,7 @@ public class AssigmentEntityProducerService {
             log.warn("Publishing flattened assignment {}. ResourceRef is null", assignment.getId());
         }
 
-        log.info("{} with id {}, assignmentid {}, azuread-groupId {}, azuread-userId {}, resourceRef {}",
+        log.info("{} with id {}, assignmentid {}, entraId-groupId {}, entraId-userId {}, resourceRef {}",
                  message,
                  assignment.getId(),
                  assignment.getAssignmentId(),
@@ -81,7 +75,7 @@ public class AssigmentEntityProducerService {
             assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
             assignment.getIdentityProviderUserObjectId().toString().startsWith("00000000")) {
 
-            log.warn("Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing azuread group id ({}) or user " +
+            log.warn("Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing entraId group id ({}) or user " +
                      "id ({})",
                      assignment.getId(),
                      assignment.getResourceRef(),
@@ -95,44 +89,36 @@ public class AssigmentEntityProducerService {
         return true;
     }
 
-    public void publishDeletion(UUID azureAdGroupId, UUID azureUserId) {
-        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
+    public void publishDeletion(UUID entraGroupId, UUID entraUserId) {
+        ResourceGroupMembership resourceGroupMembership = new ResourceGroupMembership(OperationType.REMOVE, entraGroupId, entraUserId);
 
-        entityProducer.send(
+        log.info("Publishing removal to Entra - groupid: {}, userid: {}", entraGroupId, entraUserId);
+
+        send(resourceGroupMembership);
+    }
+
+    private void publish(UUID entraGroupId, UUID entraUserId) {
+        ResourceGroupMembership resourceGroupMembership = new ResourceGroupMembership(OperationType.ADD, entraGroupId, entraUserId);
+
+        log.info("Publishing addition to Entra - groupid: {}, userid: {}", entraGroupId, entraUserId);
+
+        send(resourceGroupMembership);
+    }
+
+    private void rePublish(UUID entraGroupId, UUID entraUserId) {
+        ResourceGroupMembership resourceGroupMembership = new ResourceGroupMembership(OperationType.ADD, entraGroupId, entraUserId);
+
+        log.info("Republishing resource {} assigned to user {}", entraGroupId, entraUserId);
+
+        send(resourceGroupMembership);
+    }
+
+    private void send(ResourceGroupMembership resourceGroupMembership) {
+        String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);        membershipProducer.send(
                 ParameterizedProducerRecord.<ResourceGroupMembership>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
-                        .value(null)
-                        .build()
-        );
-    }
-
-    private void publish(UUID azureAdGroupId, UUID azureUserId) {
-        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
-        ResourceGroupMembership azureAdGroupMembership = new ResourceGroupMembership(key, azureAdGroupId, azureUserId);
-
-        log.info("Publishing to Azure - groupid: {}, userid: {}", azureAdGroupId, azureUserId);
-
-        entityProducer.send(
-                ParameterizedProducerRecord.<ResourceGroupMembership>builder()
-                        .topicNameParameters(resourceGroupMembershipTopicNameParameters)
-                        .key(key)
-                        .value(azureAdGroupMembership)
-                        .build()
-        );
-    }
-
-    private void rePublish(UUID azureAdGroupId, UUID azureUserId) {
-        String key = azureAdGroupId.toString() + "_" + azureUserId.toString();
-        ResourceGroupMembership azureAdGroupMembership = new ResourceGroupMembership(key, azureAdGroupId, azureUserId);
-
-        log.info("Republishing resource {} assigned to user {}", azureAdGroupId, azureUserId);
-
-        entityProducer.send(
-                ParameterizedProducerRecord.<ResourceGroupMembership>builder()
-                        .topicNameParameters(fullResourceGroupMembershipTopicNameParameters)
-                        .key(key)
-                        .value(azureAdGroupMembership)
+                        .value(resourceGroupMembership)
                         .build()
         );
     }

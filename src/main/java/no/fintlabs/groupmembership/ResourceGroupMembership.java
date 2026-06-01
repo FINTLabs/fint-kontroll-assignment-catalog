@@ -1,6 +1,7 @@
 package no.fintlabs.groupmembership;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,14 +10,26 @@ import java.util.UUID;
 @Getter
 @Setter
 public class ResourceGroupMembership {
-    private String id;
-    private UUID azureGroupRef;
-    private UUID azureUserRef;
+    private OperationType operation;
+    private UUID entraGroupRef;
+    private UUID entraUserRef;
 
     @JsonCreator
-    public ResourceGroupMembership(String id, UUID azureGroupRef, UUID azureUserRef) {
-        this.id = id;
-        this.azureGroupRef = azureGroupRef;
-        this.azureUserRef = azureUserRef;
+    public ResourceGroupMembership(@JsonProperty("operation") OperationType operation,
+                                   @JsonProperty("entraGroupRef") UUID entraGroupRef,
+                                   @JsonProperty("userGroupRef") UUID entraUserRef) {
+        this.operation = operation;
+        this.entraGroupRef = entraGroupRef;
+        this.entraUserRef = entraUserRef;
+    }
+
+    @JsonProperty("entraGroupRef")
+    public UUID getEntraGroupRef() {
+        return entraGroupRef;
+    }
+
+    @JsonProperty("userGroupRef")
+    public UUID getEntraUserRef() {
+        return entraUserRef;
     }
 }
