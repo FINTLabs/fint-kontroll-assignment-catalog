@@ -24,8 +24,8 @@ public class FlattenedAssignmentMapper {
                 }
 
                 log.info(
-                        "Flattened assignment already exist. Updating flattened assignment with  assignmentId: {}, userref: {}, roleref: {}, azureaduserid: {}, " +
-                        "azureadgroupid:" +
+                        "Flattened assignment already exist. Updating flattened assignment with  assignmentId: {}, userref: {}, roleref: {}, entraUserId: {}, " +
+                        "entraGroupId:" +
                         " {}",
                         existingAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(),
                         originalAssignment.getIdentityProviderUserObjectId(), originalAssignment.getIdentityProviderGroupObjectId());

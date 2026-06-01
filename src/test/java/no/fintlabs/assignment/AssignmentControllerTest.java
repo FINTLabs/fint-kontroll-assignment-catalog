@@ -217,7 +217,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(containsString("Resource 123 does not have azure group id set")));
+                .andExpect(content().string(containsString("Resource 123 does not have Entra ID group id set")));
     }
 
     @Test

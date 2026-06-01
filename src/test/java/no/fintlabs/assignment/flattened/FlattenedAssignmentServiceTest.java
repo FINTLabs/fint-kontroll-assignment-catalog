@@ -42,7 +42,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setAssignmentId("A-" + id);
         assignment.setUserRef(10L);
         assignment.setAssignerRoleRef(20L);
-        assignment.setAzureAdUserId(UUID.randomUUID());
+        assignment.setEntraUserId(UUID.randomUUID());
         return assignment;
     }
 
@@ -79,7 +79,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
 
@@ -106,7 +106,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
@@ -126,7 +126,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
-        assignment.setAzureAdUserId(UUID.randomUUID());
+        assignment.setEntraUserId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);

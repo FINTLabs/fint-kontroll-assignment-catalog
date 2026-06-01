@@ -97,7 +97,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(1L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .azureAdUserId(UUID.randomUUID())
+                .entraUserId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleHardstop = Assignment.builder()
@@ -107,7 +107,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .azureAdGroupId(UUID.randomUUID())
+                .entraGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleFree = Assignment.builder()
@@ -117,7 +117,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .azureAdGroupId(UUID.randomUUID())
+                .entraGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToUserFree = Assignment.builder()
@@ -127,7 +127,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(2L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .azureAdUserId(UUID.randomUUID())
+                .entraUserId(UUID.randomUUID())
                 .build();
 
         role = Role.builder()

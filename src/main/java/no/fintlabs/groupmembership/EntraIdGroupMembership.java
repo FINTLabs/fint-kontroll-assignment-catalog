@@ -6,19 +6,18 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.UUID;
-
 @Getter
 @Setter
-public class ResourceGroupMembership {
-    private OperationType operation;
+public class EntraIdGroupMembership {
+    private EntraStatus code;
     private UUID entraGroupRef;
     private UUID entraUserRef;
 
     @JsonCreator
-    public ResourceGroupMembership(@JsonProperty("operation") OperationType operation,
-                                   @JsonProperty("entraGroupRef") UUID entraGroupRef,
-                                   @JsonProperty("userGroupRef") UUID entraUserRef) {
-        this.operation = operation;
+    public EntraIdGroupMembership(@JsonProperty("code") EntraStatus code,
+                                  @JsonProperty("entraGroupRef") UUID entraGroupRef,
+                                  @JsonProperty("entraUserRef") UUID entraUserRef) {
+        this.code = code;
         this.entraGroupRef = entraGroupRef;
         this.entraUserRef = entraUserRef;
     }
@@ -28,7 +27,7 @@ public class ResourceGroupMembership {
         return entraGroupRef;
     }
 
-    @JsonProperty("userGroupRef")
+    @JsonProperty("entraUserRef")
     public UUID getEntraUserRef() {
         return entraUserRef;
     }
