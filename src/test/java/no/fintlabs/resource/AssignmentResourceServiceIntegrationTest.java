@@ -28,7 +28,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
@@ -98,7 +97,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String adobek12 = "adobek12";
     private final String student = "Student";
     private final String allTypes = "ALLTYPES";
-    private final UUID azureUserId = UUID.randomUUID();
+    private final UUID entraUserId = UUID.randomUUID();
 
     @Test
     public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndApplicationResourceLocationOrgUnitIdIsInScope() {
@@ -263,7 +262,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -275,7 +274,6 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-//                .licenseConsumerOrgUnitRef(kompavd)
                 .build();
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
@@ -316,7 +314,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -366,7 +364,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraUserId)
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -655,7 +653,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraUserId)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -758,7 +756,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraUserId)
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
         Assignment savedUserAssignment = assignmentRepository.saveAndFlush(userAssignment);

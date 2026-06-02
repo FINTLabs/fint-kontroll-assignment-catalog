@@ -90,7 +90,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .resourceRef(RESOURCE_ID)
                 .organizationUnitId(ORG_ID)
                 .applicationResourceLocationOrgUnitId(ORG_ID)
-                .azureAdUserId(UUID.randomUUID())
+                .entraUserId(UUID.randomUUID())
                 .build();
 
         TestTransaction.flagForCommit();

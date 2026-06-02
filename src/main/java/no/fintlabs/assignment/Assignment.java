@@ -24,7 +24,6 @@ import no.fintlabs.audit.AuditEntity;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
@@ -53,14 +52,14 @@ public class Assignment extends AuditEntity {
     private String roleType;
     @Column(name = "user_ref")
     private Long userRef;
-    private UUID azureAdUserId;
+    private UUID entraUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
     @Column(name = "resource_ref")
     private Long resourceRef;
     private String resourceName;
-    private UUID azureAdGroupId;
+    private UUID entraGroupId;
     private String organizationUnitId;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
@@ -70,7 +69,6 @@ public class Assignment extends AuditEntity {
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;
     private String assignerUserName;
-    private UUID assignerAzureAdUserId;
     private Long assignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
@@ -118,10 +116,10 @@ public class Assignment extends AuditEntity {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
-                .azureGroupRef(azureAdGroupId)
+                .entraGroupRef(entraGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
-                .azureUserRef(azureAdUserId)
+                .entraUserRef(entraUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
                 .assignerRef(assignerRef)
@@ -137,11 +135,11 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null && azureAdUserId != null;
+        return userRef != null && entraUserId != null;
     }
 
     @JsonIgnore
     public boolean isGroupAssignment() {
-        return roleRef != null && azureAdGroupId != null;
+        return roleRef != null && entraGroupId != null;
     }
 }
