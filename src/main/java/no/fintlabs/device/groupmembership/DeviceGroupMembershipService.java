@@ -54,7 +54,7 @@ class DeviceGroupMembershipService {
             DeviceGroupMembership existing,
             DeviceGroupMembership incoming
     ) {
-        String existingMembershipStatus = new String(existing.getMembershipStatus());
+        String existingMembershipStatus = existing.getMembershipStatus();
         DeviceGroupMembership updated =
                 deviceGroupMembershipRepository.save(mapExistingFromIncoming(existing, incoming));
 
