@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -190,5 +191,53 @@ class DeviceGroupMembershipServiceTest {
         verifyNoInteractions(deviceGroupMembershipRepository);
         verifyNoInteractions(flattenedDeviceAssignmentService);
         verifyNoInteractions(licenseEnforcementService);
+    }
+    @Test
+    void updateDeviceGroupMembership_transitionUsesCorrectFromStatus_evenWhenEntityMutated() {
+        // Arrange
+        long deviceId = 1L;
+        long groupId = 100L;
+        Date originalStatusChangedDate = new Date(1000L);
+        Date incomingStatusChangedDate = new Date(2000L);
+
+        // Create a managed entity (simulating fetched from DB)
+        DeviceGroupMembership existing = membership(deviceId, groupId, "INACTIVE");
+        existing.setMembershipStatusChanged(originalStatusChangedDate);
+
+        DeviceGroupMembership incoming = DeviceGroupMembership.builder()
+                .deviceId(deviceId)
+                .deviceGroupId(groupId)
+                .membershipStatus("ACTIVE")
+                .membershipStatusChanged(incomingStatusChangedDate)
+                .build();
+
+        when(deviceRepository.existsById(deviceId)).thenReturn(true);
+        when(deviceGroupRepository.existsById(groupId)).thenReturn(true);
+        when(deviceGroupMembershipRepository.findById(new DeviceGroupMembershipId(deviceId, groupId)))
+                .thenReturn(Optional.of(existing));
+
+        // Simulate JPA behavior: when save() is called, mutate the original existing object
+        // (This is what Hibernate does with managed entities)
+        when(deviceGroupMembershipRepository.save(any(DeviceGroupMembership.class)))
+                .thenAnswer(invocation -> {
+                    DeviceGroupMembership saved = (DeviceGroupMembership) invocation.getArgument(0);
+                    // Simulate JPA mutation of the managed entity
+                    existing.setMembershipStatus(saved.getMembershipStatus());
+                    existing.setMembershipStatusChanged(saved.getMembershipStatusChanged());
+                    return saved;
+                });
+
+        // Act
+        deviceGroupMembershipService.saveOrUpdate(incoming);
+
+        // Assert: transition() should have been called with from="INACTIVE", to="ACTIVE"
+        // If the bug exists, transition() was called with from="ACTIVE" (after mutation)
+        // and addAssignmentsForMembership would NOT be called
+        verify(flattenedDeviceAssignmentService).addAssignmentsForMembership(any(DeviceGroupMembership.class));
+        verify(flattenedDeviceAssignmentService, never()).deactivateAssignmentsForMembership(anyLong(), anyLong());
+
+        // Assert: existing was mutated (this documents the bug side-effect)
+        assertThat(existing.getMembershipStatus()).isEqualTo("ACTIVE");
+        assertThat(existing.getMembershipStatusChanged()).isEqualTo(incomingStatusChangedDate);
     }
 }
