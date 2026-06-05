@@ -7,6 +7,8 @@ import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -62,7 +64,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
         assignment.setRoleRef(50L);
 
         Device device = new Device();
@@ -92,11 +94,11 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
-    void createFlattenedAssignments_shouldResetAzureInfo_whenItExistsButIsInactive() {
+    void createFlattenedAssignments_shouldResetEntraMembership_whenItExistsButIsInactive() {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
 
         Device device = new Device();
         device.setId(10L);
@@ -205,14 +207,14 @@ class FlattenedDeviceAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentRemovedDate(new Date());
 
-        // Mocking FDA and AzureInfo to control the logic flow
+        // Mocking FDA and EntraMembership to control the logic flow
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceEntraMembership deviceEntraMembership = mock(DeviceEntraMembership.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
+        when(fda.getDeviceEntraMembership()).thenReturn(deviceEntraMembership);
         // Important: this condition triggers the publish logic
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
-        when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
+        when(deviceEntraMembership.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(deviceEntraMembership.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(fda));
@@ -224,8 +226,8 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(flattenedDeviceAssignmentRepository).saveAll(any());
         verify(entityManager).flush();
 
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
-        verify(azureInfo).setMembershipStatus(MembershipStatus.INACTIVE);
+        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership, true);
+        verify(deviceEntraMembership).setMembershipStatus(MembershipStatus.INACTIVE);
     }
 
     @Test
@@ -235,12 +237,12 @@ class FlattenedDeviceAssignmentServiceTest {
         assignment.setAssignmentRemovedDate(new Date());
 
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceEntraMembership deviceEntraMembership = mock(DeviceEntraMembership.class);
         FlattenedDeviceAssignment otherFda = mock(FlattenedDeviceAssignment.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
-        when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(List.of(otherFda)); // Not empty
+        when(fda.getDeviceEntraMembership()).thenReturn(deviceEntraMembership);
+        when(deviceEntraMembership.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(deviceEntraMembership.getFlattenedDeviceAssignments()).thenReturn(List.of(otherFda)); // Not empty
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(fda));
@@ -256,7 +258,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
 
         // Existing
         FlattenedDeviceAssignment existingFda = FlattenedDeviceAssignment.builder()
@@ -306,11 +308,11 @@ class FlattenedDeviceAssignmentServiceTest {
     @Test
     void deactivateAssignmentsForMembership_shouldTerminateAndPublish() {
         FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
-        DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
+        DeviceEntraMembership deviceEntraMembership = mock(DeviceEntraMembership.class);
 
-        when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        when(azureInfo.getEntraStatus()).thenReturn(EntraStatus.SENT);
-        when(azureInfo.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
+        when(fda.getDeviceEntraMembership()).thenReturn(deviceEntraMembership);
+        when(deviceEntraMembership.getEntraStatus()).thenReturn(EntraStatus.SENT);
+        when(deviceEntraMembership.getFlattenedDeviceAssignments()).thenReturn(Collections.emptyList());
 
         when(flattenedDeviceAssignmentRepository.findByDeviceRefAndAssignmentViaGroupRefAndTerminationDateIsNull(1L, 100L))
                 .thenReturn(List.of(fda));
@@ -320,6 +322,6 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(fda).setTerminationDate(any());
         verify(fda).setTerminationReason("Role membership deactivated");
         verify(flattenedDeviceAssignmentRepository).saveAll(anyList());
-        verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
+        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership, true);
     }
 }

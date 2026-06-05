@@ -1,23 +1,20 @@
 package no.fintlabs.groupmembership;
 
 import no.fintlabs.assignment.AssigmentEntityProducerService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.entra.UserEntraMembership;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.entra.MembershipStatus;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Date;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,12 +24,7 @@ import static org.mockito.Mockito.when;
 public class EntraIdGroupMembershipConsumerTest {
 
     @Mock
-    private FlattenedAssignmentRepository repo;
-
-    @Mock
-    private FlattenedAssignmentService flattenedAssignmentService;
-
-    private EntraIdGroupMembershipConsumer consumer;
+    private UserEntraMembershipRepository userEntraMembershipRepository;
 
     @Mock
     private AssigmentEntityProducerService assigmentEntityProducerService;
@@ -40,143 +32,154 @@ public class EntraIdGroupMembershipConsumerTest {
     @Mock
     private KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
+    private EntraIdGroupMembershipConsumer consumer;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new EntraIdGroupMembershipConsumer(repo, assigmentEntityProducerService, flattenedAssignmentService, kafkaConsumerConfigurationDefaults);
+        consumer = new EntraIdGroupMembershipConsumer(userEntraMembershipRepository, assigmentEntityProducerService, kafkaConsumerConfigurationDefaults);
     }
 
     @Test
-    public void processGroupMembership_handlesDeletion() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
+    public void processGroupMembership_handlesDeletionConfirmation() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.INACTIVE, no.fintlabs.entra.EntraStatus.DELETION_SENT);
 
-        String groupId = groupIdUuid.toString();
-        String userId = userIdUuid.toString();
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
 
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.REMOVED, groupIdUuid, userIdUuid);
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.REMOVED, groupId, userId)));
 
-        ConsumerRecord<String, EntraIdGroupMembership> record = new ConsumerRecord<>("topic", 1, 1, groupId + "_" + userId, entraIdGroupMembership);
-
-        FlattenedAssignment flattenedAssignmentForDeletion = new FlattenedAssignment();
-        flattenedAssignmentForDeletion.setAssignmentTerminationDate(new Date());
-
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(
-                List.of(flattenedAssignmentForDeletion));
-        when(repo.saveAndFlush(flattenedAssignmentForDeletion)).thenReturn(flattenedAssignmentForDeletion);
-
-        consumer.processGroupMembership(record);
-
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(repo, times(1)).saveAndFlush(flattenedAssignmentForDeletion);
-    }
-
-    @Test
-    public void processGroupMembership_handlesUpdate() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
-
-        String groupId = groupIdUuid.toString();
-        String userId = userIdUuid.toString();
-
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.ADDED, groupIdUuid, userIdUuid);
-
-        ConsumerRecord<String, EntraIdGroupMembership> record =
-                new ConsumerRecord<>("topic", 1, 1, groupId + "_" + userId, entraIdGroupMembership);
-
-        FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
-
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(List.of(flattenedAssignmentForUpdate));
-
-        consumer.processGroupMembership(record);
-
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate));
-        assertTrue(flattenedAssignmentForUpdate.isIdentityProviderGroupMembershipConfirmed());
-    }
-
-    @Test
-    public void processGroupMembership_handlesUpdate_toDelete() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
-
-        String groupId = groupIdUuid.toString();
-        String userId = userIdUuid.toString();
-
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.ADDED, groupIdUuid, userIdUuid);
-
-        ConsumerRecord<String, EntraIdGroupMembership> record =
-                new ConsumerRecord<>("topic", 1, 1, groupId + "_" + userId, entraIdGroupMembership);
-
-        FlattenedAssignment flattenedAssignmentForUpdate = new FlattenedAssignment();
-
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(List.of());
-
-        consumer.processGroupMembership(record);
-
-        verify(assigmentEntityProducerService, times(1)).publishDeletion(groupIdUuid, userIdUuid);
-
-        verify(repo, times(1)).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid);
-        verify(flattenedAssignmentService, times(0)).saveAndPublishFlattenedAssignmentsBatch(List.of(flattenedAssignmentForUpdate), false);
-    }
-
-    @Test
-    public void processGroupMembership_handlesNoChangesForActiveAssignmentAsConfirmed() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupIdUuid, userIdUuid);
-        ConsumerRecord<String, EntraIdGroupMembership> record =
-                new ConsumerRecord<>("topic", 1, 1, groupIdUuid + "_" + userIdUuid, entraIdGroupMembership);
-
-        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setIdentityProviderGroupMembershipConfirmed(false);
-
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid))
-                .thenReturn(List.of(flattenedAssignment));
-
-        consumer.processGroupMembership(record);
-
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
-        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignment));
+        assertEquals(no.fintlabs.entra.EntraStatus.DELETION_CONFIRMED, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
         verifyNoInteractions(assigmentEntityProducerService);
     }
 
     @Test
-    public void processGroupMembership_handlesNoChangesForTerminatedAssignmentAsDeletionConfirmed() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupIdUuid, userIdUuid);
-        ConsumerRecord<String, EntraIdGroupMembership> record =
-                new ConsumerRecord<>("topic", 1, 1, groupIdUuid + "_" + userIdUuid, entraIdGroupMembership);
+    public void processGroupMembership_handlesUpdateConfirmation() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.ACTIVE, no.fintlabs.entra.EntraStatus.SENT);
 
-        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setAssignmentTerminationDate(new Date());
-        flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(false);
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
 
-        when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid))
-                .thenReturn(List.of(flattenedAssignment));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
 
-        consumer.processGroupMembership(record);
-
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
-        verify(flattenedAssignmentService, times(1)).saveFlattenedAssignmentsBatch(List.of(flattenedAssignment));
+        assertEquals(no.fintlabs.entra.EntraStatus.MEMBERSHIP_CONFIRMED, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
         verifyNoInteractions(assigmentEntityProducerService);
     }
 
     @Test
-    public void processGroupMembership_doesNotMutateAssignmentsForFailedResult() {
-        UUID groupIdUuid = UUID.randomUUID();
-        UUID userIdUuid = UUID.randomUUID();
-        EntraIdGroupMembership entraIdGroupMembership = new EntraIdGroupMembership(EntraStatus.FAILED, groupIdUuid, userIdUuid);
-        ConsumerRecord<String, EntraIdGroupMembership> record =
-                new ConsumerRecord<>("topic", 1, 1, groupIdUuid + "_" + userIdUuid, entraIdGroupMembership);
+    public void processGroupMembership_republishesAdditionWhenRemovalConflictsWithActiveMembership() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.ACTIVE, no.fintlabs.entra.EntraStatus.SENT);
 
-        consumer.processGroupMembership(record);
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
 
-        verify(repo, never()).findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(any(), any());
-        verify(flattenedAssignmentService, never()).saveFlattenedAssignmentsBatch(any());
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.REMOVED, groupId, userId)));
+
+        verify(assigmentEntityProducerService).publish(userEntraMembership, true);
+        verify(userEntraMembershipRepository).save(userEntraMembership);
+    }
+
+    @Test
+    public void processGroupMembership_republishesDeletionWhenAdditionConflictsWithInactiveMembership() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.INACTIVE, no.fintlabs.entra.EntraStatus.DELETION_SENT);
+
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
+
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
+
+        verify(assigmentEntityProducerService).publish(userEntraMembership, true);
+        verify(userEntraMembershipRepository).save(userEntraMembership);
+    }
+
+    @Test
+    public void processGroupMembership_handlesNoChangesForActiveMembershipAsConfirmed() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.ACTIVE, no.fintlabs.entra.EntraStatus.SENT);
+
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
+
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupId, userId)));
+
+        assertEquals(no.fintlabs.entra.EntraStatus.MEMBERSHIP_CONFIRMED, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
         verifyNoInteractions(assigmentEntityProducerService);
+    }
+
+    @Test
+    public void processGroupMembership_handlesNoChangesForInactiveMembershipAsDeletionConfirmed() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.INACTIVE, no.fintlabs.entra.EntraStatus.DELETION_SENT);
+
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
+
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupId, userId)));
+
+        assertEquals(no.fintlabs.entra.EntraStatus.DELETION_CONFIRMED, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
+        verifyNoInteractions(assigmentEntityProducerService);
+    }
+
+    @Test
+    public void processGroupMembership_marksFailedAsNeedsRepublish() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.ACTIVE, no.fintlabs.entra.EntraStatus.SENT);
+
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
+
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.FAILED, groupId, userId)));
+
+        assertEquals(no.fintlabs.entra.EntraStatus.NEEDS_REPUBLISH, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
+        verifyNoInteractions(assigmentEntityProducerService);
+    }
+
+    @Test
+    public void processGroupMembership_doesNotSaveWhenMembershipIsMissing() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.empty());
+
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
+
+        verify(userEntraMembershipRepository, times(1)).findByUserEntraIdAndResourceEntraId(userId, groupId);
+        verify(userEntraMembershipRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verifyNoInteractions(assigmentEntityProducerService);
+    }
+
+    private ConsumerRecord<String, EntraIdGroupMembership> record(EntraIdGroupMembership membership) {
+        return new ConsumerRecord<>("topic", 1, 1, membership.getEntraGroupRef() + "_" + membership.getEntraUserRef(), membership);
+    }
+
+    private UserEntraMembership membership(
+            UUID userId,
+            UUID groupId,
+            MembershipStatus membershipStatus,
+            no.fintlabs.entra.EntraStatus entraStatus
+    ) {
+        return UserEntraMembership.builder()
+                .userEntraId(userId)
+                .resourceEntraId(groupId)
+                .membershipStatus(membershipStatus)
+                .entraStatus(entraStatus)
+                .build();
     }
 }

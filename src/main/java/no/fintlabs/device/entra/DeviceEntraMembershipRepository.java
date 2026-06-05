@@ -1,6 +1,6 @@
 package no.fintlabs.device.entra;
 
-import no.fintlabs.device.EntraStatus;
+import no.fintlabs.entra.EntraStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

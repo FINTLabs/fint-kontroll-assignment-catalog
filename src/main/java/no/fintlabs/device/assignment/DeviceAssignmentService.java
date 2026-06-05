@@ -57,7 +57,7 @@ public class DeviceAssignmentService {
                         deviceGroup.getId(),
                         LocalDateTime.now()
                 ))
-                .azureAdGroupId(resource.getIdentityProviderGroupObjectId())
+                .entraIdGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
 
@@ -93,7 +93,7 @@ public class DeviceAssignmentService {
         if (resource.getIdentityProviderGroupObjectId() == null) {
             throw new AssignmentException(
                     HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Resource " + id + " does not have azure group id set"
+                    "Resource " + id + " does not have Entra group id set"
             );
         }
 

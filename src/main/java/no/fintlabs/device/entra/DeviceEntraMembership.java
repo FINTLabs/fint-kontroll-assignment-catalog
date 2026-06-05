@@ -2,8 +2,8 @@ package no.fintlabs.device.entra;
 
 import jakarta.persistence.*;
 import lombok.*;
-import no.fintlabs.device.EntraStatus;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;

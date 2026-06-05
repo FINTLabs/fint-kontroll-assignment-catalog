@@ -42,7 +42,7 @@ public class FlattenedAssignmentMembershipServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setEntraGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
 
         existingAssignments = new ArrayList<>();
     }

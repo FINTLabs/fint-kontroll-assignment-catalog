@@ -49,11 +49,11 @@ class DeviceAssignmentServiceTest {
         return DeviceGroup.builder().id(id).build();
     }
 
-    private Resource resource(long id, String name, UUID azureGroupId) {
+    private Resource resource(long id, String name, UUID entraIdGroupId) {
         Resource r = new Resource();
         r.setResourceId(String.valueOf(id));
         r.setResourceName(name);
-        r.setIdentityProviderGroupObjectId(azureGroupId);
+        r.setIdentityProviderGroupObjectId(entraIdGroupId);
         return r;
     }
 
@@ -85,7 +85,7 @@ class DeviceAssignmentServiceTest {
     }
 
     @Test
-    void createNewAssignment_shouldThrowUnprocessable_whenResourceHasNoAzureGroupId() {
+    void createNewAssignment_shouldThrowUnprocessable_whenResourceHasNoEntraIdGroupId() {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
         Resource r = resource(1L, "R", null);
@@ -123,8 +123,8 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID azureGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", azureGroupId);
+        UUID entraIdGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", entraIdGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
@@ -146,8 +146,8 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID azureGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", azureGroupId);
+        UUID entraIdGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", entraIdGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
 
         NearestResourceLocationDto nearest = mock(NearestResourceLocationDto.class);
@@ -170,7 +170,7 @@ class DeviceAssignmentServiceTest {
         assertEquals(1L, saved.getResourceRef());
         assertEquals("Resource A", saved.getResourceName());
         assertEquals("ou-1", saved.getOrganizationUnitId());
-        assertEquals(azureGroupId, saved.getAzureAdGroupId());
+        assertEquals(entraIdGroupId, saved.getEntraIdGroupId());
         assertEquals(100L, saved.getDeviceGroupRef());
         assertEquals("nearest-ou", saved.getApplicationResourceLocationOrgUnitId());
         assertEquals("Nearest OU Name", saved.getApplicationResourceLocationOrgUnitName());
@@ -184,8 +184,8 @@ class DeviceAssignmentServiceTest {
         when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        UUID azureGroupId = UUID.randomUUID();
-        Resource r = resource(1L, "Resource A", azureGroupId);
+        UUID entraIdGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", entraIdGroupId);
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))

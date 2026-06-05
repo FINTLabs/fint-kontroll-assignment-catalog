@@ -98,18 +98,18 @@ class DeviceServiceTest {
     }
     @Test
     void saveOrUpdate_shouldRepublish_whenDataObjectIdHasChanged() {
-        UUID oldAzureId = UUID.randomUUID();
-        UUID newAzureId = UUID.randomUUID();
+        UUID oldEntraId = UUID.randomUUID();
+        UUID newEntraId = UUID.randomUUID();
 
         Device existing = Device.builder()
                 .id(1L)
-                .dataObjectId(oldAzureId)
+                .dataObjectId(oldEntraId)
                 .name("Device")
                 .build();
 
         Device incoming = Device.builder()
                 .id(1L)
-                .dataObjectId(newAzureId)
+                .dataObjectId(newEntraId)
                 .name("Device") // Name is same, but equals check in service will fail due to dataObjectId change
                 .build();
 
