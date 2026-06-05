@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import no.fintlabs.groupmembership.EntraStatus;
 
 import java.util.UUID;
 
@@ -12,12 +13,12 @@ import java.util.UUID;
 @Setter
 @Builder
 public class EntraDeviceGroupMembership {
-    private EntraReturnCode code;
+    private EntraStatus code;
     private UUID entraGroupRef;
     private UUID entraDeviceRef;
 
     @JsonCreator
-    public EntraDeviceGroupMembership(@JsonProperty("code") EntraReturnCode code,
+    public EntraDeviceGroupMembership(@JsonProperty("code") EntraStatus code,
                                       @JsonProperty("entraGroupRef") UUID entraGroupRef,
                                       @JsonProperty("entraDeviceRef") UUID entraDeviceRef) {
         this.code = code;

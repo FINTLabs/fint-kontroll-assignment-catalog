@@ -2,6 +2,7 @@ package no.fintlabs.assignment.flattened;
 
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.membership.Membership;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,9 @@ public class FlattenedAssignmentServiceTest {
     private FlattenedAssignmentMapper flattenedAssignmentMapper;
 
     @Mock
+    private UserEntraMembershipRepository userEntraMembershipRepository;
+
+    @Mock
     private AssigmentEntityProducerService assigmentEntityProducerService;
 
     @InjectMocks
@@ -41,7 +45,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(id);
         assignment.setAssignmentId("A-" + id);
         assignment.setUserRef(10L);
-        assignment.setEntraUserId(UUID.randomUUID());
+        assignment.setEntraIdUserId(UUID.randomUUID());
         return assignment;
     }
 
@@ -78,7 +82,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setEntraGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
 
@@ -105,7 +109,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setRoleRef(123L);
-        assignment.setEntraGroupId(UUID.randomUUID());
+        assignment.setEntraIdGroupId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);
@@ -125,7 +129,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
-        assignment.setEntraUserId(UUID.randomUUID());
+        assignment.setEntraIdUserId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);

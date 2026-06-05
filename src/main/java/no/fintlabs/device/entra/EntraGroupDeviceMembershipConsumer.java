@@ -2,11 +2,13 @@ package no.fintlabs.device.entra;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
-import no.fintlabs.kafka.event.EventConsumerFactoryService;
-import no.fintlabs.kafka.event.topic.EventTopicNameParameters;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.groupmembership.MembershipEventNames;
+import no.fintlabs.kafka.KafkaEventTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,33 +25,33 @@ public class EntraGroupDeviceMembershipConsumer {
 
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     private final DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @Bean
-    public ConcurrentMessageListenerContainer<String, EntraDeviceGroupMembership> azureAdDeviceMembershipConsumer(
-            EventConsumerFactoryService eventConsumerFactoryService
+    public ConcurrentMessageListenerContainer<String, EntraDeviceGroupMembership> entraDeviceMembershipConsumer(
+            ParameterizedListenerContainerFactoryService eventConsumerFactoryService
     ) {
 
-        return eventConsumerFactoryService.createFactory(
+        return eventConsumerFactoryService.createRecordListenerContainerFactory(
                         EntraDeviceGroupMembership.class,
-                        this::processGroupMembership)
-                .createContainer(EventTopicNameParameters
-                        .builder()
-                        .eventName("entra-device-group-membership")
-                        .build());
+                        this::processGroupMembership,
+                        KafkaEventTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEventTopics.topicNameParameters(MembershipEventNames.ENTRA_DEVICE_GROUP_MEMBERSHIP));
     }
 
     @Transactional
     public void processGroupMembership(ConsumerRecord<String, EntraDeviceGroupMembership> record) {
         EntraDeviceGroupMembership entraResponse = record.value();
-        UUID azureDeviceRef = entraResponse.getEntraDeviceRef();
+        UUID entraDeviceRef = entraResponse.getEntraDeviceRef();
         UUID entraGroupRef = entraResponse.getEntraGroupRef();
         String key = record.key();
-        Optional<DeviceEntraMembership> deviceEntraMembershipOptional = deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(azureDeviceRef, entraGroupRef);
+        Optional<DeviceEntraMembership> deviceEntraMembershipOptional = deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(entraDeviceRef, entraGroupRef);
         if (deviceEntraMembershipOptional.isEmpty()) {
-            log.warn("No deviceAzureInfo found for device {} and resource {}, messageKey: {}", azureDeviceRef, entraGroupRef, key);
+            log.warn("No device Entra membership found for device {} and resource {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);
         } else {
             DeviceEntraMembership deviceEntraMembership = deviceEntraMembershipOptional.get();
-            log.info("Received response for device {} in group {}, messageKey: {}", azureDeviceRef, entraGroupRef, key);
+            log.info("Received response for device {} in group {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);
             switch (entraResponse.getCode()) {
                 case ADDED -> confirmMembershipAdded(deviceEntraMembership, key);
                 case REMOVED -> confirmMembershipRemoved(deviceEntraMembership, key);

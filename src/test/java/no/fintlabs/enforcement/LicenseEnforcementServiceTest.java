@@ -96,7 +96,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(1L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .entraUserId(UUID.randomUUID())
+                .entraIdUserId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleHardstop = Assignment.builder()
@@ -105,7 +105,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .entraGroupId(UUID.randomUUID())
+                .entraIdGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToRoleFree = Assignment.builder()
@@ -114,7 +114,7 @@ class LicenseEnforcementServiceTest {
                 .roleRef(555L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .entraGroupId(UUID.randomUUID())
+                .entraIdGroupId(UUID.randomUUID())
                 .build();
 
         assignmentToUserFree = Assignment.builder()
@@ -123,7 +123,7 @@ class LicenseEnforcementServiceTest {
                 .resourceRef(2L)
                 .organizationUnitId("org1")
                 .applicationResourceLocationOrgUnitId("org1")
-                .entraUserId(UUID.randomUUID())
+                .entraIdUserId(UUID.randomUUID())
                 .build();
 
         role = Role.builder()

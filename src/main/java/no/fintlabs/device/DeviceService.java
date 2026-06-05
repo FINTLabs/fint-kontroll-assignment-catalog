@@ -73,7 +73,7 @@ public class DeviceService {
             deviceMembershipRepublisher.republishErrorAssignmentsForDevice(saved);
         }
         else {
-            flattenedDeviceAssignmentService.updateDeviceAzureId(saved);
+            flattenedDeviceAssignmentService.updateDeviceEntraId(saved);
         }
     }
 

@@ -97,7 +97,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String adobek12 = "adobek12";
     private final String student = "Student";
     private final String allTypes = "ALLTYPES";
-    private final UUID entraUserId = UUID.randomUUID();
+    private final UUID entraIdUserId = UUID.randomUUID();
 
     @Test
     public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndApplicationResourceLocationOrgUnitIdIsInScope() {
@@ -262,7 +262,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraUserId(entraUserId)
+                .entraIdUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -314,7 +314,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraUserId(entraUserId)
+                .entraIdUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -364,7 +364,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraUserId(entraUserId)
+                .entraIdUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -653,7 +653,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraUserId(entraUserId)
+                .entraIdUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -756,7 +756,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraUserId(entraUserId)
+                .entraIdUserId(entraIdUserId)
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
         Assignment savedUserAssignment = assignmentRepository.saveAndFlush(userAssignment);

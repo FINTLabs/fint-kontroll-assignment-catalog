@@ -70,7 +70,7 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
         assignment.setId(1L);
         assignment.setRoleRef(1L);
         assignment.setResourceRef(15L);
-        assignment.setEntraGroupId(groupObjectId);
+        assignment.setEntraIdGroupId(groupObjectId);
 
 
         FlattenedAssignment flattenedAssignment1 = new FlattenedAssignment();

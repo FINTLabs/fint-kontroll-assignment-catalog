@@ -8,9 +8,9 @@ public class AssignmentMother {
         return Assignment.builder()
                 .id(111L)
                 .userRef(333L)
-                .entraUserId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"))
+                .entraIdUserId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"))
                 .resourceRef(444L)
-                .entraGroupId(UUID.fromString("456e4567-e89b-12d3-a456-426614174000"))
+                .entraIdGroupId(UUID.fromString("456e4567-e89b-12d3-a456-426614174000"))
                 .roleRef(555L)
                 .assignmentDate(new Date());
     }

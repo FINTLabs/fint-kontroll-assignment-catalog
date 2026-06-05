@@ -6,10 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AssignmentMapperTest {
 
@@ -20,9 +18,6 @@ class AssignmentMapperTest {
         FlattenedAssignment flattenedAssignment = AssignmentMapper.toFlattenedAssignment(assignment);
 
         assertCommonFields(flattenedAssignment);
-
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
     }
 
     @Test
@@ -31,9 +26,6 @@ class AssignmentMapperTest {
         FlattenedAssignment flattenedAssignment = AssignmentMapper.toFlattenedAssignment(assignment, true);
 
         assertCommonFields(flattenedAssignment);
-
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
     }
 
     @Test
@@ -46,8 +38,6 @@ class AssignmentMapperTest {
 
         assertCommonFields(flattenedAssignment);
 
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
         assertNotNull(flattenedAssignment.getAssignmentTerminationDate());
     }
 

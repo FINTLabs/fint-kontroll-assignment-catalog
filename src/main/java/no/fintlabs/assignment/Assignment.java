@@ -52,7 +52,7 @@ public class Assignment extends AuditEntity {
     private String roleType;
     @Column(name = "user_ref")
     private Long userRef;
-    private UUID entraUserId;
+    private UUID entraIdUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
@@ -60,7 +60,7 @@ public class Assignment extends AuditEntity {
     private Long resourceRef;
     private Long deviceGroupRef;
     private String resourceName;
-    private UUID entraGroupId;
+    private UUID entraIdGroupId;
     private String organizationUnitId;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
@@ -113,10 +113,10 @@ public class Assignment extends AuditEntity {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
-                .entraGroupRef(entraGroupId)
+                .entraGroupRef(entraIdGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
-                .entraUserRef(entraUserId)
+                .entraUserRef(entraIdUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
                 .userType(userUserType)
@@ -131,15 +131,15 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null && entraUserId != null;
+        return userRef != null && entraIdUserId != null;
     }
 
     @JsonIgnore
     public boolean isGroupAssignment() {
-        return roleRef != null && entraGroupId != null;
+        return roleRef != null && entraIdGroupId != null;
     }
     @JsonIgnore
     public boolean isDeviceGroupAssignment() {
-        return deviceGroupRef != null && azureAdGroupId != null;
+        return deviceGroupRef != null && entraIdGroupId != null;
     }
 }

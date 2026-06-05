@@ -1,6 +1,7 @@
 package no.fintlabs.device;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import no.fintlabs.groupmembership.OperationType;
 import lombok.Getter;
 import lombok.Setter;
 

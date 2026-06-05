@@ -10,6 +10,8 @@ import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,25 +81,25 @@ public class FlattenedDeviceAssignmentService {
                                                                Assignment assignment) {
 
         Device device = getDeviceOrThrow(membership.getDeviceId());
-        UUID deviceAzureId = device.getDataObjectId();
-        UUID resourceAzureId = assignment.getAzureAdGroupId();
+        UUID deviceEntraId = device.getDataObjectId();
+        UUID resourceEntraId = assignment.getEntraIdGroupId();
 
         FlattenedDeviceAssignment flattenedAssignment = toFlattenedDeviceAssignment(assignment);
-        flattenedAssignment.setIdentityProviderDeviceObjectId(deviceAzureId);
+        flattenedAssignment.setIdentityProviderDeviceObjectId(deviceEntraId);
         flattenedAssignment.setDeviceRef(device.getId());
 
-        DeviceEntraMembership azureInfo = deviceEntraMembershipRepository
-                .findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId)
-                .map(this::getAzureInfoForNewFlattenedAssignment)
+        DeviceEntraMembership deviceEntraMembership = deviceEntraMembershipRepository
+                .findByDeviceEntraIdAndResourceEntraId(deviceEntraId, resourceEntraId)
+                .map(this::getEntraMembershipForNewFlattenedAssignment)
                 .orElseGet(() -> DeviceEntraMembership.builder()
-                        .deviceEntraId(deviceAzureId)
-                        .resourceEntraId(resourceAzureId)
+                        .deviceEntraId(deviceEntraId)
+                        .resourceEntraId(resourceEntraId)
                         .entraStatus(EntraStatus.NOT_SENT)
                         .membershipStatus(MembershipStatus.ACTIVE)
                         .build()
                 );
 
-        azureInfo.addFlattenedAssignment(flattenedAssignment);
+        deviceEntraMembership.addFlattenedAssignment(flattenedAssignment);
 
         return flattenedAssignment;
     }
@@ -109,7 +111,7 @@ public class FlattenedDeviceAssignmentService {
                 ));
     }
 
-    private DeviceEntraMembership getAzureInfoForNewFlattenedAssignment(DeviceEntraMembership info) {
+    private DeviceEntraMembership getEntraMembershipForNewFlattenedAssignment(DeviceEntraMembership info) {
         boolean needsReset =
                 info.getMembershipStatus() == MembershipStatus.INACTIVE ||
                         EntraStatus.inactiveStatuses().contains(info.getEntraStatus());
@@ -144,7 +146,7 @@ public class FlattenedDeviceAssignmentService {
                             flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
 
-            savedFlattened.stream().map(FlattenedDeviceAssignment::getDeviceEntraMembership).filter(deviceAzureInfo -> deviceAzureInfo.getEntraStatus().equals(EntraStatus.NOT_SENT))
+            savedFlattened.stream().map(FlattenedDeviceAssignment::getDeviceEntraMembership).filter(deviceEntraMembership -> deviceEntraMembership.getEntraStatus().equals(EntraStatus.NOT_SENT))
                     .distinct().forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
 
             flattenedDeviceAssignmentRepository.flush();
@@ -260,8 +262,8 @@ public class FlattenedDeviceAssignmentService {
         saveAndPublishFlattenedAssignmentsBatch(newAssignments);
     }
 
-    public void updateDeviceAzureId(Device device) {
-        UUID azureDeviceId = device.getDataObjectId();
+    public void updateDeviceEntraId(Device device) {
+        UUID entraDeviceId = device.getDataObjectId();
         List<FlattenedDeviceAssignment> assignments = flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(device.getId());
         if (assignments.isEmpty()) {
             log.info("No active flattened assignments for device {}", device.getId());
@@ -269,11 +271,11 @@ public class FlattenedDeviceAssignmentService {
         }
 
         for (FlattenedDeviceAssignment flattenedDeviceAssignment : assignments) {
-            flattenedDeviceAssignment.setIdentityProviderDeviceObjectId(azureDeviceId);
-            flattenedDeviceAssignment.getDeviceEntraMembership().setDeviceEntraId(azureDeviceId);
+            flattenedDeviceAssignment.setIdentityProviderDeviceObjectId(entraDeviceId);
+            flattenedDeviceAssignment.getDeviceEntraMembership().setDeviceEntraId(entraDeviceId);
         }
 
-        log.info("Updated device azure id for {} flattened assignments", assignments.size());
+        log.info("Updated device entra id for {} flattened assignments", assignments.size());
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {

@@ -1,6 +1,10 @@
 package no.fintlabs.assignment;
 
+import no.fintlabs.assignment.entra.UserEntraMembership;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.groupmembership.OperationType;
 import no.fintlabs.groupmembership.ResourceGroupMembership;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
@@ -32,13 +36,16 @@ public class AssigmentEntityProducerServiceTest {
     @Mock
     private ParameterizedTemplate entityProducer;
 
+    @Mock
+    private UserEntraMembershipRepository userEntraMembershipRepository;
+
     private AssigmentEntityProducerService service;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         when(entityProducerFactory.createTemplate(any())).thenReturn(entityProducer);
-        service = new AssigmentEntityProducerService(entityProducerFactory, eventTopicService);
+        service = new AssigmentEntityProducerService(entityProducerFactory, eventTopicService, userEntraMembershipRepository);
     }
 
     @Test
@@ -89,6 +96,44 @@ public class AssigmentEntityProducerServiceTest {
         service.publishDeletion(assignment);
 
         verify(entityProducer, times(0)).send(any(ParameterizedProducerRecord.class));
+    }
+
+    @Test
+    public void shouldPublishAddFromUserEntraMembershipAndMarkAsSent() {
+        UUID groupRef = UUID.randomUUID();
+        UUID userRef = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = UserEntraMembership.builder()
+                .resourceEntraId(groupRef)
+                .userEntraId(userRef)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraStatus.NOT_SENT)
+                .build();
+
+        service.publish(userEntraMembership, false);
+
+        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        assertEquals(OperationType.ADD, record.getValue().getOperation());
+        assertEquals(EntraStatus.SENT, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
+    }
+
+    @Test
+    public void shouldPublishRemoveFromInactiveUserEntraMembershipAndMarkAsDeletionSent() {
+        UUID groupRef = UUID.randomUUID();
+        UUID userRef = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = UserEntraMembership.builder()
+                .resourceEntraId(groupRef)
+                .userEntraId(userRef)
+                .membershipStatus(MembershipStatus.INACTIVE)
+                .entraStatus(EntraStatus.MEMBERSHIP_CONFIRMED)
+                .build();
+
+        service.publish(userEntraMembership, false);
+
+        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        assertEquals(OperationType.REMOVE, record.getValue().getOperation());
+        assertEquals(EntraStatus.DELETION_SENT, userEntraMembership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

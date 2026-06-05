@@ -1,10 +1,13 @@
 package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -17,6 +20,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.audit.AuditEntity;
+import no.fintlabs.assignment.entra.UserEntraMembership;
 
 import java.util.Date;
 import java.util.UUID;
@@ -28,7 +32,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 @Entity
-@Table(name = "FlattenedAssignments")
+@Table(name = "flattened_user_assignments")
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 public class FlattenedAssignment extends AuditEntity {
@@ -45,12 +49,12 @@ public class FlattenedAssignment extends AuditEntity {
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
     private UUID identityProviderGroupObjectId;
-    @Builder.Default
-    private boolean identityProviderGroupMembershipConfirmed = false;
-    @Builder.Default
-    private boolean identityProviderGroupMembershipDeletionConfirmed = false;
     private Long assignmentViaRoleRef;
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
     private String assignmentTerminationReason;
+
+    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinColumn(name = "user_entra_membership_id", updatable = false)
+    private UserEntraMembership userEntraMembership;
 }

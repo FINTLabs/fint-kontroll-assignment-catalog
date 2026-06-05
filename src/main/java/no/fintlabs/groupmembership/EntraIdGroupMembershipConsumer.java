@@ -1,40 +1,32 @@
 package no.fintlabs.groupmembership;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.entra.UserEntraMembership;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class EntraIdGroupMembershipConsumer {
 
-    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
-    private final FlattenedAssignmentService flattenedAssignmentService;
+    private final UserEntraMembershipRepository userEntraMembershipRepository;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
-
-
-    public EntraIdGroupMembershipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository,
-                                          AssigmentEntityProducerService assigmentEntityProducerService,
-                                          FlattenedAssignmentService flattenedAssignmentService,
-                                          KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
-        this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.kafkaConsumerConfigurationDefaults = kafkaConsumerConfigurationDefaults;
-    }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, EntraIdGroupMembership> entraIdMembershipConsumer(
@@ -46,189 +38,96 @@ public class EntraIdGroupMembershipConsumer {
                         this::processGroupMembership,
                         KafkaEventTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEventTopics.topicNameParameters("graph-user-group-membership"));
+                .createContainer(KafkaEventTopics.topicNameParameters(MembershipEventNames.ENTRA_USER_GROUP_MEMBERSHIP));
 
     }
 
-    @Async
-    void processGroupMembership(ConsumerRecord<String, EntraIdGroupMembership> record) {
-        EntraIdGroupMembership membership = record.value();
+    @Transactional
+    public void processGroupMembership(ConsumerRecord<String, EntraIdGroupMembership> record) {
+        EntraIdGroupMembership entraResponse = record.value();
+        String key = record.key();
 
-        if (membership == null) {
-            log.warn("Skipping null Entra membership result for key {}", record.key());
+        if (entraResponse == null) {
+            log.warn("Skipping null Entra membership result for key {}", key);
             return;
         }
 
-        if (membership.getCode() == null) {
-            log.warn("Skipping Entra membership result with missing code for key {}", record.key());
+        if (entraResponse.getCode() == null) {
+            log.warn("Skipping Entra membership result with missing code for key {}", key);
             return;
         }
 
-        switch (membership.getCode()) {
-            case ADDED -> handleUpdate(membership);
-            case REMOVED -> handleDeletion(membership);
-            case NO_CHANGES -> handleNoChanges(membership);
-            case ERROR, FAILED -> log.warn("Entra membership operation for groupref {} - userref {} completed with status {}",
-                    membership.getEntraGroupRef(),
-                    membership.getEntraUserRef(),
-                    membership.getCode());
-            default -> log.warn("Unhandled Entra membership status {} for key {}", membership.getCode(), record.key());
+        UUID entraUserRef = entraResponse.getEntraUserRef();
+        UUID entraGroupRef = entraResponse.getEntraGroupRef();
+        Optional<UserEntraMembership> userEntraMembershipOptional =
+                userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(entraUserRef, entraGroupRef);
+
+        if (userEntraMembershipOptional.isEmpty()) {
+            log.warn("No user Entra membership found for user {} and resource {}, messageKey: {}", entraUserRef, entraGroupRef, key);
+            return;
+        }
+
+        UserEntraMembership userEntraMembership = userEntraMembershipOptional.get();
+        log.info("Received response for user {} in group {}, messageKey: {}", entraUserRef, entraGroupRef, key);
+        switch (entraResponse.getCode()) {
+            case ADDED -> confirmMembershipAdded(userEntraMembership, key);
+            case REMOVED -> confirmMembershipRemoved(userEntraMembership, key);
+            case ERROR -> markAsError(userEntraMembership, key);
+            case FAILED -> markAsFailed(userEntraMembership, key);
+            case NO_CHANGES -> handleNoChangesResponse(userEntraMembership, key);
+        }
+        userEntraMembershipRepository.save(userEntraMembership);
+    }
+
+    private void handleNoChangesResponse(UserEntraMembership userEntraMembership, String key) {
+        log.info("Received no changes response for user {} in group {}, messageKey: {}",
+                userEntraMembership.getUserEntraId(),
+                userEntraMembership.getResourceEntraId(),
+                key);
+        if (userEntraMembership.getMembershipStatus() == MembershipStatus.ACTIVE) {
+            userEntraMembership.setEntraStatus(EntraStatus.MEMBERSHIP_CONFIRMED);
+        } else if (userEntraMembership.getMembershipStatus() == MembershipStatus.INACTIVE) {
+            userEntraMembership.setEntraStatus(EntraStatus.DELETION_CONFIRMED);
         }
     }
 
-    private void handleNoChanges(EntraIdGroupMembership membership) {
-        log.info("Handling no-changes result with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
+    private void markAsFailed(UserEntraMembership userEntraMembership, String key) {
+        log.warn("Received failed status for user {} in group {}, messageKey: {}",
+                userEntraMembership.getUserEntraId(),
+                userEntraMembership.getResourceEntraId(),
+                key);
+        userEntraMembership.setEntraStatus(EntraStatus.NEEDS_REPUBLISH);
+    }
 
-        try {
-            UUID groupId = membership.getEntraGroupRef();
-            UUID userId = membership.getEntraUserRef();
+    private void markAsError(UserEntraMembership userEntraMembership, String key) {
+        log.warn("Received error for user {} in group {}, messageKey: {}",
+                userEntraMembership.getUserEntraId(),
+                userEntraMembership.getResourceEntraId(),
+                key);
+        userEntraMembership.setEntraStatus(EntraStatus.ERROR);
+    }
 
-            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
-
-            List<FlattenedAssignment> activeAssignmentsToConfirm = flattenedAssignments.stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
-                    .peek(assignment -> {
-                        log.info("Membership already exists in Entra. Marking flattenedassignmentId {} as confirmed", assignment.getId());
-                        assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                    })
-                    .toList();
-
-            List<FlattenedAssignment> deletedAssignmentsToConfirm = flattenedAssignments.stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                    .peek(assignment -> {
-                        log.info("Membership already removed in Entra. Marking flattenedassignmentId {} deletion as confirmed", assignment.getId());
-                        assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-                    })
-                    .toList();
-
-            List<FlattenedAssignment> assignmentsToSave = new ArrayList<>();
-            assignmentsToSave.addAll(activeAssignmentsToConfirm);
-            assignmentsToSave.addAll(deletedAssignmentsToConfirm);
-
-            if (!assignmentsToSave.isEmpty()) {
-                flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToSave);
-            }
-        } catch (Exception e) {
-            log.error("Failed to handle no-changes result for groupref {} - userref {}. Error: {}",
-                    membership.getEntraGroupRef(),
-                    membership.getEntraUserRef(),
-                    e.getMessage());
+    private void confirmMembershipRemoved(UserEntraMembership userEntraMembership, String key) {
+        if (userEntraMembership.getMembershipStatus() != MembershipStatus.INACTIVE) {
+            log.info("Received confirmation for removal of user {} from group {}, but local membership is active. Republishing addition, messageKey: {}",
+                    userEntraMembership.getUserEntraId(),
+                    userEntraMembership.getResourceEntraId(),
+                    key);
+            assigmentEntityProducerService.publish(userEntraMembership, true);
+        } else {
+            userEntraMembership.setEntraStatus(EntraStatus.DELETION_CONFIRMED);
         }
     }
 
-    private void handleDeletion(EntraIdGroupMembership membership) {
-        log.info("Handling deletion result with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
-
-        try {
-            UUID groupId = membership.getEntraGroupRef();
-            UUID userId = membership.getEntraUserRef();
-
-            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
-            FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
-            flattenedAssignments
-                    .stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                    .forEach(assignment -> {
-                        log.info("Found assignment for deletion. flattenedassignmentId: {}", assignment.getId());
-                        assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-                        flattenedAssignmentRepository.saveAndFlush(assignment);
-                    });
-
-            flattenedAssignments
-                    .stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                    .forEach(assignment -> {
-                        log.info("Found inconsistent assignment on deletion, identityProviderGroupMembershipDeletionConfirmed is false. FlattenedAssignmentId: {}", assignment.getId());
-                        if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
-                            log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
-                            assigmentEntityProducerService.publish(assignment);
-                        }
-                    });
-
-            flattenedAssignments
-                    .stream()
-                    .filter(assignment -> assignment.getAssignmentTerminationDate() == null && assignment.isIdentityProviderGroupMembershipConfirmed())
-                    .forEach(assignment -> {
-                        log.info("Found inconsistent delete, identityProviderGroupMembershipConfirmed is true. FlattenedAssignmentId: {}", assignment.getId());
-                        if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
-                            log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
-                            assigmentEntityProducerService.publish(assignment);
-                        }
-                    });
-
-        } catch (Exception e) {
-            log.error("Failed to handle deletion for groupref {} - userref {}. Error: {}",
-                    membership.getEntraGroupRef(),
-                    membership.getEntraUserRef(),
-                    e.getMessage());
-        }
-    }
-
-    private Optional<FlattenedAssignment> getNewest(List<FlattenedAssignment> flattenedAssignments) {
-        return flattenedAssignments.stream()
-                .max(Comparator.comparing(FlattenedAssignment::getId));
-    }
-
-
-    private void handleUpdate(EntraIdGroupMembership membership) {
-        log.debug("Received update with groupref {} - userref {}", membership.getEntraGroupRef(), membership.getEntraUserRef());
-
-        try {
-            UUID groupId = membership.getEntraGroupRef();
-            UUID userId = membership.getEntraUserRef();
-
-            List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupId, userId);
-
-            if (flattenedAssignments.isEmpty()) {
-                assigmentEntityProducerService.publishDeletion(groupId, userId);
-                log.info("User assignment not found with id: {}, removing user from group: {} in Entra ID", userId, groupId);
-            } else {
-                handleValidMembershipUpdate(membership, flattenedAssignments);
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to handle update for groupref {} - userref {}. Error: {}", membership.getEntraGroupRef(), membership.getEntraUserRef(), e.getMessage());
-        }
-    }
-
-    private void handleValidMembershipUpdate(EntraIdGroupMembership membership, List<FlattenedAssignment> flattenedAssignments) {
-        List<FlattenedAssignment> assignmentsToUpdate = flattenedAssignments.stream()
-                .filter(assignment -> assignment.getAssignmentTerminationDate() == null && !assignment.isIdentityProviderGroupMembershipConfirmed())
-                .peek(assignment -> {
-                    log.info("Received update with groupref {} - userref {}, saving as confirmed on flattenedassignmentId: {}", membership.getEntraGroupRef(), membership.getEntraUserRef(),
-                            assignment.getId());
-                    assignment.setIdentityProviderGroupMembershipConfirmed(true);
-                })
-                .toList();
-        FlattenedAssignment newestAssignment = getNewest(flattenedAssignments).orElse(null);
-
-        List<FlattenedAssignment> assignmentsToDelete = flattenedAssignments.stream()
-                .filter(assignment -> assignment.getAssignmentTerminationDate() != null && !assignment.isIdentityProviderGroupMembershipDeletionConfirmed())
-                .peek(assignment -> {
-                    log.info("Found inconsistent assignment on update, updating and publishing. flattenedassignmentId: {}", assignment.getId());
-                })
-                .toList();
-
-        if (!assignmentsToUpdate.isEmpty()) {
-            flattenedAssignmentService.saveFlattenedAssignmentsBatch(assignmentsToUpdate);
-        }
-
-        if (!assignmentsToDelete.isEmpty()) {
-            List<FlattenedAssignment> toSave = new ArrayList<>();
-
-            assignmentsToDelete.forEach(assignment -> {
-                if (newestAssignment != null && assignment.getId().equals(newestAssignment.getId())) {
-                    log.info("FlattenedAssignment with id: {} is the most recent, publishing", assignment.getId());
-                    assigmentEntityProducerService.publishDeletion(assignment);
-                } else {
-                    assignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-                    toSave.add(assignment);
-                }
-            });
-
-            if (!toSave.isEmpty()) {
-                flattenedAssignmentService.saveFlattenedAssignmentsBatch(toSave);
-            }
+    private void confirmMembershipAdded(UserEntraMembership userEntraMembership, String key) {
+        if (userEntraMembership.getMembershipStatus() != MembershipStatus.ACTIVE) {
+            log.info("Received confirmation for addition of user {} to group {}, but local membership is inactive. Republishing removal, messageKey: {}",
+                    userEntraMembership.getUserEntraId(),
+                    userEntraMembership.getResourceEntraId(),
+                    key);
+            assigmentEntityProducerService.publish(userEntraMembership, true);
+        } else {
+            userEntraMembership.setEntraStatus(EntraStatus.MEMBERSHIP_CONFIRMED);
         }
     }
 }

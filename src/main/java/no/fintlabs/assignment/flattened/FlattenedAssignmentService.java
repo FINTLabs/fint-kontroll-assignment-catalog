@@ -3,6 +3,10 @@ package no.fintlabs.assignment.flattened;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.entra.UserEntraMembership;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.user.User;
 import org.springframework.scheduling.annotation.Async;
@@ -20,16 +24,19 @@ public class FlattenedAssignmentService {
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     private final FlattenedAssignmentMapper flattenedAssignmentMapper;
+    private final UserEntraMembershipRepository userEntraMembershipRepository;
 
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
     public FlattenedAssignmentService(FlattenedAssignmentRepository flattenedAssignmentRepository,
                                       FlattenedAssignmentMapper flattenedAssignmentMapper,
                                       FlattenedAssignmentMembershipService flattenedAssignmentMembershipService,
+                                      UserEntraMembershipRepository userEntraMembershipRepository,
                                       AssigmentEntityProducerService assigmentEntityProducerService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.flattenedAssignmentMembershipService = flattenedAssignmentMembershipService;
         this.flattenedAssignmentMapper = flattenedAssignmentMapper;
+        this.userEntraMembershipRepository = userEntraMembershipRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
@@ -168,6 +175,7 @@ public class FlattenedAssignmentService {
                 newflattenedAssignment.getAssignmentViaRoleRef(),
                 newflattenedAssignment.getUserRef(),
                 newflattenedAssignment.getAssignmentId());
+        addUserEntraMembership(newflattenedAssignment);
         FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
         log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
                 savedFlattened.getId(),
@@ -175,7 +183,7 @@ public class FlattenedAssignmentService {
 
         if (!isSync) {
             log.info("saveAndPublishNewFlattenedAssignment - Publishing new flattened assignment to Entra ID");
-            assigmentEntityProducerService.publish(newflattenedAssignment);
+            publishNewMembership(savedFlattened);
         }
     }
 
@@ -186,6 +194,7 @@ public class FlattenedAssignmentService {
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
+            batch.forEach(this::addUserEntraMembership);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveAndPublish - Flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
@@ -193,7 +202,12 @@ public class FlattenedAssignmentService {
 
             if (!isSync) {
                 log.info("saveAndPublish - Publishing {} new flattened assignments to Entra ID", batch.size());
-                batch.forEach(assigmentEntityProducerService::publish);
+                savedFlattened.stream()
+                        .map(FlattenedAssignment::getUserEntraMembership)
+                        .filter(Objects::nonNull)
+                        .filter(userEntraMembership -> userEntraMembership.getEntraStatus().equals(EntraStatus.NOT_SENT))
+                        .distinct()
+                        .forEach(userEntraMembership -> assigmentEntityProducerService.publish(userEntraMembership, false));
             }
         }
 
@@ -244,7 +258,10 @@ public class FlattenedAssignmentService {
                         flattenedAssignment.getResourceRef(),
                         flattenedAssignment.getId()
                 );
-                setDeletionConfirmed(flattenedAssignment);
+                log.info("User {} and resource {} still has active assignments, keeping Entra membership active",
+                        flattenedAssignment.getUserRef(),
+                        flattenedAssignment.getResourceRef()
+                );
             }
         });
     }
@@ -254,19 +271,19 @@ public class FlattenedAssignmentService {
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
-        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(false);
+        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNull(unconfirmedActiveStatuses());
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmedByAssignmentId(Long assignmentId) {
-        return flattenedAssignmentRepository.findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNullAndAssignmentId(false, assignmentId);
+        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndAssignmentId(unconfirmedActiveStatuses(), assignmentId);
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
-        return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
+        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNull(unconfirmedInactiveStatuses());
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(Long assignmentId) {
-        return flattenedAssignmentRepository.findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalseAndAssignmentId(assignmentId);
+        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNullAndAssignmentId(unconfirmedInactiveStatuses(), assignmentId);
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
@@ -328,28 +345,23 @@ public class FlattenedAssignmentService {
         return false;
     }
 
-    private void setDeletionConfirmed(FlattenedAssignment flattenedAssignment) {
-        log.info("Setting deletion confirmed for flattened assignment with id: {}", flattenedAssignment.getId());
-        flattenedAssignment.setIdentityProviderGroupMembershipDeletionConfirmed(true);
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
-    }
-
     public void publishAllActive(Assignment assignment) {
         log.info("Publishing all flattened assignments for assignment with id {}", assignment.getId());
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
-        flattenedAssignments.stream().filter(f -> f.getAssignmentTerminationDate() == null).forEach(assigmentEntityProducerService::publish);
+        flattenedAssignments.stream().filter(f -> f.getAssignmentTerminationDate() == null).forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
 
     public void updateAssignmentsOnUserChange(User user) {
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByUserRefAndAssignmentTerminationDateIsNull(user.getId());
         flattenedAssignments.forEach(flattenedAssignment -> flattenedAssignment.setIdentityProviderUserObjectId(user.getIdentityProviderUserObjectId()));
+        flattenedAssignments.forEach(this::addUserEntraMembership);
         flattenedAssignmentRepository.saveAll(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
-        flattenedAssignments.forEach(assigmentEntityProducerService::publish);
+        flattenedAssignments.forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
 
     public void republishUnconfirmedFlattenedAssignments() {
-        flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdentityProviderGroupMembershipConfirmedIsFalse()
+        flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNull(unconfirmedActiveStatuses())
                 .parallelStream()
                 .forEach(assigmentEntityProducerService::publish);
     }
@@ -357,6 +369,59 @@ public class FlattenedAssignmentService {
     public void republishSelectedFlattenedAssignments(List<Long> selectedIds) {
         flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdIn(selectedIds)
                 .parallelStream()
-                .forEach(assigmentEntityProducerService::publish);
+                .forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
+    }
+
+    private void addUserEntraMembership(FlattenedAssignment flattenedAssignment) {
+        if (flattenedAssignment.getIdentityProviderUserObjectId() == null || flattenedAssignment.getIdentityProviderGroupObjectId() == null) {
+            log.warn("Skipping user Entra membership linking for flattened assignment {}. Missing user Entra ID ({}) or resource Entra ID ({})",
+                    flattenedAssignment.getId(),
+                    flattenedAssignment.getIdentityProviderUserObjectId(),
+                    flattenedAssignment.getIdentityProviderGroupObjectId());
+            return;
+        }
+
+        UserEntraMembership userEntraMembership = userEntraMembershipRepository
+                .findByUserEntraIdAndResourceEntraId(flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId())
+                .map(this::getEntraMembershipForNewFlattenedAssignment)
+                .orElseGet(() -> UserEntraMembership.builder()
+                        .userEntraId(flattenedAssignment.getIdentityProviderUserObjectId())
+                        .resourceEntraId(flattenedAssignment.getIdentityProviderGroupObjectId())
+                        .entraStatus(EntraStatus.NOT_SENT)
+                        .membershipStatus(MembershipStatus.ACTIVE)
+                        .build()
+                );
+
+        userEntraMembership.addFlattenedAssignment(flattenedAssignment);
+    }
+
+    private UserEntraMembership getEntraMembershipForNewFlattenedAssignment(UserEntraMembership userEntraMembership) {
+        boolean needsReset =
+                userEntraMembership.getMembershipStatus() == MembershipStatus.INACTIVE ||
+                        EntraStatus.inactiveStatuses().contains(userEntraMembership.getEntraStatus());
+
+        if (needsReset) {
+            userEntraMembership.setEntraStatus(EntraStatus.NOT_SENT);
+            userEntraMembership.setMembershipStatus(MembershipStatus.ACTIVE);
+            userEntraMembership.setSentToEntraAt(null);
+            userEntraMembership.setDeletionSentToEntraAt(null);
+        }
+
+        return userEntraMembership;
+    }
+
+    private void publishNewMembership(FlattenedAssignment flattenedAssignment) {
+        UserEntraMembership userEntraMembership = flattenedAssignment.getUserEntraMembership();
+        if (userEntraMembership != null && userEntraMembership.getEntraStatus().equals(EntraStatus.NOT_SENT)) {
+            assigmentEntityProducerService.publish(userEntraMembership, false);
+        }
+    }
+
+    private List<EntraStatus> unconfirmedActiveStatuses() {
+        return List.of(EntraStatus.NOT_SENT, EntraStatus.SENT, EntraStatus.ERROR, EntraStatus.NEEDS_REPUBLISH);
+    }
+
+    private List<EntraStatus> unconfirmedInactiveStatuses() {
+        return List.of(EntraStatus.TO_BE_DELETED, EntraStatus.DELETION_SENT, EntraStatus.ERROR, EntraStatus.NEEDS_REPUBLISH);
     }
 }

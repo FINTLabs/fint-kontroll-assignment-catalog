@@ -89,7 +89,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .resourceRef(RESOURCE_ID)
                 .organizationUnitId(ORG_ID)
                 .applicationResourceLocationOrgUnitId(ORG_ID)
-                .entraUserId(UUID.randomUUID())
+                .entraIdUserId(UUID.randomUUID())
                 .build();
 
         TestTransaction.flagForCommit();

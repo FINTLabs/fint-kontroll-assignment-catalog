@@ -1,4 +1,4 @@
-package no.fintlabs.device;
+package no.fintlabs.entra;
 
 public enum MembershipStatus {
     ACTIVE,

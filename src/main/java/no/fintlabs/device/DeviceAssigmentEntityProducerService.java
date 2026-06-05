@@ -3,11 +3,16 @@ package no.fintlabs.device;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
-import no.fintlabs.kafka.event.EventProducer;
-import no.fintlabs.kafka.event.EventProducerFactory;
-import no.fintlabs.kafka.event.EventProducerRecord;
-import no.fintlabs.kafka.event.topic.EventTopicNameParameters;
-import no.fintlabs.kafka.event.topic.EventTopicService;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.groupmembership.MembershipEventNames;
+import no.fintlabs.groupmembership.OperationType;
+import no.fintlabs.kafka.KafkaEventTopics;
+import no.novari.kafka.producing.ParameterizedProducerRecord;
+import no.novari.kafka.producing.ParameterizedTemplate;
+import no.novari.kafka.producing.ParameterizedTemplateFactory;
+import no.novari.kafka.topic.EventTopicService;
+import no.novari.kafka.topic.name.EventTopicNameParameters;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
@@ -18,31 +23,27 @@ import java.util.UUID;
 @Service
 public class DeviceAssigmentEntityProducerService {
 
-    private final EventProducer<DeviceResourceGroupMembership> eventProducer;
+    private final ParameterizedTemplate<DeviceResourceGroupMembership> eventProducer;
     private final EventTopicNameParameters resourceGroupMembershipTopicNameParameters;
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     public DeviceAssigmentEntityProducerService(
-            EventProducerFactory entityProducerFactory,
+            ParameterizedTemplateFactory entityProducerFactory,
             EventTopicService entityTopicService,
             DeviceEntraMembershipRepository deviceEntraMembershipRepository
     ) {
-        eventProducer = entityProducerFactory.createProducer(DeviceResourceGroupMembership.class);
+        eventProducer = entityProducerFactory.createTemplate(DeviceResourceGroupMembership.class);
         this.deviceEntraMembershipRepository = deviceEntraMembershipRepository;
 
-        resourceGroupMembershipTopicNameParameters = EventTopicNameParameters
-                .builder()
-                .eventName("resource-group-membership-device")
-                .build();
-        // TODO set it up with correct values
-        entityTopicService.ensureTopic(resourceGroupMembershipTopicNameParameters, 0);
+        resourceGroupMembershipTopicNameParameters = KafkaEventTopics.topicNameParameters(MembershipEventNames.RESOURCE_GROUP_MEMBERSHIP_DEVICE);
+        entityTopicService.createOrModifyTopic(resourceGroupMembershipTopicNameParameters, KafkaEventTopics.topicConfiguration());
     }
 
     public void publish(DeviceEntraMembership deviceEntraMembership, boolean force) {
         if (deviceEntraMembership.getEntraStatus().equals(EntraStatus.ERROR) || force) {
-            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
+            log.warn("deviceEntraMembership with id {} has EntraStatus ERROR. Skipping publishing to Entra.", deviceEntraMembership.getId());
         }
-        log.info("Publishing to Azure - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
+        log.info("Publishing to Entra - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
         if (deviceEntraMembership.getMembershipStatus().equals(MembershipStatus.ACTIVE)) {
             publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
             deviceEntraMembership.setEntraStatus(EntraStatus.SENT);
@@ -55,17 +56,17 @@ public class DeviceAssigmentEntityProducerService {
         deviceEntraMembershipRepository.save(deviceEntraMembership);
     }
 
-    private void publish(UUID azureAdGroupId, UUID azureDeviceId, OperationType action) {
+    private void publish(UUID entraIdGroupId, UUID entraDeviceId, OperationType action) {
         String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
-        DeviceResourceGroupMembership azureAdGroupMembership = new DeviceResourceGroupMembership(action, azureAdGroupId, azureDeviceId);
+        DeviceResourceGroupMembership deviceGroupMembership = new DeviceResourceGroupMembership(action, entraIdGroupId, entraDeviceId);
 
-        log.info("Publishing to Azure - groupId: {}, deviceId: {}, action: {}", azureAdGroupId, azureDeviceId, action);
+        log.info("Publishing to Entra - groupId: {}, deviceId: {}, action: {}", entraIdGroupId, entraDeviceId, action);
 
         eventProducer.send(
-                EventProducerRecord.<DeviceResourceGroupMembership>builder()
+                ParameterizedProducerRecord.<DeviceResourceGroupMembership>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
-                        .value(azureAdGroupMembership)
+                        .value(deviceGroupMembership)
                         .build()
         );
     }

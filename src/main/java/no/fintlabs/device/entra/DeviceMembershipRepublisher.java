@@ -2,7 +2,7 @@ package no.fintlabs.device.entra;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.device.EntraStatus;
+import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import org.springframework.scheduling.annotation.Scheduled;

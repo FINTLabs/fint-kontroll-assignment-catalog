@@ -177,7 +177,7 @@ public class AssignmentService {
         }
 
         userRepository.findById(userRef).ifPresentOrElse(user -> {
-            assignment.setEntraUserId(user.getIdentityProviderUserObjectId());
+            assignment.setEntraIdUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
             assignment.setUserUserType(user.getUserType());
@@ -203,7 +203,7 @@ public class AssignmentService {
         resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
+            assignment.setEntraIdGroupId(resource.getIdentityProviderGroupObjectId());
 
             Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
                     resourceRef, assignment.getOrganizationUnitId());
@@ -330,7 +330,7 @@ public class AssignmentService {
 
     public void updateAllAssignmentsOnUserChange(User user) {
         List<Assignment> assignments = getAssignmentsByUser(user.getId());
-        assignments.forEach(assignment -> assignment.setEntraUserId(user.getIdentityProviderUserObjectId()));
+        assignments.forEach(assignment -> assignment.setEntraIdUserId(user.getIdentityProviderUserObjectId()));
         assignmentRepository.saveAll(assignments);
         assignmentRepository.flush();
         log.info("Updated {} assignments for user {}", assignments.size(), user.getId());

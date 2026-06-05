@@ -2,6 +2,7 @@ package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.QueryHint;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
+import no.fintlabs.entra.EntraStatus;
 import org.hibernate.jpa.AvailableHints;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,9 +20,9 @@ import java.util.stream.Stream;
 
 @Repository
 public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAssignment, Long>, JpaSpecificationExecutor<FlattenedAssignment> {
-    List<FlattenedAssignment> findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNull(boolean identityProviderGroupMembershipConfirmed);
+    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNull(List<EntraStatus> entraStatuses);
 
-    List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalse();
+    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNull(List<EntraStatus> entraStatuses);
 
     List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
 
@@ -34,7 +35,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByUserRefAndAssignmentTerminationDateIsNull(Long userRef);
 
-    List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdentityProviderGroupMembershipConfirmedIsFalse();
+    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndIdIn(List<EntraStatus> entraStatuses, List<Long> ids);
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdIn(List<Long> ids);
 
     List<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
@@ -124,9 +125,9 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 
-    List<FlattenedAssignment> findByIdentityProviderGroupMembershipConfirmedAndAssignmentTerminationDateIsNullAndAssignmentId(boolean groupMembershipConfirmed, Long assignmentId);
+    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndAssignmentId(List<EntraStatus> entraStatuses, Long assignmentId);
 
-    List<FlattenedAssignment> findByAssignmentTerminationDateIsNotNullAndIdentityProviderGroupMembershipDeletionConfirmedFalseAndAssignmentId(Long assignmentId);
+    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNullAndAssignmentId(List<EntraStatus> entraStatuses, Long assignmentId);
 
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.identityProviderUserObjectId IS NULL AND fa.assignmentTerminationDate IS NULL")
     List<Long> findIdsWhereIdentityProviderUserObjectIdIsNull();
