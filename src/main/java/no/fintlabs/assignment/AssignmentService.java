@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AssignmentService {
 
     private final RoleRepository roleRepository;
@@ -36,26 +38,6 @@ public class AssignmentService {
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
-
-    public AssignmentService(
-            AssignmentRepository assignmentRepository,
-            ResourceRepository resourceRepository,
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            FlattenedAssignmentService flattenedAssignmentService,
-            ApplicationResourceLocationService applicationResourceLocationService,
-            OpaService opaService,
-            LicenseEnforcementService licenseEnforcementService
-    ) {
-        this.assignmentRepository = assignmentRepository;
-        this.resourceRepository = resourceRepository;
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.applicationResourceLocationService = applicationResourceLocationService;
-        this.opaService = opaService;
-        this.licenseEnforcementService = licenseEnforcementService;
-    }
 
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
         log.info("Trying to create new assignment for resource {} and {}", resourceRef, userRef != null ? "user " + userRef : "role " + roleRef);
@@ -142,7 +124,7 @@ public class AssignmentService {
     public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
         Optional<String> username = getAssignerUsernameForUserAssignment(userId, resourceId);
         if (username.isPresent()) {
-            return getDisplaynameFromUsername(username.get());
+            return getDisplayNameFromUsername(username.get());
         }
         return Optional.empty();
     }
@@ -160,24 +142,24 @@ public class AssignmentService {
     public Optional<String> getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
         Optional<String> username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
         if (username.isPresent()) {
-            return getDisplaynameFromUsername(username.get());
+            return getDisplayNameFromUsername(username.get());
         }
         return Optional.empty();
     }
 
-    private Optional<String> getDisplaynameFromUsername(String username) {
+    private Optional<String> getDisplayNameFromUsername(String username) {
         Optional<User> user = userRepository.getUserByUserName(username);
         return user.map(User::getDisplayname);
     }
 
     private void handleDirectUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
-        if (existingUserFlattenedAssignmentNotTerminated(assignment)) {
+        if (existingDirectUserAssignmentNotTerminated(assignment)) {
             log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
             throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
         }
 
         userRepository.findById(userRef).ifPresentOrElse(user -> {
-            assignment.setEntraIdUserId(user.getIdentityProviderUserObjectId());
+            assignment.setEntraUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
             assignment.setUserUserType(user.getUserType());
@@ -217,8 +199,11 @@ public class AssignmentService {
         });
     }
 
-    private boolean existingUserFlattenedAssignmentNotTerminated(Assignment assignment) {
-        return flattenedAssignmentService.getFlattenedAssignmentByUserAndResourceNotTerminated(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
+    private boolean existingDirectUserAssignmentNotTerminated(Assignment assignment) {
+        return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(
+                assignment.getUserRef(),
+                assignment.getResourceRef()
+        ).isPresent();
     }
 
     private boolean existingRoleAssignment(Assignment assignment) {
@@ -330,7 +315,7 @@ public class AssignmentService {
 
     public void updateAllAssignmentsOnUserChange(User user) {
         List<Assignment> assignments = getAssignmentsByUser(user.getId());
-        assignments.forEach(assignment -> assignment.setEntraIdUserId(user.getIdentityProviderUserObjectId()));
+        assignments.forEach(assignment -> assignment.setEntraUserId(user.getIdentityProviderUserObjectId()));
         assignmentRepository.saveAll(assignments);
         assignmentRepository.flush();
         log.info("Updated {} assignments for user {}", assignments.size(), user.getId());

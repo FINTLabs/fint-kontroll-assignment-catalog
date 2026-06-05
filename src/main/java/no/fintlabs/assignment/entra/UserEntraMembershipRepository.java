@@ -1,6 +1,7 @@
 package no.fintlabs.assignment.entra;
 
 import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -13,4 +14,6 @@ public interface UserEntraMembershipRepository extends JpaRepository<UserEntraMe
     List<UserEntraMembership> findAllByEntraStatus(EntraStatus entraStatus);
 
     List<UserEntraMembership> findAllByEntraStatusAndUserEntraId(EntraStatus entraStatus, UUID userEntraId);
+
+    long countByResourceEntraIdAndMembershipStatus(UUID resourceEntraId, MembershipStatus membershipStatus);
 }

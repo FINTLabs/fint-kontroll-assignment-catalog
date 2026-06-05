@@ -45,7 +45,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(id);
         assignment.setAssignmentId("A-" + id);
         assignment.setUserRef(10L);
-        assignment.setEntraIdUserId(UUID.randomUUID());
+        assignment.setEntraUserId(UUID.randomUUID());
         return assignment;
     }
 
@@ -129,7 +129,7 @@ public class FlattenedAssignmentServiceTest {
         assignment.setId(1L);
         assignment.setAssignmentId("assignmentId");
         assignment.setUserRef(123L);
-        assignment.setEntraIdUserId(UUID.randomUUID());
+        assignment.setEntraUserId(UUID.randomUUID());
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         List<FlattenedAssignment> existingAssignments = List.of(flattenedAssignment);

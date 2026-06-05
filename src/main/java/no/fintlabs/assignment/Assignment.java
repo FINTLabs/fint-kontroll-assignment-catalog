@@ -52,7 +52,7 @@ public class Assignment extends AuditEntity {
     private String roleType;
     @Column(name = "user_ref")
     private Long userRef;
-    private UUID entraIdUserId;
+    private UUID entraUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
@@ -116,7 +116,7 @@ public class Assignment extends AuditEntity {
                 .entraGroupRef(entraIdGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
-                .entraUserRef(entraIdUserId)
+                .entraUserRef(entraUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
                 .userType(userUserType)
@@ -131,7 +131,7 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null && entraIdUserId != null;
+        return userRef != null && entraUserId != null;
     }
 
     @JsonIgnore

@@ -48,9 +48,7 @@ public class AssignmentController {
     @OnlyDevelopers
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-        validateUserRoleRefs(request);
         validateResource(request);
-        validateOrganizationUnitId(request);
         try {
             Assignment newAssignment =
                     assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
@@ -314,10 +312,6 @@ public class AssignmentController {
     }
 
     private void validateResource(NewAssignmentRequest request) {
-        if (request.resourceRef == null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
-        }
-
         resourceRepository.findById(request.resourceRef)
                 .ifPresentOrElse(
                         resource -> {
@@ -330,18 +324,6 @@ public class AssignmentController {
                             throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
                         }
                 );
-    }
-
-    private void validateOrganizationUnitId(NewAssignmentRequest request) {
-        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
-        }
-    }
-
-    private void validateUserRoleRefs(NewAssignmentRequest request) {
-        if (request.userRef != null && request.roleRef != null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
-        }
     }
 
     @Getter
