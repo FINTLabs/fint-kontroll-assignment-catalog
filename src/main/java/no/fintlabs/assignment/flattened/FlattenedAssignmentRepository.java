@@ -1,6 +1,7 @@
 package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.QueryHint;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
 import no.fintlabs.entra.EntraStatus;
 import org.hibernate.jpa.AvailableHints;
@@ -131,6 +132,20 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.identityProviderUserObjectId IS NULL AND fa.assignmentTerminationDate IS NULL")
     List<Long> findIdsWhereIdentityProviderUserObjectIdIsNull();
+
+    @Query("""
+            SELECT COUNT(DISTINCT membership.id)
+            FROM FlattenedAssignment fa
+            JOIN fa.userEntraMembership membership
+            WHERE fa.resourceRef = :resourceRef
+            AND fa.applicationResourceLocationOrgUnitId = :orgUnitId
+            AND fa.assignmentTerminationDate IS NULL
+            AND membership.membershipStatus = :membershipStatus
+            """)
+    long countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(
+            @Param("resourceRef") Long resourceRef,
+            @Param("orgUnitId") String orgUnitId,
+            @Param("membershipStatus") MembershipStatus membershipStatus);
 
     @QueryHints({
             @QueryHint(name = AvailableHints.HINT_FETCH_SIZE, value = "5000"),

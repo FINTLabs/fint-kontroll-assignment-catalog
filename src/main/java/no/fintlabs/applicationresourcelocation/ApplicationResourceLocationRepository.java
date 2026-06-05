@@ -15,6 +15,8 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     @Query("select a from ApplicationResourceLocation a where a.applicationResourceId = ?1 and a.orgUnitId = ?2")
     List<ApplicationResourceLocation> findByApplicationResourceIdAndOrgUnitId(Long applicationResourceId, String orgUnitId);
 
+    List<ApplicationResourceLocation> findByApplicationResourceId(Long applicationResourceId);
+
 
     @Query("SELECT new no.fintlabs.applicationresourcelocation.NearestResourceLocationDto(arl.orgUnitId, arl.orgUnitName) " +
             "FROM ApplicationResourceLocation arl " +
@@ -35,5 +37,4 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
                                                                @Param("orgUnitId") String orgUnitId);
 
 }
-
 
