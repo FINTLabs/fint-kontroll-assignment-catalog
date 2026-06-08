@@ -60,7 +60,7 @@ public class Assignment extends AuditEntity {
     private Long resourceRef;
     private Long deviceGroupRef;
     private String resourceName;
-    private UUID entraIdGroupId;
+    private UUID entraGroupId;
     private String organizationUnitId;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
@@ -79,7 +79,7 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "user_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false)
     @JsonBackReference(value = "user-assignment")
     private User user;
 
@@ -88,7 +88,7 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "role_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false)
     @JsonBackReference(value = "role-assignment")
     private Role role;
 
@@ -113,7 +113,7 @@ public class Assignment extends AuditEntity {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
-                .entraGroupRef(entraIdGroupId)
+                .entraGroupRef(entraGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
                 .entraUserRef(entraUserId)
@@ -136,10 +136,10 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isGroupAssignment() {
-        return roleRef != null && entraIdGroupId != null;
+        return roleRef != null && entraGroupId != null;
     }
     @JsonIgnore
     public boolean isDeviceGroupAssignment() {
-        return deviceGroupRef != null && entraIdGroupId != null;
+        return deviceGroupRef != null && entraGroupId != null;
     }
 }

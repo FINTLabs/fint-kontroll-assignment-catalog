@@ -227,7 +227,7 @@ class AssignmentServiceTest {
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
+        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
         NearestResourceLocationDto nearestResourceLocationDto = new NearestResourceLocationDto("orgid1", "OrgUnit no 1");
@@ -236,9 +236,9 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(licenseEnforcementService,times(1)).incrementAssignedLicensesWhenNewAssignment(isA(Assignment.class));
+        verify(licenseEnforcementService,times(1)).recalculateAssignedResources(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
     }
 
     @Test
@@ -260,7 +260,7 @@ class AssignmentServiceTest {
     void shouldCreateNewAssignment_InvalidResourceReference_ThrowsResourceNotFoundException() {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-        given(resourceRepository.findById(999L)).willThrow(new ResourceNotFoundException("999"));
+        given(resourceRepository.getReferenceById(999L)).willThrow(new ResourceNotFoundException("999"));
 
         assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
     }
@@ -336,14 +336,14 @@ class AssignmentServiceTest {
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
+        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
     }
 
     @DisplayName("Create new assignment - valid role reference")
@@ -355,14 +355,14 @@ class AssignmentServiceTest {
                 .build();
 
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-        given(resourceRepository.findById(1L)).willReturn(Optional.of(new Resource()));
+        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid", null, 1L);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
     }
 
 //    @DisplayName("Create new assignment - invalid user reference")
@@ -387,7 +387,7 @@ class AssignmentServiceTest {
 //    void shouldCreateNewAssignment_InvalidResourceReference_ThrowsResourceNotFoundException() {
 //        given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
 //        given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-//        given(resourceRepository.findById(999L)).willThrow(new ResourceNotFoundException("999"));
+//        given(resourceRepository.getReferenceById(999L)).willThrow(new ResourceNotFoundException("999"));
 //
 //        assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
 //    }

@@ -30,11 +30,9 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     @Query("""
                 select arl
                 from ApplicationResourceLocation arl
-                where arl.applicationResourceId = :resourceId and arl.orgUnitId = :orgUnitId
+                where arl.applicationResourceId = :resourceId
             """)
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
-    List<ApplicationResourceLocation> lockByResourceAndOrgUnit(@Param("resourceId") Long resourceId,
-                                                               @Param("orgUnitId") String orgUnitId);
+    List<ApplicationResourceLocation> lockByApplicationResourceId(@Param("resourceId") Long resourceId);
 
 }
-

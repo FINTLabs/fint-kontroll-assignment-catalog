@@ -2,14 +2,12 @@ package no.fintlabs.resource;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.annotate.JsonIgnore;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.audit.AuditEntity;
@@ -22,11 +20,10 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString
-@Slf4j
 @Entity
-@Table(name = "AssignmentResources")
+@Table(name = "assignment_resources")
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
+@NoArgsConstructor
 @Builder
 public class Resource extends AuditEntity {
 

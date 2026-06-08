@@ -140,7 +140,7 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(UUID.randomUUID());
 
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+        when(resourceRepositoryMock.existsById(1L)).thenReturn(true);
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", 1L, null)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -170,7 +170,7 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(UUID.randomUUID());
 
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
+        when(resourceRepositoryMock.existsById(1L)).thenReturn(true);
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -196,8 +196,8 @@ public class AssignmentControllerTest {
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Cannot assign both role and user"));
+                .andExpect(status().isInternalServerError())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("Exactly one of userRef or roleRef must be set"));
     }
 
     @Test
@@ -211,13 +211,19 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(null);
 
-        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.of(value));
+        Assignment expectedReturnAssignment = new Assignment();
+        expectedReturnAssignment.setId(1L);
+        expectedReturnAssignment.setResourceRef(123L);
+        expectedReturnAssignment.setOrganizationUnitId("99999999");
+        expectedReturnAssignment.setRoleRef(1L);
+
+        when(resourceRepositoryMock.existsById(123L)).thenReturn(true);
+        when(assignmentServiceMock.createNewAssignment(123L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(containsString("Resource 123 does not have Entra ID group id set")));
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -226,19 +232,14 @@ public class AssignmentControllerTest {
         newAssignmentRequest.resourceRef = 123L;
         newAssignmentRequest.organizationUnitId = "99999999";
         newAssignmentRequest.roleRef = 1L;
-        newAssignmentRequest.userRef = 1L;
 
-        Resource value = new Resource();
-        value.setId(1L);
-        value.setIdentityProviderGroupObjectId(null);
-
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.empty());
+        when(resourceRepositoryMock.existsById(123L)).thenReturn(false);
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 1 not found"));
+                .andExpect(status().isNotFound())
+                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 123 not found"));
     }
 
     @Test

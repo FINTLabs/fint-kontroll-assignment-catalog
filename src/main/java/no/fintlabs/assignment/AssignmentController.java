@@ -7,13 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
-import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
+import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
@@ -188,6 +188,7 @@ public class AssignmentController {
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
     @OnlyDevelopers
     @DeleteMapping("{id}")
     public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
@@ -312,18 +313,10 @@ public class AssignmentController {
     }
 
     private void validateResource(NewAssignmentRequest request) {
-        resourceRepository.findById(request.resourceRef)
-                .ifPresentOrElse(
-                        resource -> {
-                            if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have Entra ID group id set");
-                            }
-                        },
-                        () -> {
-                            log.error("Resource: {} not found", request.resourceRef);
-                            throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
-                        }
-                );
+        if (!resourceRepository.existsById(request.resourceRef)) {
+            log.error("Resource: {} not found", request.resourceRef);
+            throw new ResourceNotFoundException("Resource " + request.resourceRef + " not found");
+        }
     }
 
     @Getter
@@ -334,4 +327,3 @@ public class AssignmentController {
     }
 
 }
-

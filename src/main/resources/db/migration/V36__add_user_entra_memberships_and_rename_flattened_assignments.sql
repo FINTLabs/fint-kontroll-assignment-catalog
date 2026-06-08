@@ -61,3 +61,6 @@ ALTER TABLE flattened_user_assignments
 ALTER TABLE flattened_user_assignments
     DROP COLUMN identity_provider_group_membership_confirmed,
     DROP COLUMN identity_provider_group_membership_deletion_confirmed;
+
+alter table assignment_resources
+    alter column identity_provider_group_object_id set not null;

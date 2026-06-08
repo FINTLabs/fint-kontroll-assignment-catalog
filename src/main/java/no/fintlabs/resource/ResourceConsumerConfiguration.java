@@ -40,6 +40,10 @@ public class ResourceConsumerConfiguration {
     void processResource(ConsumerRecord<String, Resource> record) {
         Resource incomingResource = record.value();
         log.info("Processing resource: {}", incomingResource.getId());
+        if(incomingResource.getIdentityProviderGroupObjectId() == null) {
+            log.warn("Resource {} has no identity provider group object id. Skipping.", incomingResource.getId());
+            return;
+        }
 
         Optional<Resource> existingResourceOptional = resourceRepository.findById(incomingResource.getId());
 
