@@ -170,7 +170,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraIdUserId(entraIdUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -274,7 +274,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraIdUserId(entraIdUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -324,7 +324,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraIdUserId(entraIdUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -609,7 +609,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraIdUserId(entraIdUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -712,7 +712,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .entraIdUserId(entraIdUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
         Assignment savedUserAssignment = assignmentRepository.saveAndFlush(userAssignment);

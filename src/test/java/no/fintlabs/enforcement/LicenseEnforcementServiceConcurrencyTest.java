@@ -4,6 +4,10 @@ import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.entra.UserEntraMembership;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
@@ -41,6 +45,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
 
     private static final long RESOURCE_ID = 10_001L;
     private static final String ORG_ID = "org1";
+    private static final UUID RESOURCE_ENTRA_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
 
     @Autowired
     private LicenseEnforcementService service;
@@ -48,6 +53,8 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
     private ResourceRepository resourceRepository;
     @Autowired
     private ApplicationResourceLocationRepository arlRepository;
+    @Autowired
+    private UserEntraMembershipRepository userEntraMembershipRepository;
     @MockBean
     private ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
 
@@ -59,6 +66,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
         ReflectionUtils.makeAccessible(field);
         ReflectionUtils.setField(field, service, true);
 
+        userEntraMembershipRepository.deleteAll();
         arlRepository.deleteAll();
         resourceRepository.deleteAll();
 
@@ -66,8 +74,9 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .id(RESOURCE_ID)
                 .resourceId("app1")
                 .resourceType("allTypes")
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .numberOfResourcesAssigned(0L)
-                .resourceLimit(2L)
+                .resourceLimit(10L)
                 .licenseEnforcement(Handhevingstype.HARDSTOP.name())
                 .build();
         resourceRepository.save(resource);
@@ -78,7 +87,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .resourceId("app1")
                 .orgUnitId(ORG_ID)
                 .orgUnitName("OrgUnit no 1")
-                .resourceLimit(2L)
+                .resourceLimit(10L)
                 .numberOfResourcesAssigned(0L)
                 .build();
         arlRepository.save(arl);
@@ -89,7 +98,8 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .resourceRef(RESOURCE_ID)
                 .organizationUnitId(ORG_ID)
                 .applicationResourceLocationOrgUnitId(ORG_ID)
-                .entraIdUserId(UUID.randomUUID())
+                .entraUserId(UUID.randomUUID())
+                .entraGroupId(RESOURCE_ENTRA_ID)
                 .build();
 
         TestTransaction.flagForCommit();
@@ -124,108 +134,70 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
         }
     }
 
-
     @Test
-    void concurrentIncrements_cappedAtTwo() {
-        var results = runConcurrently(3, () -> service.updateAssignedLicense(assignmentToUserHardstop, 1L));
-        long successes = results.stream().filter(Boolean::booleanValue).count();
-        assertThat(successes).isEqualTo(2);
+    void concurrentRecalculationsPersistActiveMembershipCount() {
+        saveActiveUserMembership(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+        saveActiveUserMembership(UUID.fromString("10000000-0000-0000-0000-000000000002"));
 
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        var results = runConcurrently(3, () -> service.recalculateAssignedResources(assignmentToUserHardstop));
+
+        assertThat(results).containsOnly(true);
+        var resource = resourceRepository.findById(RESOURCE_ID).orElseThrow();
         var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isEqualTo(2L);
-        assertThat(arl.getNumberOfResourcesAssigned()).isEqualTo(2L);
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(2L);
+        assertThat(arl.getNumberOfResourcesAssigned()).isZero();
     }
 
     @Test
-    void concurrentIncrements_bothSucceedWithHighLimits() {
-        var r0 = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        r0.setResourceLimit(2L);
-        resourceRepository.save(r0);
+    void hardstopResourceLimitUsesActiveMembershipCount() {
+        var resource = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        resource.setResourceLimit(1L);
+        resourceRepository.save(resource);
+        saveActiveUserMembership(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+        saveActiveUserMembership(UUID.fromString("10000000-0000-0000-0000-000000000002"));
 
-        var arl0 = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        arl0.setResourceLimit(2L);
-        arlRepository.save(arl0);
+        boolean ok = service.recalculateAssignedResources(assignmentToUserHardstop);
 
-        var results = runConcurrently(2, () -> service.updateAssignedLicense(assignmentToUserHardstop, 1L));
-        long successes = results.stream().filter(Boolean::booleanValue).count();
-        assertThat(successes).isEqualTo(2);
-
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isEqualTo(2L);
-        assertThat(arl.getNumberOfResourcesAssigned()).isEqualTo(2L);
-    }
-
-
-    @Test
-    void concurrentIncrements_cappedByARLLimit_onlyOneSucceeds() {
-        var r0 = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        r0.setResourceLimit(10L);
-        resourceRepository.save(r0);
-
-        var arl0 = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        arl0.setResourceLimit(1L);
-        arlRepository.save(arl0);
-
-        var results = runConcurrently(3, () -> service.updateAssignedLicense(assignmentToUserHardstop, 1L));
-        long successes = results.stream().filter(Boolean::booleanValue).count();
-        assertThat(successes).isEqualTo(1);
-
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isEqualTo(1L);
-        assertThat(arl.getNumberOfResourcesAssigned()).isEqualTo(1L);
+        assertThat(ok).isFalse();
+        var unchanged = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        assertThat(unchanged.getNumberOfResourcesAssigned()).isZero();
     }
 
     @Test
-    void concurrentIncrements_cappedByResourceLimit_onlyOneSucceeds() {
-        var r0 = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        r0.setResourceLimit(1L);
-        resourceRepository.save(r0);
-
-        var arl0 = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        arl0.setResourceLimit(10L);
-        arlRepository.save(arl0);
-
-        var results = runConcurrently(3, () -> service.updateAssignedLicense(assignmentToUserHardstop, 1L));
-        long successes = results.stream().filter(Boolean::booleanValue).count();
-        assertThat(successes).isEqualTo(1);
-
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isEqualTo(1L);
-        assertThat(arl.getNumberOfResourcesAssigned()).isEqualTo(1L);
-    }
-
-    @Test
-    void updateAssignedLicense_missingARL_returnsFalse_noChanges() {
+    void updateAssignedLicense_ignoresAssignmentOrgUnitAndRecalculatesResourceLocations() {
         Assignment bad = Assignment.builder()
                 .resourceRef(RESOURCE_ID)
                 .applicationResourceLocationOrgUnitId("unknown")
                 .build();
 
-        boolean ok = service.updateAssignedLicense(bad, 1L);
-        assertThat(ok).isFalse();
+        boolean ok = service.recalculateAssignedResources(bad);
 
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        assertThat(ok).isTrue();
+        var resource = resourceRepository.findById(RESOURCE_ID).orElseThrow();
         var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isZero();
+        assertThat(resource.getNumberOfResourcesAssigned()).isZero();
         assertThat(arl.getNumberOfResourcesAssigned()).isZero();
-        verify(resourceAvailabilityPublishingComponent, never())
+        verify(resourceAvailabilityPublishingComponent)
                 .updateResourceAvailability(Mockito.any(), Mockito.any());
     }
 
     @Test
-    void zeroDelta_isNoop_andReturnsTrue() {
-        boolean ok = service.updateAssignedLicense(assignmentToUserHardstop, 0L);
-        assertThat(ok).isTrue();
+    void zeroDeltaStillRecalculatesFromActiveMemberships() {
+        saveActiveUserMembership(UUID.fromString("10000000-0000-0000-0000-000000000001"));
 
-        var r = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        var arl = arlRepository.findByApplicationResourceIdAndOrgUnitId(RESOURCE_ID, ORG_ID).getFirst();
-        assertThat(r.getNumberOfResourcesAssigned()).isZero();
-        assertThat(arl.getNumberOfResourcesAssigned()).isZero();
-        verify(resourceAvailabilityPublishingComponent, never())
-                .updateResourceAvailability(Mockito.any(), Mockito.any());
+        boolean ok = service.recalculateAssignedResources(assignmentToUserHardstop);
+
+        assertThat(ok).isTrue();
+        var resource = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(1L);
+    }
+
+    private void saveActiveUserMembership(UUID userEntraId) {
+        userEntraMembershipRepository.saveAndFlush(UserEntraMembership.builder()
+                .userEntraId(userEntraId)
+                .resourceEntraId(RESOURCE_ENTRA_ID)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraStatus.MEMBERSHIP_CONFIRMED)
+                .build());
     }
 }

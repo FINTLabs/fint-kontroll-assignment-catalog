@@ -130,15 +130,18 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
+        when(assignmentRepository.saveAndFlush(any(Assignment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
                 .thenReturn(false);
 
         assertThrows(ConflictException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
         );
 
-        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
-        verify(assignmentRepository, never()).saveAndFlush(any());
+        verify(assignmentRepository).saveAndFlush(any(Assignment.class));
+        verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
+        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
     }
 
     @Test
@@ -157,7 +160,7 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.of(nearest));
 
-        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
+        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -170,12 +173,12 @@ class DeviceAssignmentServiceTest {
         assertEquals(1L, saved.getResourceRef());
         assertEquals("Resource A", saved.getResourceName());
         assertEquals("ou-1", saved.getOrganizationUnitId());
-        assertEquals(entraIdGroupId, saved.getEntraIdGroupId());
+        assertEquals(entraIdGroupId, saved.getEntraGroupId());
         assertEquals(100L, saved.getDeviceGroupRef());
         assertEquals("nearest-ou", saved.getApplicationResourceLocationOrgUnitId());
         assertEquals("Nearest OU Name", saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
+        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 
@@ -191,7 +194,7 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(any(Assignment.class)))
+        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -203,7 +206,7 @@ class DeviceAssignmentServiceTest {
         assertNull(saved.getApplicationResourceLocationOrgUnitId());
         assertNull(saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).incrementAssignedLicensesWhenNewAssignment(any(Assignment.class));
+        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 
@@ -281,7 +284,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertEquals(123L, saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
+        verify(licenseEnforcementService).recalculateAssignedResources(saved);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
@@ -302,7 +305,7 @@ class DeviceAssignmentServiceTest {
 
         verify(userRepository, never()).getUserByUserName(anyString());
 
-        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
+        verify(licenseEnforcementService).recalculateAssignedResources(assignment);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(assignment), eq("Associated assignment terminated by user"));
@@ -328,7 +331,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertNull(saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
+        verify(licenseEnforcementService).recalculateAssignedResources(saved);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
     }

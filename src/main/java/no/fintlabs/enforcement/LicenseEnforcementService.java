@@ -1,29 +1,29 @@
 package no.fintlabs.enforcement;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
+import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.group.DeviceGroup;
-import no.fintlabs.device.group.DeviceGroupRepository;
-import no.fintlabs.device.groupmembership.DeviceGroupMembership;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
-import no.fintlabs.resource.LicenseCounter;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
-import no.fintlabs.role.RoleRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -33,165 +33,153 @@ public class LicenseEnforcementService {
 
     private final ResourceRepository resourceRepository;
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
-    private final RoleRepository roleRepository;
     private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
     private final AssignmentRepository assignmentRepository;
-    private final DeviceGroupRepository deviceGroupRepository;
+    private final UserEntraMembershipRepository userEntraMembershipRepository;
+    private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
+    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
+
     @Value("${fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable:true}")
     private boolean hardstopEnabled;
 
-    public boolean incrementAssignedLicensesWhenNewAssignment(Assignment assignment) {
-        long requestedNumberOfLicences = calculateRequestedLicenses(assignment);
-        return updateAssignedLicense(assignment, requestedNumberOfLicences);
-    }
-
-    public boolean decreaseAssignedResourcesWhenAssignmentRemoved(Assignment assignment) {
-        long requestedNumberOfLicencesRemoval = calculateRequestedLicenses(assignment);
-        return updateAssignedLicense(assignment, -requestedNumberOfLicencesRemoval);
-    }
-
-    private long calculateRequestedLicenses(Assignment assignment) {
-        if (assignment.isGroupAssignment()) {
-            return roleRepository.findById(assignment.getRoleRef())
-                    .map(Role::getNoOfMembers)
-                    .orElse(0L);
-        } else if (assignment.isDeviceGroupAssignment()) {
-           return deviceGroupRepository.findById(assignment.getDeviceGroupRef()).map(DeviceGroup::getNoOfMembers).orElse(0L);
-        }
-        else return 1L;
-    }
-
-    public boolean removeAllAssignedResourcesForRole(Role inActiveRole, Long noOfMembersExistingRole) {
-        List<Assignment> assignments = getAssignmentsByRole(inActiveRole.getId());
-        Long difference = -noOfMembersExistingRole;
-
-        for (Assignment assignment : assignments) {
-            updateAssignedLicense(assignment, difference);
-        }
-
-        return true;
-    }
-
-
-    public boolean updateAssignedResourcesWhenChangesInRole(Role role, Long existingNoOfMembers) {
-
-        List<Assignment> assignments = getAssignmentsByRole(role.getId());
-        if (assignments.isEmpty()) {
-            log.info("No assignment found for role {} with id : {}", role.getRoleName(), role.getId());
-        }
-        Long roleNoOfMembers = role.getNoOfMembers() != null ? role.getNoOfMembers() : 0L;
-        Long difference = roleNoOfMembers - existingNoOfMembers;
-
-        for (Assignment assignment : assignments) {
-            updateAssignedLicense(assignment, difference);
-        }
-
-        return true;
-    }
-
-    public void updateAssignedResourcesOnDeviceGroupUpdate(DeviceGroup deviceGroup, Long delta) {
-
+    public void updateAssignedResourcesOnDeviceGroupUpdate(DeviceGroup deviceGroup) {
         List<Assignment> assignments = getAssignmentsByDeviceGroup(deviceGroup.getId());
         if (assignments.isEmpty()) {
             log.info("No assignment found for device group {} with id : {}", deviceGroup.getName(), deviceGroup.getId());
         }
-
-        for (Assignment assignment : assignments) {
-            updateAssignedLicense(assignment, delta);
-        }
+        assignments.stream()
+                .map(Assignment::getResourceRef)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(this::recalculateAssignedResourcesForResource);
     }
 
-    public boolean updateAssignedLicense(Assignment assignment, Long requestedNumberOfLicences) {
-        if (requestedNumberOfLicences == null || requestedNumberOfLicences == 0) return true;
+    private boolean isHardStop(Resource resource) {
+        return hardstopEnabled && Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
+    }
 
-        Resource resource = resourceRepository.lockByResourceId(assignment.getResourceRef());
+    private List<Assignment> getAssignmentsByRole(Long roleId) {
+        return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
+    }
 
-        ApplicationResourceLocation applicationResourceLocation = lockApplicationResourceLocation(assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId()).orElse(null);
-        if (applicationResourceLocation == null) {
+    private List<Assignment> getAssignmentsByDeviceGroup(Long deviceGroupId) {
+        return assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupId);
+    }
+
+    public boolean recalculateAssignmentsForRole(Role role) {
+        List<Assignment> assignments = getAssignmentsByRole(role.getId());
+        if (assignments.isEmpty()) {
+            log.info("No assignment found for role {} with id : {}", role.getRoleName(), role.getId());
+        }
+        assignments.stream()
+                .map(Assignment::getResourceRef)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(this::recalculateAssignedResourcesForResource);
+        return true;
+    }
+
+    public boolean recalculateAssignedResources(Assignment assignment) {
+        if (assignment == null || assignment.getResourceRef() == null) {
+            log.warn("Cannot recalculate assigned resources without resourceRef");
             return false;
         }
 
-
-        LicenseCounter licenseCounter = getLicenseCounters(applicationResourceLocation, resource);
-
-
-        if (isHardStop(resource)) {
-            if (licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences > licenseCounter.getApplicationResourceResourceLimit()) {
-                log.info("Application resource limit exceeded for ref {}", assignment.getResourceRef());
-                return false;
-            }
-            if (licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences > licenseCounter.getResourceResourceLimit()) {
-                log.info("Resource limit exceeded for ref {}", assignment.getResourceRef());
-                return false;
-            }
-        }
-
-        applicationResourceLocation.setNumberOfResourcesAssigned(Math.max(licenseCounter.getNumberOfResourcesAssignedToApplicationResourceLocation() + requestedNumberOfLicences, 0));
-        resource.setNumberOfResourcesAssigned(Math.max(licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences, 0));
-        log.info("Total assign resources for resource {} has been updated to {}",
-                resource.getResourceId(), licenseCounter.getNumberOfResourcesAssignedToResource() + requestedNumberOfLicences);
-        applicationResourceLocationRepository.save(applicationResourceLocation);
-        resourceRepository.save(resource);
-
-        resourceAvailabilityPublishingComponent.updateResourceAvailability(applicationResourceLocation, resource);
-
-        return true;
-
+        return recalculateAssignedResourcesForResource(assignment.getResourceRef());
     }
 
+    public boolean recalculateAssignedResourcesForResource(Long resourceId) {
+        if (resourceId == null) {
+            log.warn("Cannot recalculate assigned resources without resource id");
+            return false;
+        }
 
-    public boolean isHardStop(Resource resource) {
-        if (hardstopEnabled) {
-            return Objects.equals(resource.getLicenseEnforcement(), Handhevingstype.HARDSTOP.name());
+        Resource resource = resourceRepository.lockByResourceId(resourceId);
+        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.lockByApplicationResourceId(resourceId);
+        AssignedResourceCounts counts = countAssignedResources(resource, locations);
+
+        if (isHardStop(resource) && exceedsLimits(resource, counts)) {
+            return false;
+        }
+
+        persistCounts(resource, counts);
+        return true;
+    }
+
+    private AssignedResourceCounts countAssignedResources(Resource resource, List<ApplicationResourceLocation> locations) {
+        return new AssignedResourceCounts(
+                countActiveMemberships(resource.getIdentityProviderGroupObjectId()),
+                locations.stream()
+                        .map(location -> new ApplicationResourceLocationCount(
+                                location,
+                                countActiveMembershipsForLocation(resource.getId(), location.getOrgUnitId())
+                        ))
+                        .toList()
+        );
+    }
+
+    private boolean exceedsLimits(Resource resource, AssignedResourceCounts counts) {
+        if (counts.resourceCount() > resourceLimit(resource)) {
+            log.info("Resource limit exceeded for ref {}", resource.getId());
+            return true;
+        }
+        for (ApplicationResourceLocationCount locationCount : counts.locationCounts()) {
+            if (locationCount.count() > locationLimit(locationCount.location())) {
+                log.info("Application resource limit exceeded for ref {} and orgUnitId {}",
+                        resource.getId(), locationCount.location().getOrgUnitId());
+                return true;
+            }
         }
         return false;
     }
 
-    public Optional<ApplicationResourceLocation> getApplicationResourceLocation(Assignment assignment) {
-        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.findByApplicationResourceIdAndOrgUnitId(
-                assignment.getResourceRef(), assignment.getApplicationResourceLocationOrgUnitId());
-        return getOnlyOne(locations, assignment.getResourceRef());
+    private void persistCounts(Resource resource, AssignedResourceCounts counts) {
+        resource.setNumberOfResourcesAssigned(counts.resourceCount());
+
+        log.info("Total assigned resources for resource {} has been updated to {}",
+                resource.getResourceId(), counts.resourceCount());
+
+        counts.locationCounts().forEach(locationCount -> {
+            ApplicationResourceLocation location = locationCount.location();
+            location.setNumberOfResourcesAssigned(locationCount.count());
+            applicationResourceLocationRepository.save(location);
+            resourceAvailabilityPublishingComponent.updateResourceAvailability(location, resource);
+        });
+        resourceRepository.save(resource);
     }
 
-    public Optional<ApplicationResourceLocation> lockApplicationResourceLocation(Long resourceId, String orgUnitId) {
-        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.lockByResourceAndOrgUnit(resourceId, orgUnitId);
-        return getOnlyOne(locations, resourceId);
-
+    private long resourceLimit(Resource resource) {
+        return resource.getResourceLimit() == null ? 0L : resource.getResourceLimit();
     }
 
-    public Optional<ApplicationResourceLocation> getOnlyOne(List<ApplicationResourceLocation> locations, Long resourceId) {
-        if (locations.size() > 1) {
-            log.warn("Found multiple applicationResourceLocation Object for orgId: {} with resourceId: {}",
-                    locations.getFirst().getOrgUnitId(), resourceId.toString());
-            return Optional.empty();
-        } else if (locations.isEmpty()) {
-            log.warn("No applicationsResourceLocation object found for resource with resourceId: {}", resourceId.toString());
-            return Optional.empty();
+    private long locationLimit(ApplicationResourceLocation location) {
+        return location.getResourceLimit() == null ? 0L : location.getResourceLimit();
+    }
+
+    private long countActiveMemberships(UUID resourceEntraId) {
+        if (resourceEntraId == null) {
+            return 0L;
         }
-        return Optional.of(locations.getFirst());
+
+        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE)
+                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE);
     }
 
-
-    public LicenseCounter getLicenseCounters(ApplicationResourceLocation applicationResourceLocation, Resource resource) {
-
-        return LicenseCounter.builder()
-                .numberOfResourcesAssignedToApplicationResourceLocation(applicationResourceLocation.getNumberOfResourcesAssigned()
-                        == null ? 0L : applicationResourceLocation.getNumberOfResourcesAssigned())
-                .applicationResourceResourceLimit(applicationResourceLocation.getResourceLimit()
-                        == null ? 0L : applicationResourceLocation.getResourceLimit())
-                .numberOfResourcesAssignedToResource(resource.getNumberOfResourcesAssigned()
-                        == null ? 0L : resource.getNumberOfResourcesAssigned())
-                .resourceResourceLimit(resource.getResourceLimit() == null ? 0L : resource.getResourceLimit())
-                .build();
+    private long countActiveMembershipsForLocation(Long resourceId, String orgUnitId) {
+        return flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(
+                resourceId,
+                orgUnitId,
+                MembershipStatus.ACTIVE)
+                + flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(
+                resourceId,
+                orgUnitId,
+                MembershipStatus.ACTIVE);
     }
 
-    public List<Assignment> getAssignmentsByRole(Long roleId) {
-        return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
+    private record AssignedResourceCounts(long resourceCount, List<ApplicationResourceLocationCount> locationCounts) {
     }
 
-    public List<Assignment> getAssignmentsByDeviceGroup(Long deviceGroupId) {
-        return assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupId);
+    private record ApplicationResourceLocationCount(ApplicationResourceLocation location, long count) {
     }
-
 }
-

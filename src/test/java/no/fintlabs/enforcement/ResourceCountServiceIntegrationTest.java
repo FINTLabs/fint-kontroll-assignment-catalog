@@ -180,12 +180,12 @@ class ResourceCountServiceIntegrationTest extends DatabaseIntegrationTest {
     }
 
     @Test
-    void recalculationSetsZeroWhenResourceHasNoEntraGroupId() {
-        Resource resource = saveResource(null, 42L);
+    void recalculationSetsZeroWhenResourceHasNoActiveMemberships() {
+        Resource resource = saveResource(resourceEntraId, 42L);
         saveLocation(1L, ORG_1, 42L);
         saveUserMembership(
                 UUID.fromString("10000000-0000-0000-0000-000000000005"),
-                resourceEntraId,
+                otherResourceEntraId,
                 MembershipStatus.ACTIVE);
 
         resourceCountService.updateNumberOfLicenses(resource);
@@ -314,7 +314,7 @@ class ResourceCountServiceIntegrationTest extends DatabaseIntegrationTest {
         Assignment assignment = assignmentRepository.saveAndFlush(Assignment.builder()
                 .resourceRef(resourceRef)
                 .deviceGroupRef(deviceGroupRef)
-                .entraIdGroupId(resourceEntraId)
+                .entraGroupId(resourceEntraId)
                 .applicationResourceLocationOrgUnitId(ORG_1)
                 .build());
         return assignment.getId();

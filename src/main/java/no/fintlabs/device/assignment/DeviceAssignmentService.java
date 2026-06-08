@@ -18,6 +18,7 @@ import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +38,7 @@ public class DeviceAssignmentService {
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
+    @Transactional
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long deviceGroupRef) {
         log.info("Trying to create new assignment for resource {} and device group {}", resourceRef, deviceGroupRef);
 
@@ -57,7 +59,7 @@ public class DeviceAssignmentService {
                         deviceGroup.getId(),
                         LocalDateTime.now()
                 ))
-                .entraIdGroupId(resource.getIdentityProviderGroupObjectId())
+                .entraGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
 
@@ -68,15 +70,18 @@ public class DeviceAssignmentService {
             assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
             assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
         });
-        boolean updatedResourceLicenseCount = licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment);
-        log.info("Incremented license count for resource {} : {}",
-                assignment.getResourceRef(), updatedResourceLicenseCount ? "Success" : "Failure");
-        if(!updatedResourceLicenseCount) {
-            throw new ConflictException("Can't update number of assigned licenses for resource " + assignment.getResourceRef());
-        }
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
+
+        flattenedDeviceAssignmentService.createAndPublishFlattenedAssignmentsSync(newAssignment);
+
+        boolean updatedResourceLicenseCount = licenseEnforcementService.recalculateAssignedResources(newAssignment);
+        log.info("Updated license count for resource {} : {}",
+                newAssignment.getResourceRef(), updatedResourceLicenseCount ? "Success" : "Failure");
+        if(!updatedResourceLicenseCount) {
+            throw new ConflictException("Can't update number of assigned licenses for resource " + newAssignment.getResourceRef());
+        }
 
         return newAssignment;
     }
@@ -112,6 +117,7 @@ public class DeviceAssignmentService {
         return assignmentRepository.findAllByDeviceGroupRefIsNotNullAndAssignmentRemovedDateIsNull();
     }
 
+    @Transactional
     public void deleteAssignment(Long id) {
         log.info("Deleting assignment with id {}", id);
 
@@ -125,9 +131,8 @@ public class DeviceAssignmentService {
         }
 
         assignmentRepository.saveAndFlush(assignment);
-        licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
-
         flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "Associated assignment terminated by user");
+        licenseEnforcementService.recalculateAssignedResources(assignment);
 
     }
 

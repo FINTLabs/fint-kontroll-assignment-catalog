@@ -3,6 +3,7 @@ package no.fintlabs.assignment.flattened;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,8 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     private MembershipRepository membershipRepository;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
 
     private Membership activeMembership, inactiveMembership;
     private UUID activeUserObjectId, inactiveUserObjectId, groupObjectId;
@@ -70,7 +73,7 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
         assignment.setId(1L);
         assignment.setRoleRef(1L);
         assignment.setResourceRef(15L);
-        assignment.setEntraIdGroupId(groupObjectId);
+        assignment.setEntraGroupId(groupObjectId);
 
 
         FlattenedAssignment flattenedAssignment1 = new FlattenedAssignment();

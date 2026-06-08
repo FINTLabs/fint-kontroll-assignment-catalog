@@ -2,6 +2,7 @@ package no.fintlabs.device.assignment;
 
 import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.device.*;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
@@ -9,6 +10,7 @@ import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,6 +43,12 @@ class FlattenedDeviceAssignmentServiceTest {
     @Mock
     private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
+    @Mock
+    private AssignmentRepository assignmentRepository;
+
+    @Mock
+    private LicenseEnforcementService licenseEnforcementService;
+
     @InjectMocks
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
@@ -64,7 +72,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setEntraIdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
         assignment.setRoleRef(50L);
 
         Device device = new Device();
@@ -98,7 +106,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setEntraIdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         Device device = new Device();
         device.setId(10L);
@@ -258,7 +266,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setEntraIdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         // Existing
         FlattenedDeviceAssignment existingFda = FlattenedDeviceAssignment.builder()

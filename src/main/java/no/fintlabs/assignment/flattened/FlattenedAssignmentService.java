@@ -7,9 +7,9 @@ import no.fintlabs.assignment.entra.UserEntraMembership;
 import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.user.User;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +22,11 @@ import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 @Service
 public class FlattenedAssignmentService {
 
-    private static final int REPUBLISH_BATCH_SIZE = 500;
-
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     private final FlattenedAssignmentMapper flattenedAssignmentMapper;
     private final UserEntraMembershipRepository userEntraMembershipRepository;
+    private final LicenseEnforcementService licenseEnforcementService;
 
     private final AssigmentEntityProducerService assigmentEntityProducerService;
 
@@ -35,17 +34,24 @@ public class FlattenedAssignmentService {
                                       FlattenedAssignmentMapper flattenedAssignmentMapper,
                                       FlattenedAssignmentMembershipService flattenedAssignmentMembershipService,
                                       UserEntraMembershipRepository userEntraMembershipRepository,
+                                      LicenseEnforcementService licenseEnforcementService,
                                       AssigmentEntityProducerService assigmentEntityProducerService) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.flattenedAssignmentMembershipService = flattenedAssignmentMembershipService;
         this.flattenedAssignmentMapper = flattenedAssignmentMapper;
         this.userEntraMembershipRepository = userEntraMembershipRepository;
+        this.licenseEnforcementService = licenseEnforcementService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }
 
     @Async
     @Transactional
     public void createFlattenedAssignments(Assignment assignment) {
+        createFlattenedAssignmentsSync(assignment);
+    }
+
+    @Transactional
+    public void createFlattenedAssignmentsSync(Assignment assignment) {
         if (assignment.getId() == null) {
             log.error("Assignment id is null. Cannot create or update flattened assignment");
             return;
@@ -188,17 +194,23 @@ public class FlattenedAssignmentService {
             log.info("saveAndPublishNewFlattenedAssignment - Publishing new flattened assignment to Entra ID");
             publishNewMembership(savedFlattened);
         }
+        recalculateAssignedResources(List.of(savedFlattened));
     }
 
     public void saveAndPublishFlattenedAssignmentsBatch(List<FlattenedAssignment> flattenedAssignmentsForUpdate, boolean isSync) {
         log.info("saveAndPublish - {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
+        Set<Long> affectedResourceRefs = new HashSet<>();
 
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             batch.forEach(this::addUserEntraMembership);
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
+            savedFlattened.stream()
+                    .map(FlattenedAssignment::getResourceRef)
+                    .filter(Objects::nonNull)
+                    .forEach(affectedResourceRefs::add);
             savedFlattened.forEach(flattenedAssignment ->
                 log.info("saveAndPublish - Flattened assignment with id: {}, assignmentId: {}", flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
@@ -215,6 +227,7 @@ public class FlattenedAssignmentService {
         }
 
         flattenedAssignmentRepository.flush();
+        recalculateAssignedResources(affectedResourceRefs);
 
         log.info("saveAndPublish - Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
@@ -226,6 +239,7 @@ public class FlattenedAssignmentService {
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId());
         saveDeactivatedFlattenedAssignments(flattenedAssignments, deactivationReason, assignment.getAssignmentRemovedDate());
         publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
+        recalculateAssignedResources(flattenedAssignments);
     }
 
     @Transactional
@@ -243,6 +257,7 @@ public class FlattenedAssignmentService {
 
         saveDeactivatedFlattenedAssignments(flattenedAssignments, deactivationReason, deactivationDate);
         publishDeactivatedFlattenedAssignmentsForDeletion(flattenedAssignments);
+        recalculateAssignedResources(flattenedAssignments);
     }
 
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedAssignment> flattenedAssignments) {
@@ -269,22 +284,8 @@ public class FlattenedAssignmentService {
         });
     }
 
-    public void republishAllActiveFlattenedAssignments() {
-        long lastProcessedId = 0L;
-        List<FlattenedAssignment> flattenedAssignments;
-
-        do {
-            flattenedAssignments = flattenedAssignmentRepository
-                    .findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(
-                            lastProcessedId,
-                            PageRequest.of(0, REPUBLISH_BATCH_SIZE));
-
-            flattenedAssignments.forEach(assigmentEntityProducerService::rePublish);
-
-            if (!flattenedAssignments.isEmpty()) {
-                lastProcessedId = flattenedAssignments.getLast().getId();
-            }
-        } while (flattenedAssignments.size() == REPUBLISH_BATCH_SIZE);
+    public List<FlattenedAssignment> getAllFlattenedAssignments() {
+        return flattenedAssignmentRepository.findAll();
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
@@ -304,7 +305,7 @@ public class FlattenedAssignmentService {
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
-        return flattenedAssignmentRepository.findByAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
+        return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
     }
 
     public Set<Long> findFlattenedAssignmentIdsByUserAndRoleRef(Long userRef, Long roleRef) {
@@ -331,26 +332,35 @@ public class FlattenedAssignmentService {
             flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
         });
     }
-//TODO optimize query to check existence only
+
+    private void recalculateAssignedResources(Collection<FlattenedAssignment> flattenedAssignments) {
+        flattenedAssignments.stream()
+                .map(FlattenedAssignment::getResourceRef)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(this::recalculateAssignedResources);
+    }
+
+    private void recalculateAssignedResources(Set<Long> resourceRefs) {
+        resourceRefs.forEach(this::recalculateAssignedResources);
+    }
+
+    private void recalculateAssignedResources(Long resourceRef) {
+        log.info("Recalculating assigned resources for resource {}", resourceRef);
+        licenseEnforcementService.recalculateAssignedResourcesForResource(resourceRef);
+    }
+
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
 
         log.info("Checking if other active flattened assignment exists for user {} and resource {}",
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
-
         List<FlattenedAssignment> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                 flattenedAssignment.getAssignmentViaRoleRef(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
-
-       Optional<FlattenedAssignment> optionalFlattenedAssignment = flattenedAssignmentRepository.
-               findByAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                flattenedAssignment.getUserRef(),
-                flattenedAssignment.getResourceRef()
-        );
-        optionalFlattenedAssignment.ifPresent(otherActiveAssignments::add);
 
         if (otherActiveAssignments.isEmpty()) {
             log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",

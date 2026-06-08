@@ -6,11 +6,12 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
-import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.exception.ResourceNotFoundException;
+import no.fintlabs.resource.AssignmentResource;
+import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
@@ -19,7 +20,6 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -32,8 +32,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AssignmentService {
 
-    private static final String ACTIVE_STATUS = "ACTIVE";
-
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
@@ -43,6 +41,7 @@ public class AssignmentService {
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
+    @Transactional
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
         log.info("Trying to create new assignment for resource {} and {}", resourceRef, userRef != null ? "user " + userRef : "role " + roleRef);
 
@@ -64,16 +63,15 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
-        log.info("Incremented license for assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure");
-
-
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignments(newAssignment);
+        flattenedAssignmentService.createFlattenedAssignmentsSync(newAssignment);
         log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
+
+        log.info("Updated license count for resource {} : {}",
+                newAssignment.getResourceRef(), licenseEnforcementService.recalculateAssignedResources(newAssignment) ? "Success" : "Failure");
 
         return newAssignment;
     }
@@ -92,6 +90,7 @@ public class AssignmentService {
         return assignmentRepository.findAllByUserRefIsNotNullOrRoleRefIsNotNull();
     }
 
+    @Transactional
     public Assignment deleteAssignment(Long id) {
         log.info("Deleting assignment with id {}", id);
 
@@ -99,9 +98,6 @@ public class AssignmentService {
 
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
-
-        log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment) ? "Success" : "Failure");
 
         if (!userName.isEmpty()) {
             userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
@@ -111,6 +107,8 @@ public class AssignmentService {
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
         flattenedAssignmentService.deleteFlattenedAssignments(assignment, "Associated assignment removed by user");
+        log.info("Updated license count after removing assignment {} : {}",
+                assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
 
         return assignmentForDeletion;
     }
@@ -186,14 +184,10 @@ public class AssignmentService {
     }
 
     private void enrichByResource(Assignment assignment, Long resourceRef) {
-        resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
-            if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
-                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + resourceRef + " is not active");
-            }
-
+            Resource resource = resourceRepository.getReferenceById(resourceRef);
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setEntraIdGroupId(resource.getIdentityProviderGroupObjectId());
+            assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
 
             Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
                     resourceRef, assignment.getOrganizationUnitId());
@@ -202,9 +196,7 @@ public class AssignmentService {
                 assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
                 assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
             });
-        }, () -> {
-            throw new ResourceNotFoundException("Resource not found for ref: " + resourceRef);
-        });
+        ;
     }
 
     private boolean existingDirectUserAssignmentNotTerminated(Assignment assignment) {
@@ -218,16 +210,9 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getRoleRef(), assignment.getResourceRef()).isPresent();
     }
 
-    private boolean existingUserAssignment(Assignment assignment) {
-        return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
-    }
 
     public List<Assignment> getAssignmentsByRole(Long roleId) {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
-    }
-
-    public List<Long> getAssignmentsByRoleAndUser(Long roleId, Long userId) {
-        return assignmentRepository.findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(roleId, userId);
     }
 
     public Optional<Assignment> getAssignmentById(Long id) {
@@ -262,22 +247,16 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByUserId(Long userId) {
-        getActiveAssignmentsByUser(userId)
-                .forEach(assignment -> deactivateAssignment(assignment, "User is no longer active"));
-    }
+            getActiveAssignmentsByUser(userId)
+                    .forEach(assignment -> {
+                        log.info("Deactivating assignment with id: {}", assignment.getId());
+                        assignment.setAssignmentRemovedDate(new Date());
+                        assignmentRepository.saveAndFlush(assignment);
+                        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "User is no longer active");
+                        log.info("Updated license count after deactivating assignment {} : {}",
+                                assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
+                    });
 
-    public void deactivateAssignmentsByResourceId(Long resourceId) {
-        getActiveAssignmentsByResource(resourceId)
-                .forEach(assignment -> deactivateAssignment(assignment, "Resource is no longer active"));
-    }
-
-    private void deactivateAssignment(Assignment assignment, String terminationReason) {
-        log.info("Deactivating assignment with id: {}", assignment.getId());
-        assignment.setAssignmentRemovedDate(new Date());
-        assignmentRepository.saveAndFlush(assignment);
-        flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
-        log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
     }
 
     @Async

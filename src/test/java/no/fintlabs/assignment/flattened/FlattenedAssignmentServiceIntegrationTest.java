@@ -7,6 +7,7 @@ import no.fintlabs.assignment.entra.UserEntraMembership;
 import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.opa.OpaService;
@@ -44,6 +45,8 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
     private FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
 //    @MockBean
 //    private OpaService opaService;
 

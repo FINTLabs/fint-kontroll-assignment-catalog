@@ -12,6 +12,7 @@ import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +38,14 @@ public class FlattenedDeviceAssignmentService {
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     private final AssignmentRepository assignmentRepository;
     private final DeviceRepository deviceRepository;
+    private final LicenseEnforcementService licenseEnforcementService;
 
     @Async
     public void createAndPublishFlattenedAssignments(Assignment assignment) {
+        createAndPublishFlattenedAssignmentsSync(assignment);
+    }
+
+    public void createAndPublishFlattenedAssignmentsSync(Assignment assignment) {
         Set<FlattenedDeviceAssignment> newAssignments = createFlattenedAssignments(assignment);
         saveAndPublishFlattenedAssignmentsBatch(new ArrayList<>(newAssignments));
     }
@@ -82,7 +88,7 @@ public class FlattenedDeviceAssignmentService {
 
         Device device = getDeviceOrThrow(membership.getDeviceId());
         UUID deviceEntraId = device.getDataObjectId();
-        UUID resourceEntraId = assignment.getEntraIdGroupId();
+        UUID resourceEntraId = assignment.getEntraGroupId();
 
         FlattenedDeviceAssignment flattenedAssignment = toFlattenedDeviceAssignment(assignment);
         flattenedAssignment.setIdentityProviderDeviceObjectId(deviceEntraId);
@@ -135,6 +141,10 @@ public class FlattenedDeviceAssignmentService {
 
         log.info("saveAndPublish - {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
+        Set<Long> affectedResourceRefs = flattenedAssignmentsForUpdate.stream()
+                .map(FlattenedDeviceAssignment::getResourceRef)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
         for (int i = 0; i < flattenedAssignmentsForUpdate.size(); i += batchSize) {
             int end = Math.min(i + batchSize, flattenedAssignmentsForUpdate.size());
@@ -153,6 +163,7 @@ public class FlattenedDeviceAssignmentService {
             entityManager.clear();
         }
 
+        recalculateAssignedResources(affectedResourceRefs);
         log.info("saveAndPublish - Saved {} flattened assignments", flattenedAssignmentsForUpdate.size());
     }
 
@@ -170,6 +181,7 @@ public class FlattenedDeviceAssignmentService {
         flattenedDeviceAssignmentRepository.saveAll(activeFlattenedAssignments);
         entityManager.flush();
         publishDeactivatedFlattenedAssignmentsForDeletion(activeFlattenedAssignments);
+        recalculateAssignedResources(activeFlattenedAssignments);
     }
 
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedDeviceAssignment> flattenedDeviceAssignments) {
@@ -232,7 +244,9 @@ public class FlattenedDeviceAssignmentService {
 
         if (!toTerminate.isEmpty()) {
             flattenedDeviceAssignmentRepository.saveAll(toTerminate);
+            entityManager.flush();
             publishDeactivatedFlattenedAssignmentsForDeletion(toTerminate);
+            recalculateAssignedResources(toTerminate);
         }
 
         log.info(
@@ -254,6 +268,7 @@ public class FlattenedDeviceAssignmentService {
         flattenedDeviceAssignmentRepository.saveAll(activeAssignments);
         entityManager.flush();
         publishDeactivatedFlattenedAssignmentsForDeletion(activeAssignments);
+        recalculateAssignedResources(activeAssignments);
     }
 
     public void addAssignmentsForMembership(DeviceGroupMembership deviceGroupMembership) {
@@ -284,5 +299,22 @@ public class FlattenedDeviceAssignmentService {
                 }
             }
         });
+    }
+
+    private void recalculateAssignedResources(Collection<FlattenedDeviceAssignment> flattenedAssignments) {
+        flattenedAssignments.stream()
+                .map(FlattenedDeviceAssignment::getResourceRef)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(this::recalculateAssignedResources);
+    }
+
+    private void recalculateAssignedResources(Set<Long> resourceRefs) {
+        resourceRefs.forEach(this::recalculateAssignedResources);
+    }
+
+    private void recalculateAssignedResources(Long resourceRef) {
+        log.info("Recalculating assigned resources for resource {}", resourceRef);
+        licenseEnforcementService.recalculateAssignedResourcesForResource(resourceRef);
     }
 }
