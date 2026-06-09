@@ -1,6 +1,7 @@
 package no.fintlabs.authorization;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.kodeverk.ScopeType;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.model.Scope;
 import org.springframework.stereotype.Component;
@@ -26,5 +27,11 @@ public class AuthorizationUtil {
                 .toList();
         log.info("Authorized orgUnitIDs : " + authorizedOrgUnitIDs);
         return authorizedOrgUnitIDs;
+    }
+    public static boolean isAllOrgUnitsInScope(List<String> orgUnitsInScope) {
+        boolean isAllOrgUnitsInScope = orgUnitsInScope.stream()
+                .anyMatch(ScopeType.ALLORGUNITS.name()::equals);
+        log.info("Scope contains {}: {}", ScopeType.ALLORGUNITS.name(), isAllOrgUnitsInScope);
+        return isAllOrgUnitsInScope;
     }
 }
