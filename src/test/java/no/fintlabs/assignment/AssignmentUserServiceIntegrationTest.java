@@ -23,6 +23,7 @@ import no.fintlabs.user.ResourceAssignmentUser;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.fintlabs.user.UserSpecificationBuilder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -36,6 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -99,13 +101,26 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     private final String student = "Student";
     private final String allTypes = "ALLTYPES";
 
+    private final UUID userUUID1 = UUID.fromString("87654321-abcd-1234-abcd-1234567890ab");
+    private final UUID userUUID2 = UUID.fromString("12345678-abcd-1234-abcd-1234567890ab");
+
+    User studentUser = User.builder()
+        .id(123L)
+        .firstName("Test")
+        .lastName("Testesen")
+        .userName("test")
+        .identityProviderUserObjectId(userUUID1)
+        .organisationUnitId(kompavd)
+        .userType(student)
+        .build();
+
     @Test
     public void shouldNotFindUsersWithDeletedAssignments() {
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no",  userUUID1, "555", "ALLTYPES");
         Resource resource = createResource(2L, "2", "ALLTYPES", "Test resource");
         Resource resource2 = createResource(3L, "3", "ALLTYPES", "Test resource 2");
-        User user = createUser(123L, "Test", "Testesen", "test", "555", "ALLTYPES");
-        Assignment assignment = createAssignment(null, user.getId(), resource.getId(), "deleted", new Date());
-        Assignment assignment2 = createAssignment(null, user.getId(), resource2.getId(), "not deleted", null);
+        Assignment assignment = createAssignment(null, savedUser.getId(), savedUser.getIdentityProviderUserObjectId(), resource.getId(), "deleted", new Date());
+        Assignment assignment2 = createAssignment(null, savedUser.getId(), savedUser.getIdentityProviderUserObjectId(), resource2.getId(), "not deleted", null);
 
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
@@ -118,8 +133,8 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     public void shouldFindUsersWithAssignments() {
         Resource resource = createResource(2L, "2", "ALLTYPES", "Test resource");
-        User user = createUser(123L, "Test", "Testesen", "test", "555", "ALLTYPES");
-        Assignment assignmentNotDeleted = createAssignment(null, user.getId(), resource.getId(), "not deleted", null);
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no",  userUUID1, "555", "ALLTYPES");
+        Assignment assignmentNotDeleted = createAssignment(null, savedUser.getId(), savedUser.getIdentityProviderUserObjectId(), resource.getId(), "not deleted", null);
 
         Specification<User> spec = new UserSpecificationBuilder(2L, "ALLTYPES", List.of("555"), List.of("555"), null)
                 .assignmentSearch();
@@ -133,8 +148,8 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     public void shouldFindResourceAssignmentUser_user_direct() {
         Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
-        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
-        Assignment savedAssignment = createAssignment(null, savedUser.getId(), savedResource.getId(), "test@test.no", null);
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no",  userUUID1, "555", "ALLTYPES");
+        Assignment savedAssignment = createAssignment(null, savedUser.getId(), savedUser.getIdentityProviderUserObjectId(), savedResource.getId(), "test@test.no", null);
 
         FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment.getId())
@@ -174,9 +189,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     public void shouldFindResourceAssignmentUser_user_inDirect() {
         Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
-        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no",  userUUID1, "555", "ALLTYPES");
         Role savedRole = createRole();
-        Assignment savedAssignment = createAssignment(savedRole.getId(), null, savedResource.getId(), "test@test.no", null);
+        Assignment savedAssignment = createAssignment(savedRole.getId(), null, null, savedResource.getId(), "test@test.no", null);
 
         FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment.getId())
@@ -212,10 +227,10 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
     @Test
     public void shouldFindResourceAssignmentUser_userFilter() {
         Resource savedResource = createResource(1L, "1", "ALLTYPES", "Test resource");
-        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no", "555", "ALLTYPES");
-        User savedUser2 = createUser(456L, "Test2", "Testesen2",  "test2@test.no", "456" , "ALLTYPES");
+        User savedUser = createUser(123L, "Test", "Testesen", "test@test.no",  userUUID1, "555", "ALLTYPES");
+        User savedUser2 = createUser(456L, "Test2", "Testesen2",  "test2@test.no", userUUID2, "456" , "ALLTYPES");
         Role savedRole = createRole();
-        Assignment savedAssignment = createAssignment(savedRole.getId(), null, savedResource.getId(), "test@test.no", null);
+        Assignment savedAssignment = createAssignment(savedRole.getId(), null, null, savedResource.getId(), "test@test.no", null);
 
         FlattenedAssignment flattenedAssignment = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment.getId())
@@ -266,20 +281,12 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
 
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId(kompavd)
-                .userType(student)
-                .build();
-
-        User savedUser = userRepository.saveAndFlush(user);
+        User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -323,16 +330,16 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
 
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId(kompavd)
-                .userType(student)
-                .build();
+//        User user = User.builder()
+//                .id(123L)
+//                .firstName("Test")
+//                .lastName("Testesen")
+//                .userName("test")
+//                .organisationUnitId(kompavd)
+//                .userType(student)
+//                .build();
 
-        User savedUser = userRepository.saveAndFlush(user);
+        User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
@@ -379,20 +386,21 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         Resource savedResource = resourceRepository.saveAndFlush(resource);
 
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId(kompavd)
-                .userType(student)
-                .build();
+//        User user = User.builder()
+//                .id(123L)
+//                .firstName("Test")
+//                .lastName("Testesen")
+//                .userName("test")
+//                .organisationUnitId(kompavd)
+//                .userType(student)
+//                .build();
 
-        User savedUser = userRepository.saveAndFlush(user);
+        User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -490,20 +498,21 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
         Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
 
-        User user = User.builder()
-                .id(123L)
-                .firstName("Test")
-                .lastName("Testesen")
-                .userName("test")
-                .organisationUnitId(kompavd)
-                .userType(student)
-                .build();
+//        User user = User.builder()
+//                .id(123L)
+//                .firstName("Test")
+//                .lastName("Testesen")
+//                .userName("test")
+//                .organisationUnitId(kompavd)
+//                .userType(student)
+//                .build();
 
-        User savedUser = userRepository.saveAndFlush(user);
+        User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
+                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResourceAdobek12.getId())
                 .build();
 
@@ -544,12 +553,13 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         return resourceRepository.saveAndFlush(resource);
     }
 
-    private Assignment createAssignment(Long roleId, Long userId, Long resourceId, String assignerUserName, Date assignmentRemovedDate) {
+    private Assignment createAssignment(Long roleId, Long userId, UUID azureUserId, Long resourceId, String assignerUserName, Date assignmentRemovedDate) {
         Assignment assignment = Assignment.builder()
                 .assignerUserName(assignerUserName)
                 .assignmentRemovedDate(assignmentRemovedDate)
                 .roleRef(roleId)
                 .userRef(userId)
+                .azureAdUserId(azureUserId)
                 .resourceRef(resourceId)
                 .build();
         return assignmentRepository.saveAndFlush(assignment);
@@ -567,13 +577,14 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         return roleRepository.saveAndFlush(role);
     }
 
-    private User createUser(long id, String firstName, String lastName, String userName, String orgId, String userType) {
+    private User createUser(long id, String firstName, String lastName, String userName, UUID identityProviderUserObjectId, String orgId, String userType) {
         User user = User.builder()
                 .id(id)
                 .firstName(firstName)
                 .lastName(lastName)
                 .organisationUnitId(orgId)
                 .userName(userName)
+                .identityProviderUserObjectId(identityProviderUserObjectId)
                 .userType(userType)
                 .build();
 
