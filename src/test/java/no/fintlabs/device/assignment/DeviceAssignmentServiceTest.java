@@ -20,6 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -140,7 +142,8 @@ class DeviceAssignmentServiceTest {
         );
 
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
-        verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
+        verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignments(any(Assignment.class));
+        verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
         verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
     }
 
@@ -180,6 +183,45 @@ class DeviceAssignmentServiceTest {
 
         verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
+        verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignments(saved);
+    }
+
+    @Test
+    void createNewAssignment_shouldScheduleFlattenedAssignmentsAfterCommit_whenTransactionSynchronizationIsActive() {
+        when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
+        when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
+
+        UUID entraIdGroupId = UUID.randomUUID();
+        Resource r = resource(1L, "Resource A", entraIdGroupId);
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
+                .thenReturn(Optional.empty());
+        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
+                .thenReturn(true);
+        when(assignmentRepository.saveAndFlush(any(Assignment.class)))
+                .thenAnswer(invocation -> {
+                    Assignment assignment = invocation.getArgument(0);
+                    assignment.setId(123L);
+                    return assignment;
+                });
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            Assignment saved = deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L);
+
+            verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignments(any(Assignment.class));
+
+            List<TransactionSynchronization> synchronizations =
+                    new ArrayList<>(TransactionSynchronizationManager.getSynchronizations());
+            assertEquals(1, synchronizations.size());
+
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+
+            verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignments(saved);
+            verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

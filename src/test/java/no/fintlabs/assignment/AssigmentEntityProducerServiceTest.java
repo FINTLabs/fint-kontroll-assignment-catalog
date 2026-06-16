@@ -16,12 +16,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -115,6 +120,40 @@ public class AssigmentEntityProducerServiceTest {
         assertEquals(OperationType.ADD, record.getValue().getOperation());
         assertEquals(EntraStatus.SENT, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
+    }
+
+    @Test
+    public void shouldDeferKafkaSendUntilTransactionCommit() {
+        UUID groupRef = UUID.randomUUID();
+        UUID userRef = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = UserEntraMembership.builder()
+                .resourceEntraId(groupRef)
+                .userEntraId(userRef)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraStatus.NOT_SENT)
+                .build();
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.publish(userEntraMembership, false);
+
+            assertEquals(EntraStatus.SENT, userEntraMembership.getEntraStatus());
+            verify(userEntraMembershipRepository).save(userEntraMembership);
+            verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
+
+            List<TransactionSynchronization> synchronizations =
+                    new ArrayList<>(TransactionSynchronizationManager.getSynchronizations());
+            assertEquals(1, synchronizations.size());
+
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+
+            ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+            assertEquals(OperationType.ADD, record.getValue().getOperation());
+            assertEquals(groupRef, record.getValue().getEntraGroupRef());
+            assertEquals(userRef, record.getValue().getEntraUserRef());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

@@ -22,6 +22,8 @@ import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -67,8 +69,7 @@ public class AssignmentService {
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignmentsSync(newAssignment);
-        log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
+        scheduleFlattenedAssignmentCreation(newAssignment);
 
         log.info("Updated license count for resource {} : {}",
                 newAssignment.getResourceRef(), licenseEnforcementService.recalculateAssignedResources(newAssignment) ? "Success" : "Failure");
@@ -208,6 +209,25 @@ public class AssignmentService {
 
     private boolean existingRoleAssignment(Assignment assignment) {
         return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getRoleRef(), assignment.getResourceRef()).isPresent();
+    }
+
+    private void scheduleFlattenedAssignmentCreation(Assignment assignment) {
+        Runnable task = () -> {
+            log.info("Starting asynchronous flattened assignment creation for assignment id {}", assignment.getId());
+            flattenedAssignmentService.createFlattenedAssignments(assignment);
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+            log.info("Scheduled flattened assignment creation after commit for assignment id {}", assignment.getId());
+        } else {
+            task.run();
+        }
     }
 
 

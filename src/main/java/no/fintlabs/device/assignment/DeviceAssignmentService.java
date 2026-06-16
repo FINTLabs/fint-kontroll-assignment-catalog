@@ -19,6 +19,8 @@ import no.fintlabs.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -74,14 +76,14 @@ public class DeviceAssignmentService {
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedDeviceAssignmentService.createAndPublishFlattenedAssignmentsSync(newAssignment);
-
         boolean updatedResourceLicenseCount = licenseEnforcementService.recalculateAssignedResources(newAssignment);
         log.info("Updated license count for resource {} : {}",
                 newAssignment.getResourceRef(), updatedResourceLicenseCount ? "Success" : "Failure");
         if(!updatedResourceLicenseCount) {
             throw new ConflictException("Can't update number of assigned licenses for resource " + newAssignment.getResourceRef());
         }
+
+        scheduleFlattenedAssignmentCreation(newAssignment);
 
         return newAssignment;
     }
@@ -138,6 +140,25 @@ public class DeviceAssignmentService {
 
     private boolean existingDeviceGroupAssignment(Long deviceGroupRef, Long resourceRef) {
         return assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupRef, resourceRef).isPresent();
+    }
+
+    private void scheduleFlattenedAssignmentCreation(Assignment assignment) {
+        Runnable task = () -> {
+            log.info("Starting asynchronous flattened device assignment creation for assignment id {}", assignment.getId());
+            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(assignment);
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+            log.info("Scheduled flattened device assignment creation after commit for assignment id {}", assignment.getId());
+        } else {
+            task.run();
+        }
     }
 
     public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {

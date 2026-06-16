@@ -21,7 +21,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -238,7 +242,42 @@ class AssignmentServiceTest {
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(licenseEnforcementService,times(1)).recalculateAssignedResources(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+    }
+
+    @Test
+    void shouldScheduleFlattenedAssignmentCreationAfterCommit_whenTransactionSynchronizationIsActive() {
+        Assignment assignment = Assignment.builder()
+                .id(123L)
+                .userRef(1L)
+                .resourceRef(1L)
+                .organizationUnitId("orgid1")
+                .build();
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
+        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
+        given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
+        given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.empty());
+        given(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class))).willReturn(true);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
+
+            assertThat(returnedAssignment).isEqualTo(assignment);
+            verify(flattenedAssignmentService, never()).createFlattenedAssignments(any());
+
+            List<TransactionSynchronization> synchronizations =
+                    new ArrayList<>(TransactionSynchronizationManager.getSynchronizations());
+            assertThat(synchronizations.size()).isEqualTo(1);
+
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+
+            verify(flattenedAssignmentService).createFlattenedAssignments(assignment);
+            verify(flattenedAssignmentService, never()).createFlattenedAssignmentsSync(any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
@@ -343,7 +382,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
     @DisplayName("Create new assignment - valid role reference")
@@ -362,7 +401,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignmentsSync(any());
+        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
 
 //    @DisplayName("Create new assignment - invalid user reference")

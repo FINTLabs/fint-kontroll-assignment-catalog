@@ -34,7 +34,6 @@ public class DeviceAssignmentController {
         try {
             Assignment newAssignment =
                     deviceAssignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.deviceGroupRef);
-            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(newAssignment);
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
         } catch (AssignmentAlreadyExistsException exception) {
             throw new ConflictException("Assignment already exists");
@@ -81,4 +80,3 @@ public class DeviceAssignmentController {
     }
 
 }
-

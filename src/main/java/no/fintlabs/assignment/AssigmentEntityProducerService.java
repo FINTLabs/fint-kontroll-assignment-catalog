@@ -17,6 +17,8 @@ import no.novari.kafka.topic.EventTopicService;
 import no.novari.kafka.topic.name.EventTopicNameParameters;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Date;
 import java.util.UUID;
@@ -87,15 +89,16 @@ public class AssigmentEntityProducerService {
 
         log.info("Publishing to Entra - userEntraMembership with id: {}", userEntraMembership.getId());
         if (userEntraMembership.getMembershipStatus().equals(MembershipStatus.ACTIVE)) {
-            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
             userEntraMembership.setEntraStatus(EntraStatus.SENT);
             userEntraMembership.setSentToEntraAt(new Date());
+            userEntraMembershipRepository.save(userEntraMembership);
+            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
         } else {
-            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.REMOVE);
             userEntraMembership.setEntraStatus(EntraStatus.DELETION_SENT);
             userEntraMembership.setDeletionSentToEntraAt(new Date());
+            userEntraMembershipRepository.save(userEntraMembership);
+            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.REMOVE);
         }
-        userEntraMembershipRepository.save(userEntraMembership);
     }
 
     private void logAssignment(FlattenedAssignment assignment, String message) {
@@ -176,6 +179,20 @@ public class AssigmentEntityProducerService {
     }
 
     private void send(ResourceGroupMembership resourceGroupMembership) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendNow(resourceGroupMembership);
+                }
+            });
+            return;
+        }
+
+        sendNow(resourceGroupMembership);
+    }
+
+    private void sendNow(ResourceGroupMembership resourceGroupMembership) {
         String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
         membershipProducer.send(
                 ParameterizedProducerRecord.<ResourceGroupMembership>builder()
