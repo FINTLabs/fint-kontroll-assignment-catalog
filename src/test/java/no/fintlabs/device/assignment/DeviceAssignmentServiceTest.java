@@ -6,11 +6,13 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.AssignmentResource;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.User;
@@ -19,6 +21,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 
 import java.util.*;
@@ -54,6 +60,7 @@ class DeviceAssignmentServiceTest {
         r.setResourceId(String.valueOf(id));
         r.setResourceName(name);
         r.setIdentityProviderGroupObjectId(azureGroupId);
+        r.setStatus("ACTIVE");
         return r;
     }
 
@@ -96,6 +103,24 @@ class DeviceAssignmentServiceTest {
         );
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ex.getStatus());
+        verify(assignmentRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(licenseEnforcementService);
+    }
+
+    @Test
+    void createNewAssignment_shouldThrowUnprocessable_whenResourceIsInactive() {
+        when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
+
+        Resource r = resource(1L, "R", UUID.randomUUID());
+        r.setStatus("INACTIVE");
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        AssignmentException ex = assertThrows(AssignmentException.class, () ->
+                deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
+        );
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ex.getStatus());
+        assertEquals("Resource 1 is not active", ex.getMessage());
         verify(assignmentRepository, never()).saveAndFlush(any());
         verifyNoInteractions(licenseEnforcementService);
     }
@@ -232,6 +257,123 @@ class DeviceAssignmentServiceTest {
     }
 
     @Test
+    void findDeviceGroupAssignmentsForResource_shouldReturnMappedDeviceGroupAssignments() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setDeviceGroupRef(100L);
+        assignment.setOrganizationUnitId("ou-1");
+        assignment.setApplicationResourceLocationOrgUnitName("School A");
+        assignment.setAssignerUserName("assigner");
+        assignment.setAssignmentDate(new Date());
+
+        DeviceGroup deviceGroup = DeviceGroup.builder()
+                .id(100L)
+                .sourceId(200L)
+                .name("Device group")
+                .orgUnitId("ou-1")
+                .platform("IOS")
+                .deviceType("MOBILE")
+                .noOfMembers(3L)
+                .build();
+
+        User assigner = User.builder()
+                .firstName("Assigner")
+                .lastName("Name")
+                .build();
+
+        PageRequest pageRequest = PageRequest.of(0, 20);
+
+        when(assignmentRepository.findActiveDeviceAssignmentsByResourceRef(1L)).thenReturn(List.of(assignment));
+        when(deviceGroupRepository.findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroup), pageRequest, 1));
+        when(userRepository.getUserByUserName("assigner")).thenReturn(Optional.of(assigner));
+
+        Page<DeviceGroupAssignment> result = deviceAssignmentService.findDeviceGroupAssignmentsForResource(1L, "device", pageRequest);
+
+        assertEquals(1, result.getTotalElements());
+
+        DeviceGroupAssignment mapped = result.getContent().getFirst();
+        assertEquals(100L, mapped.getId());
+        assertEquals(200L, mapped.getSourceId());
+        assertEquals("Device group", mapped.getName());
+        assertEquals("ou-1", mapped.getOrgUnitId());
+        assertEquals("IOS", mapped.getPlatform());
+        assertEquals("MOBILE", mapped.getDeviceType());
+        assertEquals(3L, mapped.getNoOfMembers());
+        assertEquals(10L, mapped.getAssignmentRef());
+        assertEquals("ou-1", mapped.getOrganizationUnitId());
+        assertEquals("School A", mapped.getOrganisationUnitName());
+        assertEquals("assigner", mapped.getAssignerUsername());
+        assertEquals("Assigner Name", mapped.getAssignerDisplayname());
+        assertEquals(assignment.getAssignmentDate(), mapped.getAssignmentDate());
+
+        verify(assignmentRepository).findActiveDeviceAssignmentsByResourceRef(1L);
+        verify(deviceGroupRepository).findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest));
+    }
+
+    @Test
+    void findResourcesAssignedToDeviceGroup_shouldReturnCompactResourceAssignments() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setDeviceGroupRef(100L);
+        assignment.setAssignerUserName("assigner");
+
+        Resource resource = new Resource();
+        resource.setId(1L);
+        resource.setResourceId("resource-id");
+        resource.setResourceName("Resource");
+        resource.setResourceType("License");
+
+        User assigner = User.builder()
+                .firstName("Assigner")
+                .lastName("Name")
+                .build();
+
+        PageRequest pageRequest = PageRequest.of(0, 20);
+
+        when(resourceRepository.findAll(ArgumentMatchers.<Specification<Resource>>any(), eq(pageRequest)))
+                .thenReturn(new PageImpl<>(List.of(resource), pageRequest, 1));
+        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+                .thenReturn(Optional.of(assignment));
+        when(userRepository.getUserByUserName("assigner")).thenReturn(Optional.of(assigner));
+
+        Page<AssignmentResource> result = deviceAssignmentService.findResourcesAssignedToDeviceGroup(
+                100L,
+                "ALLTYPES",
+                null,
+                null,
+                pageRequest
+        );
+
+        assertEquals(1, result.getTotalElements());
+
+        AssignmentResource mapped = result.getContent().getFirst();
+        assertEquals(1L, mapped.getId());
+        assertEquals("resource-id", mapped.getResourceId());
+        assertEquals("Resource", mapped.getResourceName());
+        assertEquals("License", mapped.getResourceType());
+        assertEquals(10L, mapped.getAssignmentRef());
+        assertEquals("assigner", mapped.getAssignerUsername());
+        assertEquals("Assigner Name", mapped.getAssignerDisplayname());
+
+        verify(resourceRepository).findAll(ArgumentMatchers.<Specification<Resource>>any(), eq(pageRequest));
+        verify(assignmentRepository).findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L);
+    }
+
+    @Test
+    void getActiveAssignmentsByDeviceGroup_shouldDelegateToRepository() {
+        List<Assignment> expected = List.of(new Assignment());
+        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(100L)).thenReturn(expected);
+
+        List<Assignment> result = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(100L);
+
+        assertSame(expected, result);
+        verify(assignmentRepository).findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(100L);
+    }
+
+    @Test
     void getAssignmentById_shouldDelegateToRepository() {
         Assignment assignment = new Assignment();
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
@@ -263,6 +405,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
         assertNull(assignment.getAssignmentRemovedDate());
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
@@ -293,6 +436,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -314,6 +458,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
         when(userRepository.getUserByUserName("dev-user")).thenReturn(Optional.empty());
@@ -331,5 +476,38 @@ class DeviceAssignmentServiceTest {
         verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
+    }
+
+    @Test
+    void deleteAssignment_shouldThrowNotFound_whenAssignmentIsNotDeviceAssignment() {
+        when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
+
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+
+        when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
+
+        assertThrows(ResourceNotFoundException.class, () -> deviceAssignmentService.deleteAssignment(10L));
+
+        verify(assignmentRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(flattenedDeviceAssignmentService);
+        verifyNoInteractions(licenseEnforcementService);
+    }
+
+    @Test
+    void deactivateAssignmentsByResourceId_shouldDeactivateActiveDeviceAssignmentsForResource() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
+
+        when(assignmentRepository.findActiveDeviceAssignmentsByResourceRef(1L)).thenReturn(List.of(assignment));
+
+        deviceAssignmentService.deactivateAssignmentsByResourceId(1L);
+
+        assertNotNull(assignment.getAssignmentRemovedDate());
+        verify(assignmentRepository).saveAndFlush(assignment);
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
+        verify(flattenedDeviceAssignmentService)
+                .deleteFlattenedDeviceAssignments(assignment, "Resource is no longer active");
     }
 }

@@ -141,6 +141,7 @@ public class FlattenedAssignmentService {
                     log.info("Terminating flattened assignment {} due to inactive membership (role {}, user {}, assignment {})",
                             flattenedAssignment.getId(), roleRef, userRef, assignment.getId());
                     flattenedAssignment.setAssignmentTerminationDate(now);
+                    flattenedAssignment.setAssignmentTerminationReason("Role membership deactivated");
                     flattenedAssignments.add(flattenedAssignment);
                 }
             }

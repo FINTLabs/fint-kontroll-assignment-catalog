@@ -38,11 +38,14 @@ import static org.mockito.Mockito.*;
  */
 @DataJpaTest
 @Testcontainers
-@Import({FlattenedDeviceAssignmentService.class})
+@Import({FlattenedDeviceAssignmentService.class, DeviceService.class})
 class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+
+    @Autowired
+    private DeviceService deviceService;
 
     @Autowired
     private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
@@ -241,6 +244,42 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assertThat(after).hasSize(1);
         assertThat(after.getFirst().getTerminationDate()).isNotNull();
         assertThat(after.getFirst().getTerminationReason()).isEqualTo("test-reason");
+    }
+
+    @Test
+    @Transactional
+    void deleteDevice_shouldRemoveDependentRowsAfterPublishingDeactivation() {
+        DeviceEntraMembership info = deviceEntraMembershipRepository.saveAndFlush(
+                DeviceEntraMembership.builder()
+                        .deviceEntraId(deviceAzureId)
+                        .resourceEntraId(deviceGroupAzureId)
+                        .entraStatus(EntraStatus.SENT)
+                        .membershipStatus(MembershipStatus.ACTIVE)
+                        .build()
+        );
+
+        flattenedDeviceAssignmentRepository.saveAndFlush(
+                FlattenedDeviceAssignment.builder()
+                        .assignmentId(assignmentId)
+                        .deviceRef(deviceId)
+                        .identityProviderDeviceObjectId(deviceAzureId)
+                        .identityProviderGroupObjectId(deviceGroupAzureId)
+                        .deviceEntraMembership(info)
+                        .assignmentCreationDate(new Date())
+                        .terminationDate(null)
+                        .build()
+        );
+
+        deviceService.deleteDevice(String.valueOf(deviceId));
+
+        assertThat(deviceRepository.findById(deviceId)).isEmpty();
+        assertThat(deviceGroupMembershipRepository.findAllByDeviceId(deviceId)).isEmpty();
+        assertThat(flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(deviceId)).isEmpty();
+        assertThat(flattenedDeviceAssignmentRepository.findAll()).isEmpty();
+        assertThat(deviceEntraMembershipRepository.findById(info.getId()).orElseThrow().getMembershipStatus())
+                .isEqualTo(MembershipStatus.INACTIVE);
+
+        verify(deviceAssigmentEntityProducerService).publish(any(DeviceEntraMembership.class), eq(true));
     }
 
 //    No longer relevant as the mapToFlattenedAssignment methods now fetches the azure device id directly from the device

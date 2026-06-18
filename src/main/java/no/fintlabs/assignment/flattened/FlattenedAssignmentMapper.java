@@ -49,13 +49,15 @@ public class FlattenedAssignmentMapper {
                Objects.equals(originalAssignment.getAssignmentViaRoleRef(), existingAssignment.getAssignmentViaRoleRef()) &&
                Objects.equals(originalAssignment.getResourceRef(), existingAssignment.getResourceRef()) &&
                Objects.equals(originalAssignment.getAssignmentTerminationDate(), existingAssignment.getAssignmentTerminationDate()) &&
+               Objects.equals(originalAssignment.getAssignmentTerminationReason(), existingAssignment.getAssignmentTerminationReason()) &&
                Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
                Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId());
     }
 
     private void mapWithOrigin(FlattenedAssignment origin, FlattenedAssignment existing) {
-        if (existing.getAssignmentTerminationDate() == null) {
+        if (existing.getAssignmentTerminationDate() == null && origin.getAssignmentTerminationDate() != null) {
             existing.setAssignmentTerminationDate(origin.getAssignmentTerminationDate());
+            existing.setAssignmentTerminationReason(origin.getAssignmentTerminationReason());
         }
     }
 }

@@ -46,4 +46,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
             @Param("roleId") Long roleId,
             @Param("userId") Long userId
     );
+    List<Assignment> findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(Long resourceId);
+
 }

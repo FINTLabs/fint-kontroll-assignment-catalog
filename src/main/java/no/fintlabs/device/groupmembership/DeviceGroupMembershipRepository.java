@@ -11,4 +11,8 @@ public interface DeviceGroupMembershipRepository extends JpaRepository<DeviceGro
 
     @Query("select dgm from DeviceGroupMembership dgm where dgm.deviceGroupId = :deviceGroupRef and dgm.membershipStatus = 'ACTIVE'")
     List<DeviceGroupMembership> findAllActiveByDeviceGroupRef(Long deviceGroupRef);
+
+    List<DeviceGroupMembership> findAllByDeviceId(Long deviceId);
+
+    void deleteAllByDeviceId(Long deviceId);
 }

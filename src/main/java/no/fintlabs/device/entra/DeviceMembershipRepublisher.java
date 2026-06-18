@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -27,7 +26,7 @@ public class DeviceMembershipRepublisher {
     }
 
     public void republishErrorAssignmentsForDevice(Device device) {
-        List<DeviceEntraMembership> deviceEntraMemberships = deviceEntraMembershipRepository.findAllByEntraStatusAndDeviceEntraId(EntraStatus.ERROR, UUID.fromString(device.getSourceId()));
+        List<DeviceEntraMembership> deviceEntraMemberships = deviceEntraMembershipRepository.findAllByEntraStatusAndDeviceEntraId(EntraStatus.ERROR, device.getDataObjectId());
         log.info("Sending to kafka device with id {} assignments that returned an error before. Found {} entries", device.getId(), deviceEntraMemberships.size());
         deviceEntraMemberships.forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, true));
     }

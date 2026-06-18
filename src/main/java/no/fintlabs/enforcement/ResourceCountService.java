@@ -3,6 +3,7 @@ package no.fintlabs.enforcement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
+import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -27,6 +28,7 @@ public class ResourceCountService {
     private final DeviceGroupRepository deviceGroupRepository;
     private final LicenseEnforcementService licenseEnforcementService;
     private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
+    private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
 
 
     public void updateNumberOfLicenses(Resource resource) {
@@ -40,26 +42,12 @@ public class ResourceCountService {
 
         assignments.forEach(assignment -> {
             log.info("Update assigned resources for asignment {}", assignment.getAssignmentId());
-            long requestedNumberOfLicences;
-            if (assignment.isGroupAssignment()) {
-                log.info("Processing assigned licences for group {}", assignment.getRoleRef());
-                requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef()).map(Role::getNoOfMembers).orElse(0L).intValue();
-                log.info("Number of licences assigned to group {}", requestedNumberOfLicences);
-            } else if (assignment.isDeviceGroupAssignment()) {
-                requestedNumberOfLicences = deviceGroupRepository.findById(assignment.getDeviceGroupRef()).map(DeviceGroup::getNoOfMembers).orElse(0L).intValue();
-                log.info("Processing assigned licences for device group {}", assignment.getDeviceGroupRef());
-                log.info("Number of licences assigned to user {}", requestedNumberOfLicences);
-            }
-            else {
-                requestedNumberOfLicences = 1;
-                log.info("Processing assigned licences for user {}", assignment.getUser().getUserName());
-            }
+            long requestedNumberOfLicences = calculateAssignedLicenses(assignment);
             totalNumberOfAssignedLicences.addAndGet(requestedNumberOfLicences);
             Optional<ApplicationResourceLocation> applicationResourceLocationOptional =
                     licenseEnforcementService.getApplicationResourceLocation(assignment);
             if (applicationResourceLocationOptional.isPresent()) {
                 ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
-                applicationResourceLocation.setNumberOfResourcesAssigned(requestedNumberOfLicences);
                 byLocation.merge(applicationResourceLocation, requestedNumberOfLicences, Long::sum);
             }
             else {
@@ -68,10 +56,37 @@ public class ResourceCountService {
 
         });
         resource.setNumberOfResourcesAssigned(totalNumberOfAssignedLicences.get());
-        byLocation.forEach(ApplicationResourceLocation::setNumberOfResourcesAssigned);
-        byLocation.keySet().forEach(loc ->
-                resourceAvailabilityPublishingComponent.updateResourceAvailability(loc, resource)
-        );
+        updateApplicationResourceLocationCounts(resource, byLocation);
         log.info("Resource {} -> assigned total {}", resource.getResourceId(), totalNumberOfAssignedLicences);
+    }
+
+    private long calculateAssignedLicenses(Assignment assignment) {
+        if (assignment.isGroupAssignment()) {
+            log.info("Processing assigned licences for group {}", assignment.getRoleRef());
+            long requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef())
+                    .map(Role::getNoOfMembers)
+                    .orElse(0L);
+            log.info("Number of licences assigned to group {}", requestedNumberOfLicences);
+            return requestedNumberOfLicences;
+        }
+
+        if (assignment.isDeviceGroupAssignment()) {
+            long requestedNumberOfLicences = deviceGroupRepository.findById(assignment.getDeviceGroupRef())
+                    .map(DeviceGroup::getNoOfMembers)
+                    .orElse(0L);
+            log.info("Processing assigned licences for device group {}", assignment.getDeviceGroupRef());
+            log.info("Number of licences assigned to device group {}", requestedNumberOfLicences);
+            return requestedNumberOfLicences;
+        }
+
+        log.info("Processing assigned licences for user {}", assignment.getUserRef());
+        return 1L;
+    }
+
+    private void updateApplicationResourceLocationCounts(Resource resource, java.util.Map<ApplicationResourceLocation, Long> byLocation) {
+        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.findByApplicationResourceId(resource.getId());
+        locations.forEach(location -> location.setNumberOfResourcesAssigned(byLocation.getOrDefault(location, 0L)));
+        applicationResourceLocationRepository.saveAll(locations);
+        locations.forEach(location -> resourceAvailabilityPublishingComponent.updateResourceAvailability(location, resource));
     }
 }

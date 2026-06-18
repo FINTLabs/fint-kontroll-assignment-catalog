@@ -1,6 +1,7 @@
 package no.fintlabs.device.assignment;
 
 import jakarta.persistence.QueryHint;
+import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
 import org.hibernate.jpa.AvailableHints;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,10 @@ public interface FlattenedDeviceAssignmentRepository extends JpaRepository<Flatt
 
 
     List<FlattenedDeviceAssignment> findByDeviceRefAndTerminationDateIsNull(Long deviceRef);
+
+    boolean existsByDeviceEntraMembershipAndTerminationDateIsNull(DeviceEntraMembership deviceEntraMembership);
+
+    void deleteAllByDeviceRef(Long deviceRef);
 
     @QueryHints({
             @QueryHint(name = AvailableHints.HINT_FETCH_SIZE, value = "5000"),

@@ -3,11 +3,6 @@ package no.fintlabs.assignment.flattened;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.entra.UserEntraMembership;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.entra.EntraStatus;
-import no.fintlabs.entra.MembershipStatus;
-import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.opa.OpaService;
@@ -25,8 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @DataJpaTest
 @Testcontainers
@@ -39,20 +33,16 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
     private FlattenedAssignmentService flattenedAssignmentService;
     @Autowired
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
-    @Autowired
-    private UserEntraMembershipRepository userEntraMembershipRepository;
     @MockBean
     private FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
-    @MockBean
-    private LicenseEnforcementService licenseEnforcementService;
 //    @MockBean
 //    private OpaService opaService;
 
 
-    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3,
-            savedFlattenedAssignment1, savedFlattenedAssignment2, savedFlattenedAssignment3;
+    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3, flattenedAssignment4,
+            savedFlattenedAssignment1, savedFlattenedAssignment2, savedFlattenedAssignment3, savedFlattenedAssignment4;
 
 
     @BeforeEach
@@ -64,73 +54,66 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         flattenedAssignment1.setResourceRef(10L);
         flattenedAssignment1.setAssignmentViaRoleRef(2L);
         flattenedAssignment1.setAssignmentTerminationDate(new Date());
-        flattenedAssignment1.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
-        flattenedAssignment1.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+        flattenedAssignment1.setAssignmentTerminationReason("Assignment removed");
 
         flattenedAssignment2 = new FlattenedAssignment();
         flattenedAssignment2.setUserRef(20L);
         flattenedAssignment2.setAssignmentId(1L);
         flattenedAssignment2.setResourceRef(10L);
         flattenedAssignment2.setAssignmentViaRoleRef(2L);
-        flattenedAssignment2.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000002"));
-        flattenedAssignment2.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
 
         flattenedAssignment3 = new FlattenedAssignment();
         flattenedAssignment3.setUserRef(10L);
         flattenedAssignment3.setAssignmentId(2L);
         flattenedAssignment3.setResourceRef(10L);
         flattenedAssignment3.setAssignmentViaRoleRef(3L);
-        flattenedAssignment3.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
-        flattenedAssignment3.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
 
-        UserEntraMembership sharedMembership = UserEntraMembership.builder()
-                .userEntraId(flattenedAssignment1.getIdentityProviderUserObjectId())
-                .resourceEntraId(flattenedAssignment1.getIdentityProviderGroupObjectId())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraStatus.MEMBERSHIP_CONFIRMED)
-                .build();
-        sharedMembership.addFlattenedAssignment(flattenedAssignment1);
-        sharedMembership.addFlattenedAssignment(flattenedAssignment3);
+        flattenedAssignment4 = new FlattenedAssignment();
+        flattenedAssignment4.setUserRef(10L);
+        flattenedAssignment4.setAssignmentId(3L);
+        flattenedAssignment4.setResourceRef(10L);
 
         savedFlattenedAssignment1 = flattenedAssignmentRepository.save(flattenedAssignment1);
         savedFlattenedAssignment2 = flattenedAssignmentRepository.save(flattenedAssignment2);
-        savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
     }
 
     @Test
-    public void shouldNotPublishDeactivatedFlattenedAssignmentForDeletionWhenOtherActiveAssignmentExists() {
+    public void testShouldPublishDeactivatedFlattenedAssignmentsForDeletion_withNoOtherActiveAssignments_shouldNotSetDeletionConfirmed() {
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
+        FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
 
+        assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
+        verify(assigmentEntityProducerService, times(1)).publishDeletion(flattenedAssignment1);
+    }
+
+    @Test
+    public void testShouldNotPublishDeactivatedFlattenedAssignmentsForDeletion_withOtherActiveGroupAssignments_shouldSetDeletionConfirmed() {
+
+        savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
+
+        FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
+        FlattenedAssignment activeFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment3.getId()).orElseThrow();
+
+        assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isTrue();
+        assertThat(activeFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
         verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
     }
 
     @Test
-    public void shouldNotPublishDirectAssignmentDeletionWhenRoleAssignmentStillExists() {
-        FlattenedAssignment directAssignment = new FlattenedAssignment();
-        directAssignment.setUserRef(10L);
-        directAssignment.setAssignmentId(3L);
-        directAssignment.setResourceRef(10L);
-        directAssignment.setAssignmentViaRoleRef(null);
-        directAssignment.setAssignmentTerminationDate(new Date());
-        directAssignment.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
-        directAssignment.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
-        directAssignment.setUserEntraMembership(savedFlattenedAssignment3.getUserEntraMembership());
+    public void testShouldNotPublishDeactivatedFlattenedAssignmentsForDeletion_withOtherActiveUserAssignment_shouldSetDeletionConfirmed() {
 
-        FlattenedAssignment savedDirectAssignment = flattenedAssignmentRepository.saveAndFlush(directAssignment);
-
-        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(savedDirectAssignment));
-
-        verify(assigmentEntityProducerService, never()).publishDeletion(savedDirectAssignment);
-    }
-
-    @Test
-    public void shouldPublishDeactivatedFlattenedAssignmentForDeletionWhenNoOtherActiveAssignmentExists() {
-        flattenedAssignment3.setAssignmentTerminationDate(new Date());
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment3);
+        savedFlattenedAssignment4 = flattenedAssignmentRepository.save(flattenedAssignment4);
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
 
-        verify(assigmentEntityProducerService).publishDeletion(flattenedAssignment1);
+        FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
+        FlattenedAssignment activeFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment4.getId()).orElseThrow();
+
+        assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isTrue();
+        assertThat(activeFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
+
+        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
     }
 }

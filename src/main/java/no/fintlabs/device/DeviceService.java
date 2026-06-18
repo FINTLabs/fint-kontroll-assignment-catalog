@@ -3,9 +3,11 @@ package no.fintlabs.device;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.entra.DeviceMembershipRepublisher;
+import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -14,13 +16,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceMembershipRepublisher deviceMembershipRepublisher;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+    private final DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     public void deleteDevice(String deviceId) {
         Long id = Long.valueOf(deviceId);
-        deviceRepository.deleteById(id);
-        log.info("Deleted device {}", id);
+        deviceRepository.findById(id).ifPresentOrElse(device -> {
+            flattenedDeviceAssignmentService.deactivateAndDeleteAssignmentsForDevice(id);
+            deviceGroupMembershipRepository.deleteAllByDeviceId(id);
+            deviceGroupMembershipRepository.flush();
+            deviceRepository.delete(device);
+            log.info("Deleted device {}", id);
+        }, () -> log.info("Received tombstone for device {}, but it did not exist", id));
     }
 
     private Device mapFromIncoming(Device incoming) {
@@ -65,14 +72,12 @@ public class DeviceService {
             log.info("Device {} already exists and has no changes", existing.getId());
             return;
         }
+        boolean dataObjectIdChanged = !Objects.equals(incomingDevice.getDataObjectId(), existing.getDataObjectId());
         Device saved = deviceRepository.save(mapExistingFromIncoming(existing, incomingDevice));
         log.info("Updated device {} with sourceId {}", existing.getId(), existing.getSourceId());
 
-        if(!incomingDevice.getDataObjectId().equals(existing.getDataObjectId()))
+        if(dataObjectIdChanged)
         {
-            deviceMembershipRepublisher.republishErrorAssignmentsForDevice(saved);
-        }
-        else {
             flattenedDeviceAssignmentService.updateDeviceAzureId(saved);
         }
     }
