@@ -59,11 +59,33 @@ class DeviceGroupMembershipServiceTest {
                         && m.getMembershipStatus().equals("ACTIVE")
         ));
 
-        // create path always adds assignments
         verify(flattenedDeviceAssignmentService).addAssignmentsForMembership(any(DeviceGroupMembership.class));
 
         verifyNoInteractions(licenseEnforcementService);
 
+        verify(flattenedDeviceAssignmentService, never()).deactivateAssignmentsForMembership(anyLong(), anyLong());
+    }
+
+    @Test
+    void saveOrUpdate_shouldNotAddAssignments_whenNewMembershipIsInactive() {
+        DeviceGroupMembership incoming = membership(1L, 100L, "INACTIVE");
+
+        when(deviceRepository.existsById(1L)).thenReturn(true);
+        when(deviceGroupRepository.existsById(100L)).thenReturn(true);
+        when(deviceGroupMembershipRepository.findById(new DeviceGroupMembershipId(1L, 100L)))
+                .thenReturn(Optional.empty());
+
+        when(deviceGroupMembershipRepository.save(any(DeviceGroupMembership.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        deviceGroupMembershipService.saveOrUpdate(incoming);
+
+        verify(deviceGroupMembershipRepository).save(argThat(m ->
+                m.getDeviceId().equals(1L)
+                        && m.getDeviceGroupId().equals(100L)
+                        && m.getMembershipStatus().equals("INACTIVE")
+        ));
+        verify(flattenedDeviceAssignmentService, never()).addAssignmentsForMembership(any(DeviceGroupMembership.class));
         verify(flattenedDeviceAssignmentService, never()).deactivateAssignmentsForMembership(anyLong(), anyLong());
     }
 
@@ -186,7 +208,6 @@ class DeviceGroupMembershipServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> deviceGroupMembershipService.saveOrUpdate(incoming));
 
-        verify(deviceGroupMembershipRepository, never()).findById(any());
         verifyNoInteractions(deviceGroupMembershipRepository);
         verifyNoInteractions(flattenedDeviceAssignmentService);
         verifyNoInteractions(licenseEnforcementService);

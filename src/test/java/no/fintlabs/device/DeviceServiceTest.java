@@ -1,7 +1,7 @@
 package no.fintlabs.device;
 
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.entra.DeviceMembershipRepublisher;
+import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,7 +25,7 @@ class DeviceServiceTest {
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
     @Mock
-    private DeviceMembershipRepublisher deviceMembershipRepublisher;
+    private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     @InjectMocks
     private DeviceService deviceService;
@@ -73,7 +73,6 @@ class DeviceServiceTest {
                 .statusChanged(new Date())
                 .dataObjectId(dataObjectId)
                 .build();
-        Date statusDate = new Date();
 
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(existing));
 
@@ -84,20 +83,27 @@ class DeviceServiceTest {
                         "202L".equals(device.getSourceId()) &&
                         "Updated Name".equals(device.getName()) &&
                         "Active".equals(device.getStatus()) &&
-                        statusDate.equals(device.getStatusChanged())
+                        incoming.getStatusChanged().equals(device.getStatusChanged())
         ));
     }
 
     @Test
-    void deleteDevice_shouldCallRepositoryDelete() {
+    void deleteDevice_shouldDeactivateAssignmentsDeleteMembershipsAndDeleteDevice() {
         String deviceId = "123";
+        Device device = Device.builder().id(123L).build();
+
+        when(deviceRepository.findById(123L)).thenReturn(Optional.of(device));
 
         deviceService.deleteDevice(deviceId);
 
-        verify(deviceRepository).deleteById(123L);
+        verify(flattenedDeviceAssignmentService).deactivateAndDeleteAssignmentsForDevice(123L);
+        verify(deviceGroupMembershipRepository).deleteAllByDeviceId(123L);
+        verify(deviceGroupMembershipRepository).flush();
+        verify(deviceRepository).delete(device);
     }
+
     @Test
-    void saveOrUpdate_shouldRepublish_whenDataObjectIdHasChanged() {
+    void saveOrUpdate_shouldUpdateActiveAssignments_whenDataObjectIdHasChanged() {
         UUID oldAzureId = UUID.randomUUID();
         UUID newAzureId = UUID.randomUUID();
 
@@ -119,8 +125,40 @@ class DeviceServiceTest {
         deviceService.saveOrUpdate(incoming);
 
         verify(deviceRepository).save(any());
-        verify(deviceMembershipRepublisher).republishErrorAssignmentsForDevice(any());
-        verifyNoInteractions(flattenedDeviceAssignmentService);
+        verify(flattenedDeviceAssignmentService).updateDeviceAzureId(argThat(device ->
+                device.getId().equals(1L) && device.getDataObjectId().equals(newAzureId)
+        ));
+    }
+
+    @Test
+    void saveOrUpdate_shouldUpdateActiveAssignments_whenJpaMergeMutatesExistingDevice() {
+        UUID oldAzureId = UUID.randomUUID();
+        UUID newAzureId = UUID.randomUUID();
+
+        Device existing = Device.builder()
+                .id(1L)
+                .dataObjectId(oldAzureId)
+                .name("Device")
+                .build();
+
+        Device incoming = Device.builder()
+                .id(1L)
+                .dataObjectId(newAzureId)
+                .name("Device")
+                .build();
+
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(deviceRepository.save(any())).thenAnswer(invocation -> {
+            Device saved = invocation.getArgument(0);
+            existing.setDataObjectId(saved.getDataObjectId());
+            return existing;
+        });
+
+        deviceService.saveOrUpdate(incoming);
+
+        verify(flattenedDeviceAssignmentService).updateDeviceAzureId(argThat(device ->
+                device.getId().equals(1L) && device.getDataObjectId().equals(newAzureId)
+        ));
     }
 
     @Test
@@ -143,7 +181,6 @@ class DeviceServiceTest {
         deviceService.saveOrUpdate(incoming);
 
         verify(deviceRepository, never()).save(any());
-        verifyNoInteractions(deviceMembershipRepublisher);
         verifyNoInteractions(flattenedDeviceAssignmentService);
     }
 

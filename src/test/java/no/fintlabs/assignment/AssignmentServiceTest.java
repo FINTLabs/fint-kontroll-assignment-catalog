@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -340,6 +341,37 @@ class AssignmentServiceTest {
         verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment, "User is no longer active");
 
         assertNotNull(assignment.getAssignmentRemovedDate());
+    }
+
+    @Test
+    void getActiveAssignmentsByResource_shouldReturnOnlyUserAndRoleAssignments() {
+        List<Assignment> expected = List.of(new Assignment(), new Assignment());
+
+        when(assignmentRepository.findActiveUserAssignmentsByResourceRef(1L)).thenReturn(expected);
+
+        List<Assignment> actual = assignmentService.getActiveAssignmentsByResource(1L);
+
+        assertThat(actual).isSameAs(expected);
+        verify(assignmentRepository).findActiveUserAssignmentsByResourceRef(1L);
+        verify(assignmentRepository, never()).findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(1L);
+    }
+
+    @Test
+    void deactivateAssignmentsByResourceId_shouldDecreaseAssignedResourcesUsingAssignmentType() {
+        Assignment roleAssignment = Assignment.builder()
+                .id(10L)
+                .roleRef(5L)
+                .resourceRef(1L)
+                .build();
+
+        when(assignmentRepository.findActiveUserAssignmentsByResourceRef(1L)).thenReturn(List.of(roleAssignment));
+
+        assignmentService.deactivateAssignmentsByResourceId(1L);
+
+        verify(assignmentRepository).saveAndFlush(roleAssignment);
+        verify(flattenedAssignmentService).deleteFlattenedAssignments(roleAssignment, "Resource is no longer active");
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(roleAssignment);
+        verify(licenseEnforcementService, never()).updateAssignedLicense(any(), anyLong());
     }
 
     // Copilot tests for createNewAssignment

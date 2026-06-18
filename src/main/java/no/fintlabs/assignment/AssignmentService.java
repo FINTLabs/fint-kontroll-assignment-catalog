@@ -252,7 +252,7 @@ public class AssignmentService {
     public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
-    public List<Assignment> getActiveUserAssignmentsByResource(Long resourceId) {
+    public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
         return assignmentRepository.findActiveUserAssignmentsByResourceRef(resourceId);
     }
 
@@ -292,7 +292,7 @@ public class AssignmentService {
         assignmentRepository.saveAndFlush(assignment);
         flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
         log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
+                assignment.getId(), licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment) ? "Success" : "Failure");
     }
 
     @Async
