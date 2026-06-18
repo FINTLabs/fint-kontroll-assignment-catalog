@@ -2,11 +2,12 @@ package no.fintlabs.device.entra;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import no.fintlabs.device.MembershipStatus;
-import no.fintlabs.kafka.event.EventConsumerFactoryService;
-import no.fintlabs.kafka.event.topic.EventTopicNameParameters;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,19 +24,19 @@ public class EntraGroupDeviceMembershipConsumer {
 
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     private final DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @Bean
     public ConcurrentMessageListenerContainer<String, EntraDeviceGroupMembership> azureAdDeviceMembershipConsumer(
-            EventConsumerFactoryService eventConsumerFactoryService
+            ParameterizedListenerContainerFactoryService eventConsumerFactoryService
     ) {
 
-        return eventConsumerFactoryService.createFactory(
+        return eventConsumerFactoryService.createRecordListenerContainerFactory(
                         EntraDeviceGroupMembership.class,
-                        this::processGroupMembership)
-                .createContainer(EventTopicNameParameters
-                        .builder()
-                        .eventName("entra-device-group-membership")
-                        .build());
+                        this::processGroupMembership,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEntityTopics.eventTopicNameParameters("entra-device-group-membership"));
     }
 
     @Transactional
