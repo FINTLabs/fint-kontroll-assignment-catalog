@@ -2,8 +2,9 @@ package no.fintlabs.device;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -15,19 +16,19 @@ import org.springframework.stereotype.Component;
 public class DeviceConsumer {
 
     private final DeviceService deviceService;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Device> deviceConsumerConfiguration(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
-        EntityTopicNameParameters kontrolldevice = EntityTopicNameParameters
-                .builder()
-                .resource("kontroll-device")
-                .build();
-
         return entityConsumerFactoryService
-                .createFactory(Device.class, this::processDevice)
-                .createContainer(kontrolldevice);
+                .createRecordListenerContainerFactory(
+                        Device.class,
+                        this::processDevice,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEntityTopics.topicNameParameters("kontroll-device"));
     }
 
     private void processDevice(ConsumerRecord<String, Device> stringDeviceConsumerRecord) {
