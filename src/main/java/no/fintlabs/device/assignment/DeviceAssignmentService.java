@@ -139,6 +139,10 @@ public class DeviceAssignmentService {
         return assignmentRepository.findActiveDeviceAssignmentsByResourceRef(resourceId);
     }
 
+    public List<Assignment> getActiveAssignmentsByDeviceGroup(Long deviceGroupId) {
+        return assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupId);
+    }
+
     public Optional<Assignment> getAssignmentById(Long assignmentId) {
         return assignmentRepository.findById(assignmentId);
     }

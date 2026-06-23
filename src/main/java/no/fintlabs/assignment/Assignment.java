@@ -116,6 +116,7 @@ public class Assignment extends AuditEntity {
                 .azureGroupRef(azureAdGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
+                .deviceGroupRef(deviceGroupRef)
                 .azureUserRef(azureAdUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)

@@ -232,6 +232,17 @@ class DeviceAssignmentServiceTest {
     }
 
     @Test
+    void getActiveAssignmentsByDeviceGroup_shouldDelegateToRepository() {
+        List<Assignment> expected = List.of(new Assignment());
+        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(100L)).thenReturn(expected);
+
+        List<Assignment> result = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(100L);
+
+        assertSame(expected, result);
+        verify(assignmentRepository).findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(100L);
+    }
+
+    @Test
     void getAssignmentById_shouldDelegateToRepository() {
         Assignment assignment = new Assignment();
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
