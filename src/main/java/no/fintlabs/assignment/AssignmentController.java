@@ -10,6 +10,7 @@ import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.device.assignment.DeviceAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
@@ -41,6 +42,7 @@ public class AssignmentController {
     private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
+    private final DeviceAssignmentService deviceAssignmentService;
 
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
@@ -115,6 +117,30 @@ public class AssignmentController {
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/resource/{id}/deviceGroups")
+    public ResponseEntity<List<SimpleAssignment>> getDeviceGroupAssignmentsByResourceId(@PathVariable("id") Long resourceId) {
+        log.info("Fetching device group assignments for resource {}", resourceId);
+
+        List<SimpleAssignment> assignments = deviceAssignmentService.getActiveAssignmentsByResource(resourceId)
+                .stream()
+                .map(Assignment::toSimpleAssignment)
+                .toList();
+
+        return new ResponseEntity<>(assignments, HttpStatus.OK);
+    }
+
+    @GetMapping("/devicegroup/{id}/resources")
+    public ResponseEntity<List<SimpleAssignment>> getResourceAssignmentsByDeviceGroupId(@PathVariable("id") Long deviceGroupId) {
+        log.info("Fetching resource assignments for device group {}", deviceGroupId);
+
+        List<SimpleAssignment> assignments = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(deviceGroupId)
+                .stream()
+                .map(Assignment::toSimpleAssignment)
+                .toList();
+
+        return new ResponseEntity<>(assignments, HttpStatus.OK);
     }
 
     @OnlyDevelopers
@@ -349,4 +375,3 @@ public class AssignmentController {
     }
 
 }
-
