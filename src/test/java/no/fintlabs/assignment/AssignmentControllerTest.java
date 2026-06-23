@@ -7,6 +7,7 @@ import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.device.assignment.DeviceAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
@@ -48,6 +49,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -61,6 +63,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private ResourceService resourceServiceMock;
+
+    @MockBean
+    private DeviceAssignmentService deviceAssignmentServiceMock;
 
     @MockBean
     private ResourceRepository resourceRepositoryMock;
@@ -183,6 +188,46 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.roleRef").value("1"));
 
         verify(assignmentServiceMock).createNewAssignment(1L, "99999999", null, 1L);
+    }
+
+    @Test
+    public void shouldGetDeviceGroupAssignmentsByResourceId() throws Exception {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setResourceName("Resource");
+        assignment.setDeviceGroupRef(20L);
+
+        when(deviceAssignmentServiceMock.getActiveAssignmentsByResource(1L)).thenReturn(List.of(assignment));
+
+        mockMvc.perform(get("/api/assignments/resource/1/deviceGroups")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("10"))
+                .andExpect(jsonPath("$[0].resourceRef").value("1"))
+                .andExpect(jsonPath("$[0].deviceGroupRef").value("20"));
+
+        verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
+    }
+
+    @Test
+    public void shouldGetResourceAssignmentsByDeviceGroupId() throws Exception {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setResourceName("Resource");
+        assignment.setDeviceGroupRef(20L);
+
+        when(deviceAssignmentServiceMock.getActiveAssignmentsByDeviceGroup(20L)).thenReturn(List.of(assignment));
+
+        mockMvc.perform(get("/api/assignments/devicegroup/20/resources")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("10"))
+                .andExpect(jsonPath("$[0].resourceRef").value("1"))
+                .andExpect(jsonPath("$[0].deviceGroupRef").value("20"));
+
+        verify(deviceAssignmentServiceMock).getActiveAssignmentsByDeviceGroup(20L);
     }
 
     @Test
