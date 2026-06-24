@@ -6,10 +6,8 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
-import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
-import no.fintlabs.user.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,20 +26,16 @@ public class AssignmentResourceService {
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final AuthorizationUtil authorizationUtil;
 
-    private final UserRepository userRepository;
-
     public AssignmentResourceService(
             ResourceRepository resourceRepository,
             AssignmentService assignmentService,
             FlattenedAssignmentRepository flattenedAssignmentRepository,
-            AuthorizationUtil authorizationUtil,
-            UserRepository userRepository
+            AuthorizationUtil authorizationUtil
     ) {
         this.resourceRepository = resourceRepository;
         this.assignmentService = assignmentService;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.authorizationUtil = authorizationUtil;
-        this.userRepository = userRepository;
     }
 
     public Page<AssignmentResource> getResourcesAssignedToUser(Long userId, Specification<Resource> spec, Pageable page) {
@@ -98,15 +92,21 @@ public class AssignmentResourceService {
         Assignment assignment = (Assignment) result[4];
         String assignerFirstName = (String) result[5];
         String assignerLastName = (String) result[6];
-        String objectType = (String) result[7];
 
+        boolean isDirectAssignment = assignment.isUserAssignment();
+        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
+        boolean isDeletableAssignment = isDirectAssignment &&
+                (AuthorizationUtil.isAllOrgUnitsInScope(orgUnitsInScope) ||
+                        ResourceUtil.isResourceUnrestricted(resource) ||
+                        ResourceUtil.isResourceLocationInScope(assignment, orgUnitsInScope)
+                );
         UserAssignmentResource resourceAssignmentUser = new UserAssignmentResource();
         resourceAssignmentUser.setResourceRef(flattenedAssignment.getResourceRef());
         resourceAssignmentUser.setResourceName(resource.getResourceName());
         resourceAssignmentUser.setResourceType(resource.getResourceType());
         resourceAssignmentUser.setAssignmentRef(flattenedAssignment.getAssignmentId());
-        resourceAssignmentUser.setDirectAssignment(isDirectAssignment(assignment));
-        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment(assignment,resource, objectType));
+        resourceAssignmentUser.setDirectAssignment(isDirectAssignment);
+        resourceAssignmentUser.setDeletableAssignment(isDeletableAssignment);
         resourceAssignmentUser.setAssignmentViaRoleRef(flattenedAssignment.getAssignmentViaRoleRef());
         resourceAssignmentUser.setAssignerUsername(assignment.getAssignerUserName());
 
@@ -120,28 +120,5 @@ public class AssignmentResourceService {
         resourceAssignmentUser.setAssignerDisplayname(assignerDisplayName);
 
         return resourceAssignmentUser;
-    }
-
-    private boolean isDirectAssignment(Assignment assignment) {
-        return assignment.isUserAssignment();
-    }
-    private boolean isDeletableAssignment(Assignment assignment, Resource resource, String objectType) {
-        List<String> orgUnitsInScope = authorizationUtil.getAllAuthorizedOrgUnitIDs();
-        return ((objectType.equals("user") && isDirectAssignment(assignment) || objectType.equals("role"))
-                && (assignment.getApplicationResourceLocationOrgUnitId() != null && orgUnitsInScope.contains(assignment.getApplicationResourceLocationOrgUnitId())
-                || isResourceUnrestricted(resource)));
-    }
-    private boolean isResourceUnrestricted(Resource resource) {
-        //TODO: temporary solution, should be replaced with a proper check
-        if (resource.getLicenseEnforcement() == null) {
-            return false;
-        }
-        List<String> unrestrictedEnforcementTypes = List.of(
-                Handhevingstype.NOTSPECIFIED.name(),
-                Handhevingstype.NOTSET.name(),
-                Handhevingstype.FREEALL.name(),
-                Handhevingstype.FREEEDU.name(),
-                Handhevingstype.FREESTUDENT.name());
-        return unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
     }
 }

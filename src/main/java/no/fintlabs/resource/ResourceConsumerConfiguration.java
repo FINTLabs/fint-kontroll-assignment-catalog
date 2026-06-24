@@ -1,8 +1,9 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,23 +16,25 @@ import java.util.Optional;
 public class ResourceConsumerConfiguration {
 
     private final ResourceRepository resourceRepository;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
-    public ResourceConsumerConfiguration(ResourceRepository resourceRepository) {
+    public ResourceConsumerConfiguration(ResourceRepository resourceRepository,
+                                         KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
         this.resourceRepository = resourceRepository;
+        this.kafkaConsumerConfigurationDefaults = kafkaConsumerConfigurationDefaults;
     }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, Resource> resourceConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
 
-        return entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Resource.class,
-                        this::processResource)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
-                                         .resource("resource-group")
-                                         .build());
+                        this::processResource,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEntityTopics.topicNameParameters("resource-group"));
     }
 
     void processResource(ConsumerRecord<String, Resource> record) {

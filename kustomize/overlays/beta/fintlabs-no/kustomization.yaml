@@ -19,6 +19,9 @@ patches:
       - op: replace
         path: "/spec/env/3/value"
         value: "true"
+      - op: replace
+        path: "/spec/env/4/value"
+        value: "fintlabs-no"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog

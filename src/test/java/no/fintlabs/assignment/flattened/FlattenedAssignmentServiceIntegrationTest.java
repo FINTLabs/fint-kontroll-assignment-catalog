@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.*;
 
 @DataJpaTest
 @Testcontainers
@@ -40,8 +41,8 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
 //    private OpaService opaService;
 
 
-    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3,
-            savedFlattenedAssignment1, savedFlattenedAssignment2, savedFlattenedAssignment3;
+    private FlattenedAssignment flattenedAssignment1, flattenedAssignment2, flattenedAssignment3, flattenedAssignment4,
+            savedFlattenedAssignment1, savedFlattenedAssignment2, savedFlattenedAssignment3, savedFlattenedAssignment4;
 
 
     @BeforeEach
@@ -66,14 +67,29 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         flattenedAssignment3.setResourceRef(10L);
         flattenedAssignment3.setAssignmentViaRoleRef(3L);
 
+        flattenedAssignment4 = new FlattenedAssignment();
+        flattenedAssignment4.setUserRef(10L);
+        flattenedAssignment4.setAssignmentId(3L);
+        flattenedAssignment4.setResourceRef(10L);
+
         savedFlattenedAssignment1 = flattenedAssignmentRepository.save(flattenedAssignment1);
         savedFlattenedAssignment2 = flattenedAssignmentRepository.save(flattenedAssignment2);
-        savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
     }
 
     @Test
-    public void testShouldPublishDeactivatedFlattenedAssignmentsForDeletion_withNoOtherActiveAssignments_shouldSetDeletionConfirmed() {
+    public void testShouldPublishDeactivatedFlattenedAssignmentsForDeletion_withNoOtherActiveAssignments_shouldNotSetDeletionConfirmed() {
 
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
+        FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
+
+        assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
+        verify(assigmentEntityProducerService, times(1)).publishDeletion(flattenedAssignment1);
+    }
+
+    @Test
+    public void testShouldNotPublishDeactivatedFlattenedAssignmentsForDeletion_withOtherActiveGroupAssignments_shouldSetDeletionConfirmed() {
+
+        savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
 
         FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
@@ -81,6 +97,23 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
 
         assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isTrue();
         assertThat(activeFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
+        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
+    }
+
+    @Test
+    public void testShouldNotPublishDeactivatedFlattenedAssignmentsForDeletion_withOtherActiveUserAssignment_shouldSetDeletionConfirmed() {
+
+        savedFlattenedAssignment4 = flattenedAssignmentRepository.save(flattenedAssignment4);
+
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
+
+        FlattenedAssignment deactivatedFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment1.getId()).orElseThrow();
+        FlattenedAssignment activeFlattenedAssignment = flattenedAssignmentRepository.findById(savedFlattenedAssignment4.getId()).orElseThrow();
+
+        assertThat(deactivatedFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isTrue();
+        assertThat(activeFlattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed()).isFalse();
+
+        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
     }
 }
 

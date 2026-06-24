@@ -270,7 +270,7 @@ public class FlattenedAssignmentService {
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
-        return flattenedAssignmentRepository.findByUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
+        return flattenedAssignmentRepository.findByAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(userRef, resourceRef);
     }
 
     public Set<Long> findFlattenedAssignmentIdsByUserAndRoleRef(Long userRef, Long roleRef) {
@@ -297,18 +297,26 @@ public class FlattenedAssignmentService {
             flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
         });
     }
-
+//TODO optimize query to check existence only
     private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
 
         log.info("Checking if other active flattened assignment exists for user {} and resource {}",
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
+
         List<FlattenedAssignment> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
                 flattenedAssignment.getAssignmentViaRoleRef(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
+
+       Optional<FlattenedAssignment> optionalFlattenedAssignment = flattenedAssignmentRepository.
+               findByAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
+                flattenedAssignment.getUserRef(),
+                flattenedAssignment.getResourceRef()
+        );
+        optionalFlattenedAssignment.ifPresent(otherActiveAssignments::add);
 
         if (otherActiveAssignments.isEmpty()) {
             log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",

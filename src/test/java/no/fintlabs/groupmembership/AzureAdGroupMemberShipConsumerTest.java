@@ -4,7 +4,7 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,18 +27,18 @@ public class AzureAdGroupMemberShipConsumerTest {
     @Mock
     private FlattenedAssignmentService flattenedAssignmentService;
 
-    @Mock
-    private EntityConsumerFactoryService factoryService;
-
     private AzureAdGroupMemberShipConsumer consumer;
 
     @Mock
     private AssigmentEntityProducerService assigmentEntityProducerService;
 
+    @Mock
+    private KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        consumer = new AzureAdGroupMemberShipConsumer(repo, assigmentEntityProducerService, flattenedAssignmentService);
+        consumer = new AzureAdGroupMemberShipConsumer(repo, assigmentEntityProducerService, flattenedAssignmentService, kafkaConsumerConfigurationDefaults);
     }
 
     @Test

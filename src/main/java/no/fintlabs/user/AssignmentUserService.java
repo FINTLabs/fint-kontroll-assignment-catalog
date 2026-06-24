@@ -5,10 +5,10 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.kodeverk.ScopeType;
-import no.fintlabs.kodeverk.Handhevingstype;
+import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceUtil;
 import no.fintlabs.role.Role;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
@@ -93,11 +93,11 @@ public class AssignmentUserService {
             String assignerFirstName = (String) result[5];
             String assignerLastName = (String) result[6];
 
-            boolean isDirectAssignment = isDirectAssignment(flattenedAssignment);
+            boolean isDirectAssignment = assignment.isUserAssignment();
             boolean isDeletableAssignment = isDirectAssignment &&
-                    (isAllOrgUnitsInScope(orgUnitsInScope) ||
-                            isResourceUnrestricted(resource) ||
-                            isResourceLocationInScope(assignment, orgUnitsInScope)
+                    (AuthorizationUtil.isAllOrgUnitsInScope(orgUnitsInScope) ||
+                            ResourceUtil.isResourceUnrestricted(resource) ||
+                            ResourceUtil.isResourceLocationInScope(assignment, orgUnitsInScope)
                     );
 
             ResourceAssignmentUser resourceAssignmentUser = new ResourceAssignmentUser();
@@ -142,51 +142,5 @@ public class AssignmentUserService {
         });
     }
 
-    private boolean isDirectAssignment(FlattenedAssignment flattenedAssignment) {
-        return flattenedAssignment.getAssignmentViaRoleRef() == null;
-    }
-
-    private boolean isResourceLocationInScope(Assignment assignment,  List<String> orgUnitsInScope) {
-        try {
-            boolean isApplicationResourceLocationInScope =
-                    assignment.getApplicationResourceLocationOrgUnitId() != null &&
-                    orgUnitsInScope.contains(assignment.getApplicationResourceLocationOrgUnitId());
-            log.info("Resource location {} in scope for assignment {} is: {}",
-                    assignment.getApplicationResourceLocationOrgUnitId(),
-                    assignment.getId(),
-                    isApplicationResourceLocationInScope);
-
-            return isApplicationResourceLocationInScope;
-        }
-        catch (Exception e)
-        {
-           log.error("Calculation of isResourceLocationInScope for assignment {} failed with error {}",
-                   assignment.getId(),
-                   e.getMessage());
-           return false;
-        }
-    }
-
-    private boolean isResourceUnrestricted(Resource resource) {
-        //TODO: temporary solution, should be replaced with a proper check
-        if (resource.getLicenseEnforcement() == null) {
-            return true;
-        }
-        List<String> unrestrictedEnforcementTypes = List.of(
-                Handhevingstype.NOTSPECIFIED.name(),
-                Handhevingstype.NOTSET.name(),
-                Handhevingstype.FREEALL.name(),
-                Handhevingstype.FREEEDU.name(),
-                Handhevingstype.FREESTUDENT.name());
-        boolean isResourceUnrestricted = unrestrictedEnforcementTypes.contains(resource.getLicenseEnforcement());
-        log.info("Resource {} is unrestricted: {}", resource.getId(), isResourceUnrestricted);
-        return isResourceUnrestricted;
-    }
-    private boolean isAllOrgUnitsInScope(List<String> orgUnitsInScope) {
-        boolean isAllOrgUnitsInScope = orgUnitsInScope.stream()
-                .anyMatch(ScopeType.ALLORGUNITS.name()::equals);
-        log.info("Scope contains {}: {}", ScopeType.ALLORGUNITS.name(), isAllOrgUnitsInScope);
-        return isAllOrgUnitsInScope;
-    }
 }
 

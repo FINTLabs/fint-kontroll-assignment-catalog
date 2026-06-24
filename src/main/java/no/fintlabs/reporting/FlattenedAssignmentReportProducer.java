@@ -1,34 +1,32 @@
 package no.fintlabs.reporting;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityProducer;
-import no.fintlabs.kafka.entity.EntityProducerFactory;
-import no.fintlabs.kafka.entity.EntityProducerRecord;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
-import no.fintlabs.kafka.entity.topic.EntityTopicService;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.producing.ParameterizedProducerRecord;
+import no.novari.kafka.producing.ParameterizedTemplate;
+import no.novari.kafka.producing.ParameterizedTemplateFactory;
+import no.novari.kafka.topic.EntityTopicService;
+import no.novari.kafka.topic.name.EntityTopicNameParameters;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class FlattenedAssignmentReportProducer {
-    private final EntityProducer<FlattenedAssignmentReport> entityProducer;
+    private final ParameterizedTemplate<FlattenedAssignmentReport> entityProducer;
     private final EntityTopicNameParameters topicNameParameters;
 
-    public FlattenedAssignmentReportProducer(EntityProducerFactory entityProducerFactory, EntityTopicService entityTopicService) {
-        entityProducer = entityProducerFactory.createProducer(FlattenedAssignmentReport.class);
+    public FlattenedAssignmentReportProducer(ParameterizedTemplateFactory entityProducerFactory, EntityTopicService entityTopicService) {
+        entityProducer = entityProducerFactory.createTemplate(FlattenedAssignmentReport.class);
 
-        topicNameParameters = EntityTopicNameParameters
-                .builder()
-                .resource("flattened-assignment-reporting")
-                .build();
-        entityTopicService.ensureTopic(topicNameParameters, 0);
+        topicNameParameters = KafkaEntityTopics.topicNameParameters("flattened-assignment-reporting");
+        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaEntityTopics.compactedTopicConfiguration());
     }
 
     public void publish(FlattenedAssignmentReport flattenedAssignmentReport) {
         String key = flattenedAssignmentReport.id().toString();
 
         entityProducer.send(
-                EntityProducerRecord.<FlattenedAssignmentReport>builder()
+                ParameterizedProducerRecord.<FlattenedAssignmentReport>builder()
                         .topicNameParameters(topicNameParameters)
                         .key(key)
                         .value(flattenedAssignmentReport)

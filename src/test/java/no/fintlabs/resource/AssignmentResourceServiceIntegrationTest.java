@@ -28,7 +28,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
@@ -100,102 +99,10 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String allTypes = "ALLTYPES";
     private final UUID azureUserId = UUID.randomUUID();
 
+    private final List<String>listOfAllOrgUnits = List.of("ALLORGUNITS");
+
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByRoleAndApplicationResourceLocationOrgUnitIdIsInScope() {
-        Resource resourceAdobek12 = Resource.builder()
-                .id(1L)
-                .resourceId(adobek12)
-                .resourceType(allTypes)
-                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
-                .build();
-
-        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
-
-        Role role = Role.builder()
-                .id(1L)
-                .roleType(allTypes)
-                .roleName("Test role")
-                .organisationUnitId(kompavd)
-                .build();
-
-        Role savedRole = roleRepository.saveAndFlush(role);
-
-        Assignment assignmentAdobek12 = Assignment.builder()
-                .roleRef(savedRole.getId())
-                .userRef(null)
-                .resourceRef(savedResourceAdobek12.getId())
-                .applicationResourceLocationOrgUnitId(kompavd)
-                .build();
-
-        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
-
-        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
-                .assignmentId(savedAssignmentAdobek12.getId())
-                .userRef(null)
-                .assignmentViaRoleRef(savedRole.getId())
-                .resourceRef(savedResourceAdobek12.getId())
-//                .licenseConsumerOrgUnitRef(kompavd)
-                .build();
-
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
-
-        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
-
-        Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
-
-        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
-        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
-    }
-    @Test
-    public void shouldSetIsDeletableAssignmentToFalseWhenCalledByRoleAndRestrictedResourceNotInScope() {
-        Resource resourceAdobek12 = Resource.builder()
-                .id(1L)
-                .resourceId(adobek12)
-                .resourceType(allTypes)
-                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
-                .build();
-
-        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
-
-        Role role = Role.builder()
-                .id(1L)
-                .roleType(allTypes)
-                .roleName("Test role")
-                .organisationUnitId(kompavd)
-                .build();
-
-        Role savedRole = roleRepository.saveAndFlush(role);
-
-        Assignment assignmentAdobek12 = Assignment.builder()
-                .roleRef(savedRole.getId())
-                .userRef(null)
-                .resourceRef(savedResourceAdobek12.getId())
-                .applicationResourceLocationOrgUnitId(varfk)
-                .build();
-
-        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
-
-        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
-                .assignmentId(savedAssignmentAdobek12.getId())
-                .userRef(null)
-                .assignmentViaRoleRef(savedRole.getId())
-                .resourceRef(savedResourceAdobek12.getId())
-//                .licenseConsumerOrgUnitRef(varfk)
-                .build();
-
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
-
-        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
-
-        Page<UserAssignmentResource> resourceAssignmentUsers =
-                assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
-
-        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
-        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
-    }
-    @Test
-    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByRoleAndUnrestrictedResourceNotInScope() {
+    public void findUserAssignmentResourcesByRole_shouldSetIsDeletableAssignmentToFalse() {
         Resource resource = Resource.builder()
                 .id(2L)
                 .resourceId(zip)
@@ -230,13 +137,13 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
 
-        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(listOfAllOrgUnits);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
                 assignmentResourceService.findUserAssignmentResourcesByRole(1L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
 
         assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
-        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
     }
     @Test
     public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndApplicationResourceLocationOrgUnitIdIsInScope() {
@@ -283,6 +190,58 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
 
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
+
+        Page<UserAssignmentResource> resourceAssignmentUsers =
+                assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
+
+        assertThat(resourceAssignmentUsers.getTotalElements()).isEqualTo(1);
+        assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
+    }
+    @Test
+    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndUnitIdIsInScopeContainALLORGUNITS() {
+        Resource resourceAdobek12 = Resource.builder()
+                .id(1L)
+                .resourceId(adobek12)
+                .resourceType(allTypes)
+                .licenseEnforcement(Handhevingstype.HARDSTOP.name())
+                .build();
+
+        Resource savedResourceAdobek12 = resourceRepository.saveAndFlush(resourceAdobek12);
+
+        User user = User.builder()
+                .id(123L)
+                .firstName("Test")
+                .lastName("Testesen")
+                .userName("test")
+                .organisationUnitId(kompavd)
+                .userType(student)
+                .build();
+
+        User savedUser = userRepository.saveAndFlush(user);
+
+        Assignment assignmentAdobek12 = Assignment.builder()
+                .roleRef(null)
+                .userRef(savedUser.getId())
+                .azureAdUserId(azureUserId)
+                .resourceRef(savedResourceAdobek12.getId())
+                .applicationResourceLocationOrgUnitId(kompavd)
+                .build();
+
+        Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
+
+        FlattenedAssignment flattenedAssignmentAdobek12 = FlattenedAssignment.builder()
+                .assignmentId(savedAssignmentAdobek12.getId())
+                .userRef(savedUser.getId())
+                .assignmentViaRoleRef(null)
+                .resourceRef(savedResourceAdobek12.getId())
+//                .licenseConsumerOrgUnitRef(kompavd)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+
+
+
+        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(listOfAllOrgUnits);
 
         Page<UserAssignmentResource> resourceAssignmentUsers =
                 assignmentResourceService.findUserAssignmentResourcesByUser(123L, allTypes, kompavdList, kompavdList, null,null, 0, 20);
@@ -528,9 +487,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
-
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, null, null, List.of(2L));
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, kompavdList, null, List.of(2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(1);
@@ -580,9 +537,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
-
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null, null, null, List.of(1L,2L));
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null, kompavdList, null, List.of(1L,2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(2);

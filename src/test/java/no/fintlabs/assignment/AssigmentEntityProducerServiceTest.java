@@ -1,10 +1,10 @@
 package no.fintlabs.assignment;
 
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.kafka.entity.EntityProducer;
-import no.fintlabs.kafka.entity.EntityProducerFactory;
-import no.fintlabs.kafka.entity.EntityProducerRecord;
-import no.fintlabs.kafka.entity.topic.EntityTopicService;
+import no.novari.kafka.producing.ParameterizedProducerRecord;
+import no.novari.kafka.producing.ParameterizedTemplate;
+import no.novari.kafka.producing.ParameterizedTemplateFactory;
+import no.novari.kafka.topic.EntityTopicService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -19,20 +19,20 @@ import static org.mockito.Mockito.when;
 
 public class AssigmentEntityProducerServiceTest {
     @Mock
-    private EntityProducerFactory entityProducerFactory;
+    private ParameterizedTemplateFactory entityProducerFactory;
 
     @Mock
     private EntityTopicService entityTopicService;
 
     @Mock
-    private EntityProducer entityProducer;
+    private ParameterizedTemplate entityProducer;
 
     private AssigmentEntityProducerService service;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        when(entityProducerFactory.createProducer(any())).thenReturn(entityProducer);
+        when(entityProducerFactory.createTemplate(any())).thenReturn(entityProducer);
         service = new AssigmentEntityProducerService(entityProducerFactory, entityTopicService);
     }
 
@@ -44,7 +44,7 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publish(assignment);
 
-        verify(entityProducer, times(1)).send(any(EntityProducerRecord.class));
+        verify(entityProducer, times(1)).send(any(ParameterizedProducerRecord.class));
     }
 
     @Test
@@ -53,7 +53,7 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publish(assignment);
 
-        verify(entityProducer, times(0)).send(any(EntityProducerRecord.class));
+        verify(entityProducer, times(0)).send(any(ParameterizedProducerRecord.class));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publishDeletion(assignment);
 
-        verify(entityProducer, times(1)).send(any(EntityProducerRecord.class));
+        verify(entityProducer, times(1)).send(any(ParameterizedProducerRecord.class));
     }
 
     @Test
@@ -73,6 +73,6 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publishDeletion(assignment);
 
-        verify(entityProducer, times(0)).send(any(EntityProducerRecord.class));
+        verify(entityProducer, times(0)).send(any(ParameterizedProducerRecord.class));
     }
 }

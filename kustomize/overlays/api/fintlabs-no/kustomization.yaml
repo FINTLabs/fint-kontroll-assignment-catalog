@@ -55,8 +55,11 @@ patches:
       - op: replace
         path: "/spec/env/3/value"
         value: "false"
+      - op: replace
+        path: "/spec/env/4/value"
+        value: "fintlabs-no"
       - op: add
-        path: "/spec/env/4"
+        path: "/spec/env/5"
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"

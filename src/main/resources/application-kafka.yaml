@@ -1,7 +1,7 @@
-fint:
+novari:
   kafka:
     topic:
-      org-id: ${fint.org-id}
+      org-id: fintlabs-no
       domain-context: kontroll
     application-id: ${fint.application-id}
 spring:
@@ -14,4 +14,3 @@ spring:
       linger-ms: 10            # Wait up to 10ms before sending batch to improve batching
       buffer-memory: 67108864  # Increase buffer memory to 64MB
       compression-type: lz4    # Use LZ4 compression for fast throughput
-

@@ -5,8 +5,9 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,28 +23,31 @@ public class AzureAdGroupMemberShipConsumer {
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
+    private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
 
-    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository, AssigmentEntityProducerService assigmentEntityProducerService, FlattenedAssignmentService flattenedAssignmentService) {
+    public AzureAdGroupMemberShipConsumer(FlattenedAssignmentRepository flattenedAssignmentRepository,
+                                          AssigmentEntityProducerService assigmentEntityProducerService,
+                                          FlattenedAssignmentService flattenedAssignmentService,
+                                          KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
         this.flattenedAssignmentService = flattenedAssignmentService;
+        this.kafkaConsumerConfigurationDefaults = kafkaConsumerConfigurationDefaults;
     }
 
     @Bean
     public ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> azureAdMembershipConsumer(
-            EntityConsumerFactoryService entityConsumerFactoryService
+            ParameterizedListenerContainerFactoryService entityConsumerFactoryService
     ) {
 
-        ConcurrentMessageListenerContainer<String, AzureAdGroupMembership> container = entityConsumerFactoryService.createFactory(
+        return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         AzureAdGroupMembership.class,
-                        this::processGroupMembership)
-                .createContainer(EntityTopicNameParameters
-                                         .builder()
-                                         .resource("azuread-resource-group-membership")
-                                         .build());
-        container.setConcurrency(5);
-        return container;
+                        this::processGroupMembership,
+                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        kafkaConsumerConfigurationDefaults.defaultErrorHandler())
+                .createContainer(KafkaEntityTopics.topicNameParameters("azuread-resource-group-membership"));
+
     }
 
     @Async

@@ -1,0 +1,6 @@
+ALTER TABLE users
+DROP COLUMN IF EXISTS user_object_id,
+DROP COLUMN IF EXISTS user_ref,
+DROP COLUMN IF EXISTS modified_by,
+DROP COLUMN IF EXISTS created_by
+;

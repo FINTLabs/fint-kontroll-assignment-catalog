@@ -1,36 +1,34 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.entity.EntityProducer;
-import no.fintlabs.kafka.entity.EntityProducerFactory;
-import no.fintlabs.kafka.entity.EntityProducerRecord;
-import no.fintlabs.kafka.entity.topic.EntityTopicNameParameters;
-import no.fintlabs.kafka.entity.topic.EntityTopicService;
+import no.fintlabs.kafka.KafkaEntityTopics;
+import no.novari.kafka.producing.ParameterizedProducerRecord;
+import no.novari.kafka.producing.ParameterizedTemplate;
+import no.novari.kafka.producing.ParameterizedTemplateFactory;
+import no.novari.kafka.topic.EntityTopicService;
+import no.novari.kafka.topic.name.EntityTopicNameParameters;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
 public class ResourceAvailabilityProducerService {
-    private final EntityProducer<ResourceAvailabilityDTO> entityProducer;
+    private final ParameterizedTemplate<ResourceAvailabilityDTO> entityProducer;
     private final EntityTopicNameParameters topicNameParameters;
 
     public ResourceAvailabilityProducerService(
-            EntityProducerFactory entityProducerFactory,
+            ParameterizedTemplateFactory entityProducerFactory,
             EntityTopicService entityTopicService) {
 
-        entityProducer = entityProducerFactory.createProducer(ResourceAvailabilityDTO.class);
-        topicNameParameters = EntityTopicNameParameters
-                .builder()
-                .resource("resourceavailability")
-                .build();
-        entityTopicService.ensureTopic(topicNameParameters, 0);
+        entityProducer = entityProducerFactory.createTemplate(ResourceAvailabilityDTO.class);
+        topicNameParameters = KafkaEntityTopics.topicNameParameters("resourceavailability");
+        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaEntityTopics.compactedTopicConfiguration());
     }
 
     public void publish(ResourceAvailabilityDTO resourceAvailabilityDTO) {
         String key = resourceAvailabilityDTO.getResourceId();
 
         entityProducer.send(
-                EntityProducerRecord.<ResourceAvailabilityDTO>builder()
+                ParameterizedProducerRecord.<ResourceAvailabilityDTO>builder()
                         .topicNameParameters(topicNameParameters)
                         .key(key)
                         .value(resourceAvailabilityDTO)

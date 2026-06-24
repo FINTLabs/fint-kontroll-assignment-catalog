@@ -1,7 +1,7 @@
 package no.fintlabs.membership;
 
 import no.fintlabs.cache.FintCache;
-import no.fintlabs.kafka.entity.EntityConsumerFactoryService;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +17,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class MembershipConsumerTest {
     @Mock
-    private EntityConsumerFactoryService factoryService;
-
-    @Mock
     private FintCache<String, Membership> membershipCache;
 
     @Mock
@@ -27,6 +24,9 @@ public class MembershipConsumerTest {
 
     @Mock
     private MembershipService membershipService;
+
+    @Mock
+    private KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @InjectMocks
     private MembershipConsumer membershipConsumer;
