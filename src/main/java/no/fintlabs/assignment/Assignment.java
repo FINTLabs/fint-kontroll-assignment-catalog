@@ -142,6 +142,6 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isGroupAssignment() {
-        return roleRef != null && azureAdGroupId != null;
+        return roleRef != null;
     }
 }
