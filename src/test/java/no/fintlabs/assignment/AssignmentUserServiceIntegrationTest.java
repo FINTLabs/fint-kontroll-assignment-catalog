@@ -44,7 +44,7 @@ import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentUserService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentUserService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired

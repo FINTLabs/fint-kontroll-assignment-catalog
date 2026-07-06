@@ -175,12 +175,14 @@ public class FlattenedAssignmentServiceTest {
     public void shouldPublishDeletionWhenNoOtherActiveFlattenedAssignmentsExist() {
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setId(1L);
         flattenedAssignment.setAssignmentViaRoleRef(1L);
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
+        flattenedAssignment.setAssignmentTerminationDate(new Date());
 
-        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
-                .thenReturn(new ArrayList<>());
+        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
+                .thenReturn(0L);
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
@@ -191,16 +193,36 @@ public class FlattenedAssignmentServiceTest {
     public void shouldNotPublishDeletionWhenOtherActiveFlattenedAssignmentsExist() {
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setId(1L);
         flattenedAssignment.setAssignmentViaRoleRef(1L);
         flattenedAssignment.setUserRef(2L);
         flattenedAssignment.setResourceRef(3L);
+        flattenedAssignment.setAssignmentTerminationDate(new Date());
 
-        when(flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(1L, 2L, 3L))
-                .thenReturn(List.of(new FlattenedAssignment()));
+        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
+                .thenReturn(1L);
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
         verify(assigmentEntityProducerService, times(0)).publishDeletion(flattenedAssignment);
+    }
+
+    @Test
+    public void shouldNotPublishDeletionForDirectAssignmentWhenRoleAssignmentStillExists() {
+
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setId(1L);
+        flattenedAssignment.setAssignmentViaRoleRef(null);
+        flattenedAssignment.setUserRef(2L);
+        flattenedAssignment.setResourceRef(3L);
+        flattenedAssignment.setAssignmentTerminationDate(new Date());
+
+        when(flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(1L, 2L, 3L))
+                .thenReturn(1L);
+
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
+
+        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment);
     }
 
 

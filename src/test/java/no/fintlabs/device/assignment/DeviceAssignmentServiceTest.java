@@ -4,6 +4,7 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationServic
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -15,6 +16,7 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -41,11 +43,24 @@ class DeviceAssignmentServiceTest {
     @Mock private ApplicationResourceLocationService applicationResourceLocationService;
     @Mock private OpaService opaService;
 
-    @InjectMocks
     private DeviceAssignmentService deviceAssignmentService;
 
     @Captor
     private ArgumentCaptor<Assignment> assignmentCaptor;
+
+    @BeforeEach
+    void setUp() {
+        deviceAssignmentService = new DeviceAssignmentService(
+                deviceGroupRepository,
+                userRepository,
+                assignmentRepository,
+                resourceRepository,
+                flattenedDeviceAssignmentService,
+                new AssignmentResourceEnricher(applicationResourceLocationService),
+                opaService,
+                licenseEnforcementService
+        );
+    }
 
     private DeviceGroup group(long id) {
         return DeviceGroup.builder().id(id).build();
@@ -106,9 +121,6 @@ class DeviceAssignmentServiceTest {
     void createNewAssignment_shouldThrowConflict_whenDuplicateAssignmentExists() {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
-        Resource r = resource(1L, "R", UUID.randomUUID());
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
-
         when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
                 .thenReturn(Optional.of(new Assignment()));
 
@@ -132,19 +144,17 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(assignmentRepository.saveAndFlush(any(Assignment.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
+        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
                 .thenReturn(false);
 
         assertThrows(ConflictException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
         );
 
-        verify(assignmentRepository).saveAndFlush(any(Assignment.class));
+        verify(assignmentRepository, never()).saveAndFlush(any(Assignment.class));
         verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignments(any(Assignment.class));
         verify(flattenedDeviceAssignmentService, never()).createAndPublishFlattenedAssignmentsSync(any(Assignment.class));
-        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
+        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
     }
 
     @Test
@@ -163,7 +173,7 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.of(nearest));
 
-        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
+        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -181,7 +191,7 @@ class DeviceAssignmentServiceTest {
         assertEquals("nearest-ou", saved.getApplicationResourceLocationOrgUnitId());
         assertEquals("Nearest OU Name", saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
+        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
         verify(flattenedDeviceAssignmentService).createAndPublishFlattenedAssignments(saved);
     }
@@ -196,7 +206,7 @@ class DeviceAssignmentServiceTest {
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
-        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
+        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
                 .thenReturn(true);
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
                 .thenAnswer(invocation -> {
@@ -236,7 +246,7 @@ class DeviceAssignmentServiceTest {
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
 
-        when(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class)))
+        when(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class)))
                 .thenReturn(true);
 
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -248,7 +258,7 @@ class DeviceAssignmentServiceTest {
         assertNull(saved.getApplicationResourceLocationOrgUnitId());
         assertNull(saved.getApplicationResourceLocationOrgUnitName());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(any(Assignment.class));
+        verify(licenseEnforcementService).validateAssignmentCapacity(any(Assignment.class));
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 

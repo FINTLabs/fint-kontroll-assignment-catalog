@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -63,7 +62,6 @@ class AssignmentServiceTest {
     @Mock
     private LicenseEnforcementService licenseEnforcementService;
 
-    @InjectMocks
     private AssignmentService assignmentService;
 
     @Mock
@@ -74,6 +72,18 @@ class AssignmentServiceTest {
 
     @BeforeEach
     public void setUp() {
+        assignmentService = new AssignmentService(
+                roleRepository,
+                userRepository,
+                assignmentRepository,
+                resourceRepository,
+                flattenedAssignmentService,
+                applicationResourceLocationService,
+                new AssignmentResourceEnricher(applicationResourceLocationService),
+                opaService,
+                licenseEnforcementService
+        );
+
         userAssignmentWithAssigner = Assignment.builder()
                 .assignmentId("2_1_user")
                 .resourceRef(2L)
@@ -234,6 +244,7 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
+        given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
         NearestResourceLocationDto nearestResourceLocationDto = new NearestResourceLocationDto("orgid1", "OrgUnit no 1");
         given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.of(nearestResourceLocationDto));
@@ -241,7 +252,7 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(licenseEnforcementService,times(1)).recalculateAssignedResources(isA(Assignment.class));
+        verify(licenseEnforcementService,times(1)).validateAssignmentCapacity(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
         verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
     }
@@ -258,8 +269,8 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
+        given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
         given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.empty());
-        given(licenseEnforcementService.recalculateAssignedResources(any(Assignment.class))).willReturn(true);
 
         TransactionSynchronizationManager.initSynchronization();
         try {
@@ -393,6 +404,7 @@ class AssignmentServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
+        given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid", 1L, null);
 
@@ -412,6 +424,7 @@ class AssignmentServiceTest {
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
         given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
+        given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid", null, 1L);
 

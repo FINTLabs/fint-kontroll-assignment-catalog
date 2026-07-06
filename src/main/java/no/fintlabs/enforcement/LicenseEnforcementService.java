@@ -10,9 +10,11 @@ import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
+import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
@@ -39,6 +41,8 @@ public class LicenseEnforcementService {
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
+    private final MembershipRepository membershipRepository;
+    private final DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     @Value("${fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable:true}")
     private boolean hardstopEnabled;
@@ -107,9 +111,27 @@ public class LicenseEnforcementService {
         return true;
     }
 
+    public boolean validateAssignmentCapacity(Assignment assignment) {
+        if (assignment == null || assignment.getResourceRef() == null) {
+            log.warn("Cannot validate assigned resources without resourceRef");
+            return false;
+        }
+
+        Resource resource = resourceRepository.lockByResourceId(assignment.getResourceRef());
+        if (!isHardStop(resource)) {
+            return true;
+        }
+
+        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.lockByApplicationResourceId(resource.getId());
+        long projectedDelta = projectedMembershipDelta(assignment, resource);
+        AssignedResourceCounts projectedCounts = addProjectedDelta(countAssignedResources(resource, locations), assignment, projectedDelta);
+
+        return !exceedsLimits(resource, projectedCounts);
+    }
+
     private AssignedResourceCounts countAssignedResources(Resource resource, List<ApplicationResourceLocation> locations) {
         return new AssignedResourceCounts(
-                countActiveMemberships(resource.getIdentityProviderGroupObjectId()),
+                countActiveMemberships(resource),
                 locations.stream()
                         .map(location -> new ApplicationResourceLocationCount(
                                 location,
@@ -117,6 +139,53 @@ public class LicenseEnforcementService {
                         ))
                         .toList()
         );
+    }
+
+    private AssignedResourceCounts addProjectedDelta(AssignedResourceCounts counts, Assignment assignment, long delta) {
+        if (delta <= 0) {
+            return counts;
+        }
+
+        return new AssignedResourceCounts(
+                counts.resourceCount() + delta,
+                counts.locationCounts().stream()
+                        .map(locationCount -> Objects.equals(locationCount.location().getOrgUnitId(), assignment.getApplicationResourceLocationOrgUnitId())
+                                ? new ApplicationResourceLocationCount(locationCount.location(), locationCount.count() + delta)
+                                : locationCount)
+                        .toList()
+        );
+    }
+
+    private long projectedMembershipDelta(Assignment assignment, Resource resource) {
+        UUID resourceEntraId = resource.getIdentityProviderGroupObjectId();
+        if (resourceEntraId == null) {
+            return 0L;
+        }
+        if (assignment.getUserRef() != null) {
+            UUID userEntraId = assignment.getEntraUserId();
+            if (userEntraId == null) {
+                return 0L;
+            }
+            return userEntraMembershipRepository.existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(
+                    userEntraId,
+                    resourceEntraId,
+                    MembershipStatus.ACTIVE)
+                    ? 0L
+                    : 1L;
+        }
+        if (assignment.getRoleRef() != null) {
+            return membershipRepository.countActiveRoleMembersWithoutActiveEntraMembership(
+                    assignment.getRoleRef(),
+                    resourceEntraId,
+                    MembershipStatus.ACTIVE);
+        }
+        if (assignment.getDeviceGroupRef() != null) {
+            return deviceGroupMembershipRepository.countActiveDeviceGroupMembersWithoutActiveEntraMembership(
+                    assignment.getDeviceGroupRef(),
+                    resourceEntraId,
+                    MembershipStatus.ACTIVE);
+        }
+        return 0L;
     }
 
     private boolean exceedsLimits(Resource resource, AssignedResourceCounts counts) {
@@ -157,13 +226,13 @@ public class LicenseEnforcementService {
         return location.getResourceLimit() == null ? 0L : location.getResourceLimit();
     }
 
-    private long countActiveMemberships(UUID resourceEntraId) {
-        if (resourceEntraId == null) {
+    private long countActiveMemberships(Resource resource) {
+        if (resource.getIdentityProviderGroupObjectId() == null) {
             return 0L;
         }
 
-        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE)
-                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE);
+        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE)
+                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE);
     }
 
     private long countActiveMembershipsForLocation(Long resourceId, String orgUnitId) {

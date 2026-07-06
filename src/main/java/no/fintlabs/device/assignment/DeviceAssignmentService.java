@@ -2,10 +2,9 @@ package no.fintlabs.device.assignment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
-import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -36,7 +35,7 @@ public class DeviceAssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final ResourceRepository resourceRepository;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
-    private final ApplicationResourceLocationService applicationResourceLocationService;
+    private final AssignmentResourceEnricher assignmentResourceEnricher;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
@@ -45,7 +44,6 @@ public class DeviceAssignmentService {
         log.info("Trying to create new assignment for resource {} and device group {}", resourceRef, deviceGroupRef);
 
         DeviceGroup deviceGroup = getDeviceGroupOrThrow(deviceGroupRef);
-        Resource resource = getResourceOrThrow(resourceRef);
 
         // Ensure no duplicate assignment
         assertNoExistingActiveAssignment(resourceRef, deviceGroupRef);
@@ -54,34 +52,21 @@ public class DeviceAssignmentService {
                 .assignerUserName(opaService.getUserNameAuthenticatedUser())
                 .resourceRef(resourceRef)
                 .organizationUnitId(organizationUnitId)
-                .resourceName(resource.getResourceName())
-                .assignmentId(String.format(
-                        "%s_deviceGroup_%s_%s",
-                        resourceRef,
-                        deviceGroup.getId(),
-                        LocalDateTime.now()
-                ))
-                .entraGroupId(resource.getIdentityProviderGroupObjectId())
                 .deviceGroupRef(deviceGroup.getId())
                 .build();
 
-        Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService
-                .getNearestApplicationResourceLocationForOrgUnit(resourceRef, assignment.getOrganizationUnitId());
+        enrichByResource(assignment, resourceRef);
 
-        nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
-            assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
-            assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
-        });
+        boolean availableResourceLicenseCount = licenseEnforcementService.validateAssignmentCapacity(assignment);
+        log.info("Validated license capacity for resource {} : {}",
+                assignment.getResourceRef(), availableResourceLicenseCount ? "Success" : "Failure");
+        if(!availableResourceLicenseCount) {
+            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef());
+        }
+
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
-
-        boolean updatedResourceLicenseCount = licenseEnforcementService.recalculateAssignedResources(newAssignment);
-        log.info("Updated license count for resource {} : {}",
-                newAssignment.getResourceRef(), updatedResourceLicenseCount ? "Success" : "Failure");
-        if(!updatedResourceLicenseCount) {
-            throw new ConflictException("Can't update number of assigned licenses for resource " + newAssignment.getResourceRef());
-        }
 
         scheduleFlattenedAssignmentCreation(newAssignment);
 
@@ -105,6 +90,17 @@ public class DeviceAssignmentService {
         }
 
         return resource;
+    }
+
+    private void enrichByResource(Assignment assignment, Long resourceRef) {
+        Resource resource = getResourceOrThrow(resourceRef);
+        assignment.setAssignmentId(String.format(
+                "%s_deviceGroup_%s_%s",
+                resourceRef,
+                assignment.getDeviceGroupRef(),
+                LocalDateTime.now()
+        ));
+        assignmentResourceEnricher.enrich(assignment, resourceRef, resource);
     }
 
     private void assertNoExistingActiveAssignment(Long resourceRef, Long deviceGroupRef) {

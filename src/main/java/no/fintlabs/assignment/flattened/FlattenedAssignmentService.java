@@ -381,26 +381,23 @@ public class FlattenedAssignmentService {
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
-        List<FlattenedAssignment> otherActiveAssignments = flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                flattenedAssignment.getAssignmentViaRoleRef(),
+        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
+                flattenedAssignment.getId(),
                 flattenedAssignment.getUserRef(),
                 flattenedAssignment.getResourceRef()
         );
 
-        if (otherActiveAssignments.isEmpty()) {
+        if (otherActiveAssignments == 0) {
             log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",
                     flattenedAssignment.getUserRef(),
                     flattenedAssignment.getResourceRef()
             );
             return true;
         }
-        otherActiveAssignments.forEach(otherAssignment ->
-            log.info("Found active flattened assignment {} for user {} and resource {} assigned {}",
-                    otherAssignment.getId(),
-                    otherAssignment.getUserRef(),
-                    otherAssignment.getResourceRef(),
-                    otherAssignment.getAssignmentViaRoleRef() == null ? "directly" : "via role " + otherAssignment.getAssignmentViaRoleRef()
-            )
+        log.info("Found {} other active flattened assignments for user {} and resource {}",
+                otherActiveAssignments,
+                flattenedAssignment.getUserRef(),
+                flattenedAssignment.getResourceRef()
         );
         return false;
     }

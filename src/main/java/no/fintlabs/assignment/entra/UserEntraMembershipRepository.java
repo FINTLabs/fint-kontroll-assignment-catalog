@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface UserEntraMembershipRepository extends JpaRepository<UserEntraMembership, Long> {
     Optional<UserEntraMembership> findByUserEntraIdAndResourceEntraId(UUID userEntraId, UUID resourceEntraId);
 
+    boolean existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(UUID userEntraId, UUID resourceEntraId, MembershipStatus membershipStatus);
+
     List<UserEntraMembership> findAllByEntraStatus(EntraStatus entraStatus);
 
     List<UserEntraMembership> findAllByEntraStatusAndUserEntraId(EntraStatus entraStatus, UUID userEntraId);

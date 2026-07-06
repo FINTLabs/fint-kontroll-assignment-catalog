@@ -8,8 +8,10 @@ import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
+import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
@@ -50,6 +52,10 @@ class LicenseEnforcementServiceTest {
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
     @Mock
     private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
+    @Mock
+    private MembershipRepository membershipRepository;
+    @Mock
+    private DeviceGroupMembershipRepository deviceGroupMembershipRepository;
 
     @InjectMocks
     private LicenseEnforcementService licenseEnforcementService;
@@ -156,6 +162,45 @@ class LicenseEnforcementServiceTest {
         verify(resourceRepository).save(resource);
         verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
         verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
+    }
+
+    @Test
+    void validateAssignmentCapacityAllowsProjectedDirectUserMembershipAtLimit() {
+        resource.setResourceLimit(10L);
+        applicationResourceLocation.setResourceLimit(10L);
+        givenLockedResourceAndLocation();
+        givenActiveMembershipCounts(9L, 0L, 9L, 0L);
+        given(userEntraMembershipRepository.existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(
+                assignment.getEntraUserId(),
+                RESOURCE_ENTRA_ID,
+                MembershipStatus.ACTIVE))
+                .willReturn(false);
+
+        boolean allowed = licenseEnforcementService.validateAssignmentCapacity(assignment);
+
+        assertThat(allowed).isTrue();
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
+        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
+        verify(resourceRepository, never()).save(resource);
+        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
+    }
+
+    @Test
+    void validateAssignmentCapacityReturnsFalseWhenProjectedDirectUserMembershipExceedsLimit() {
+        resource.setResourceLimit(9L);
+        givenLockedResourceAndLocation();
+        givenActiveMembershipCounts(9L, 0L, 1L, 0L);
+        given(userEntraMembershipRepository.existsByUserEntraIdAndResourceEntraIdAndMembershipStatus(
+                assignment.getEntraUserId(),
+                RESOURCE_ENTRA_ID,
+                MembershipStatus.ACTIVE))
+                .willReturn(false);
+
+        boolean allowed = licenseEnforcementService.validateAssignmentCapacity(assignment);
+
+        assertThat(allowed).isFalse();
+        verify(resourceRepository, never()).save(resource);
+        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
     }
 
     private void givenLockedResourceAndLocation() {

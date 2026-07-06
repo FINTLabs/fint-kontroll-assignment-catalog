@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Transactional
@@ -34,7 +33,7 @@ public class ResourceCountService {
     public void updateNumberOfLicenses(Resource resource) {
         log.info("Updating assigned resources for {} : {}", resource.getResourceId(), resource.getResourceName());
 
-        long totalNumberOfAssignedLicences = countActiveMemberships(resource.getIdentityProviderGroupObjectId());
+        long totalNumberOfAssignedLicences = countActiveMemberships(resource);
         resource.setNumberOfResourcesAssigned(totalNumberOfAssignedLicences);
 
         List<ApplicationResourceLocation> locations =
@@ -48,13 +47,13 @@ public class ResourceCountService {
         log.info("Resource {} -> assigned total {}", resource.getResourceId(), totalNumberOfAssignedLicences);
     }
 
-    private long countActiveMemberships(UUID resourceEntraId) {
-        if (resourceEntraId == null) {
+    private long countActiveMemberships(Resource resource) {
+        if (resource.getIdentityProviderGroupObjectId() == null) {
             return 0L;
         }
 
-        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE)
-                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE);
+        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE)
+                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE);
     }
 
     private long countActiveMembershipsForLocation(Long resourceId, String orgUnitId) {

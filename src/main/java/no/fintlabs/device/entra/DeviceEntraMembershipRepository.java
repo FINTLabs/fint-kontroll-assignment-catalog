@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface DeviceEntraMembershipRepository extends JpaRepository<DeviceEntraMembership, Long> {
     Optional<DeviceEntraMembership> findByDeviceEntraIdAndResourceEntraId(UUID deviceEntraId, UUID resourceEntraId);
 
+    boolean existsByDeviceEntraIdAndResourceEntraIdAndMembershipStatus(UUID deviceEntraId, UUID resourceEntraId, MembershipStatus membershipStatus);
+
     List<DeviceEntraMembership> findAllByEntraStatus(EntraStatus entraStatus);
 
     List<DeviceEntraMembership> findAllByEntraStatusAndDeviceEntraId(EntraStatus entraStatus, UUID deviceEntraId);

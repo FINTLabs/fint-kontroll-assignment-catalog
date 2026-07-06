@@ -8,6 +8,7 @@ import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
+import no.fintlabs.exception.ConflictException;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.resource.AssignmentResource;
@@ -40,6 +41,7 @@ public class AssignmentService {
     private final ResourceRepository resourceRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
+    private final AssignmentResourceEnricher assignmentResourceEnricher;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
@@ -65,15 +67,18 @@ public class AssignmentService {
 
         enrichByResource(assignment, resourceRef);
 
+        boolean availableCapacity = licenseEnforcementService.validateAssignmentCapacity(assignment);
+        log.info("Validated license capacity for resource {} : {}",
+                assignment.getResourceRef(), availableCapacity ? "Success" : "Failure");
+        if (!availableCapacity) {
+            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef());
+        }
+
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
         scheduleFlattenedAssignmentCreation(newAssignment);
-
-        log.info("Updated license count for resource {} : {}",
-                newAssignment.getResourceRef(), licenseEnforcementService.recalculateAssignedResources(newAssignment) ? "Success" : "Failure");
-
         return newAssignment;
     }
 
@@ -185,19 +190,9 @@ public class AssignmentService {
     }
 
     private void enrichByResource(Assignment assignment, Long resourceRef) {
-            Resource resource = resourceRepository.getReferenceById(resourceRef);
-            assignment.setResourceName(resource.getResourceName());
-            assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
-
-            Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
-                    resourceRef, assignment.getOrganizationUnitId());
-
-            nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
-                assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
-                assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
-            });
-        ;
+        Resource resource = resourceRepository.getReferenceById(resourceRef);
+        assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
+        assignmentResourceEnricher.enrich(assignment, resourceRef, resource);
     }
 
     private boolean existingDirectUserAssignmentNotTerminated(Assignment assignment) {

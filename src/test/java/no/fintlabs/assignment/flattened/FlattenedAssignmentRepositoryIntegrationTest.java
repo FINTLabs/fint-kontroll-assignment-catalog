@@ -57,28 +57,32 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
     }
 
     @Test
-    public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull() {
+    public void countOtherActiveAssignmentsByUserRefAndResourceRef_shouldFindRoleAssignmentWhenCurrentAssignmentIsDirect() {
+        FlattenedAssignment directAssignment = new FlattenedAssignment();
+        directAssignment.setUserRef(20L);
+        directAssignment.setAssignmentId(3L);
+        directAssignment.setResourceRef(10L);
+        directAssignment.setAssignmentViaRoleRef(null);
+        directAssignment.setAssignmentTerminationDate(new Date());
+        FlattenedAssignment savedDirectAssignment = flattenedAssignmentRepository.saveAndFlush(directAssignment);
 
-        List<FlattenedAssignment> otherActiveFlattenedAssignments =
-                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                        2L,
-                        20L,
-                        10L
+        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
+                savedDirectAssignment.getId(),
+                20L,
+                10L
         );
 
-        assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(1);
-        assertThat(otherActiveFlattenedAssignments.getFirst().getId()).isEqualTo(savedFlattenedAssignment3.getId());
+        assertThat(otherActiveAssignments).isEqualTo(1L);
     }
+
     @Test
-    public void testfindByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull_should_return_empty_list() {
+    public void countOtherActiveAssignmentsByUserRefAndResourceRef_shouldExcludeCurrentAssignment() {
+        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
+                savedFlattenedAssignment1.getId(),
+                10L,
+                10L
+        );
 
-        List<FlattenedAssignment> otherActiveFlattenedAssignments =
-                flattenedAssignmentRepository.findByAssignmentViaRoleRefNotAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(
-                        2L,
-                        10L,
-                        10L
-                );
-
-        assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(0);
+        assertThat(otherActiveAssignments).isZero();
     }
 }

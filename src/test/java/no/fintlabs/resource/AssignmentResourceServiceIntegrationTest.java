@@ -6,6 +6,7 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationServic
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
@@ -39,7 +40,7 @@ import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentResourceService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
 public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired

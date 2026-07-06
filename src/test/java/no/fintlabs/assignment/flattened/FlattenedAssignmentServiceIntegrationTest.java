@@ -106,6 +106,25 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
     }
 
     @Test
+    public void shouldNotPublishDirectAssignmentDeletionWhenRoleAssignmentStillExists() {
+        FlattenedAssignment directAssignment = new FlattenedAssignment();
+        directAssignment.setUserRef(10L);
+        directAssignment.setAssignmentId(3L);
+        directAssignment.setResourceRef(10L);
+        directAssignment.setAssignmentViaRoleRef(null);
+        directAssignment.setAssignmentTerminationDate(new Date());
+        directAssignment.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+        directAssignment.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+        directAssignment.setUserEntraMembership(savedFlattenedAssignment3.getUserEntraMembership());
+
+        FlattenedAssignment savedDirectAssignment = flattenedAssignmentRepository.saveAndFlush(directAssignment);
+
+        flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(savedDirectAssignment));
+
+        verify(assigmentEntityProducerService, never()).publishDeletion(savedDirectAssignment);
+    }
+
+    @Test
     public void shouldPublishDeactivatedFlattenedAssignmentForDeletionWhenNoOtherActiveAssignmentExists() {
         flattenedAssignment3.setAssignmentTerminationDate(new Date());
         flattenedAssignmentRepository.saveAndFlush(flattenedAssignment3);
