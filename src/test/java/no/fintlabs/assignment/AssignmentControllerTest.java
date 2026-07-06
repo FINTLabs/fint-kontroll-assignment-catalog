@@ -269,6 +269,37 @@ public class AssignmentControllerTest {
     }
 
     @Test
+    public void shouldGetDeviceGroupAssignmentsByResourceIdWithLowercasePath() throws Exception {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setResourceName("Resource");
+        assignment.setDeviceGroupRef(20L);
+
+        DeviceGroup deviceGroup = DeviceGroup.builder()
+                .id(20L)
+                .sourceId(200L)
+                .name("Device group")
+                .orgUnitId("198")
+                .platform("IOS")
+                .deviceType("MOBILE")
+                .noOfMembers(3L)
+                .build();
+
+        when(deviceAssignmentServiceMock.getActiveAssignmentsByResource(1L)).thenReturn(List.of(assignment));
+        when(deviceGroupRepositoryMock.findAllById(List.of(20L))).thenReturn(List.of(deviceGroup));
+
+        mockMvc.perform(get("/api/assignments/resource/1/devicegroups")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("20"))
+                .andExpect(jsonPath("$[0].name").value("Device group"));
+
+        verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
+        verify(deviceGroupRepositoryMock).findAllById(List.of(20L));
+    }
+
+    @Test
     public void shouldGetResourceAssignmentsByDeviceGroupId() throws Exception {
         Assignment assignment = new Assignment();
         assignment.setId(10L);

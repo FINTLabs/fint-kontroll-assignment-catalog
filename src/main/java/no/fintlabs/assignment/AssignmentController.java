@@ -139,7 +139,7 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/resource/{id}/deviceGroups")
+    @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
     public ResponseEntity<List<DeviceGroup>> getDeviceGroupsByResourceId(@PathVariable("id") Long resourceId) {
         log.info("Fetching device groups for resource {}", resourceId);
 
