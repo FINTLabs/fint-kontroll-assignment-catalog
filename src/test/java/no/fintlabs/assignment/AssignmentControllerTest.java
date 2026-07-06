@@ -8,6 +8,9 @@ import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
@@ -68,7 +71,13 @@ public class AssignmentControllerTest {
     private DeviceAssignmentService deviceAssignmentServiceMock;
 
     @MockBean
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentServiceMock;
+
+    @MockBean
     private ResourceRepository resourceRepositoryMock;
+
+    @MockBean
+    private DeviceGroupRepository deviceGroupRepositoryMock;
 
     @MockBean
     private AssignmentResponseFactory assignmentResponseFactoryMock;
@@ -191,6 +200,40 @@ public class AssignmentControllerTest {
     }
 
     @Test
+    public void shouldCreateValidDeviceGroupAssignment() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 6L;
+        newAssignmentRequest.deviceGroupRef = 2L;
+        newAssignmentRequest.organizationUnitId = "198";
+
+        Assignment expectedReturnAssignment = new Assignment();
+        expectedReturnAssignment.setId(1L);
+        expectedReturnAssignment.setResourceRef(6L);
+        expectedReturnAssignment.setOrganizationUnitId("198");
+        expectedReturnAssignment.setDeviceGroupRef(2L);
+
+        Resource value = new Resource();
+        value.setId(6L);
+        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
+
+        when(resourceRepositoryMock.findById(6L)).thenReturn(Optional.of(value));
+        when(deviceAssignmentServiceMock.createNewAssignment(6L, "198", 2L)).thenReturn(expectedReturnAssignment);
+
+        mockMvc.perform(post("/api/assignments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$").isNotEmpty())
+                .andExpect(jsonPath("$.id").value("1"))
+                .andExpect(jsonPath("$.resourceRef").value("6"))
+                .andExpect(jsonPath("$.deviceGroupRef").value("2"))
+                .andExpect(jsonPath("$.organizationUnitId").value("198"));
+
+        verify(deviceAssignmentServiceMock).createNewAssignment(6L, "198", 2L);
+        verify(flattenedDeviceAssignmentServiceMock).createAndPublishFlattenedAssignments(expectedReturnAssignment);
+    }
+
+    @Test
     public void shouldGetDeviceGroupAssignmentsByResourceId() throws Exception {
         Assignment assignment = new Assignment();
         assignment.setId(10L);
@@ -198,16 +241,31 @@ public class AssignmentControllerTest {
         assignment.setResourceName("Resource");
         assignment.setDeviceGroupRef(20L);
 
+        DeviceGroup deviceGroup = DeviceGroup.builder()
+                .id(20L)
+                .sourceId(200L)
+                .name("Device group")
+                .orgUnitId("198")
+                .platform("IOS")
+                .deviceType("MOBILE")
+                .noOfMembers(3L)
+                .build();
+
         when(deviceAssignmentServiceMock.getActiveAssignmentsByResource(1L)).thenReturn(List.of(assignment));
+        when(deviceGroupRepositoryMock.findAllById(List.of(20L))).thenReturn(List.of(deviceGroup));
 
         mockMvc.perform(get("/api/assignments/resource/1/deviceGroups")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("10"))
-                .andExpect(jsonPath("$[0].resourceRef").value("1"))
-                .andExpect(jsonPath("$[0].deviceGroupRef").value("20"));
+                .andExpect(jsonPath("$[0].id").value("20"))
+                .andExpect(jsonPath("$[0].name").value("Device group"))
+                .andExpect(jsonPath("$[0].orgUnitId").value("198"))
+                .andExpect(jsonPath("$[0].platform").value("IOS"))
+                .andExpect(jsonPath("$[0].deviceType").value("MOBILE"))
+                .andExpect(jsonPath("$[0].noOfMembers").value("3"));
 
         verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
+        verify(deviceGroupRepositoryMock).findAllById(List.of(20L));
     }
 
     @Test
@@ -218,16 +276,25 @@ public class AssignmentControllerTest {
         assignment.setResourceName("Resource");
         assignment.setDeviceGroupRef(20L);
 
+        Resource resource = new Resource();
+        resource.setId(1L);
+        resource.setResourceId("resource-id");
+        resource.setResourceName("Resource");
+        resource.setResourceType("License");
+
         when(deviceAssignmentServiceMock.getActiveAssignmentsByDeviceGroup(20L)).thenReturn(List.of(assignment));
+        when(resourceRepositoryMock.findAllById(List.of(1L))).thenReturn(List.of(resource));
 
         mockMvc.perform(get("/api/assignments/devicegroup/20/resources")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("10"))
-                .andExpect(jsonPath("$[0].resourceRef").value("1"))
-                .andExpect(jsonPath("$[0].deviceGroupRef").value("20"));
+                .andExpect(jsonPath("$[0].id").value("1"))
+                .andExpect(jsonPath("$[0].resourceId").value("resource-id"))
+                .andExpect(jsonPath("$[0].resourceName").value("Resource"))
+                .andExpect(jsonPath("$[0].resourceType").value("License"));
 
         verify(deviceAssignmentServiceMock).getActiveAssignmentsByDeviceGroup(20L);
+        verify(resourceRepositoryMock).findAllById(List.of(1L));
     }
 
     @Test

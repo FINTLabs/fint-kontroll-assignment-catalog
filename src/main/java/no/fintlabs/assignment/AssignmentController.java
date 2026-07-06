@@ -11,10 +11,14 @@ import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
+import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
@@ -43,20 +47,36 @@ public class AssignmentController {
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
     private final DeviceAssignmentService deviceAssignmentService;
+    private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+    private final DeviceGroupRepository deviceGroupRepository;
 
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
-        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-        validateUserRoleRefs(request);
+        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}",
+                request.userRef, request.roleRef, request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
+        validateAssignmentTarget(request);
         validateResource(request);
         validateOrganizationUnitId(request);
         try {
-            Assignment newAssignment =
-                    assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
+            Assignment newAssignment = createNewAssignment(request);
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
         } catch (AssignmentAlreadyExistsException exception) {
             throw new ConflictException("Assignment already exists");
         }
+    }
+
+    private Assignment createNewAssignment(NewAssignmentRequest request) {
+        if (request.deviceGroupRef != null) {
+            Assignment newAssignment = deviceAssignmentService.createNewAssignment(
+                    request.resourceRef,
+                    request.organizationUnitId,
+                    request.deviceGroupRef
+            );
+            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(newAssignment);
+            return newAssignment;
+        }
+
+        return assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
     }
 
     @OnlyDevelopers
@@ -120,27 +140,29 @@ public class AssignmentController {
     }
 
     @GetMapping("/resource/{id}/deviceGroups")
-    public ResponseEntity<List<SimpleAssignment>> getDeviceGroupAssignmentsByResourceId(@PathVariable("id") Long resourceId) {
-        log.info("Fetching device group assignments for resource {}", resourceId);
+    public ResponseEntity<List<DeviceGroup>> getDeviceGroupsByResourceId(@PathVariable("id") Long resourceId) {
+        log.info("Fetching device groups for resource {}", resourceId);
 
-        List<SimpleAssignment> assignments = deviceAssignmentService.getActiveAssignmentsByResource(resourceId)
+        List<Long> deviceGroupIds = deviceAssignmentService.getActiveAssignmentsByResource(resourceId)
                 .stream()
-                .map(Assignment::toSimpleAssignment)
+                .map(Assignment::getDeviceGroupRef)
+                .distinct()
                 .toList();
 
-        return new ResponseEntity<>(assignments, HttpStatus.OK);
+        return new ResponseEntity<>(deviceGroupRepository.findAllById(deviceGroupIds), HttpStatus.OK);
     }
 
     @GetMapping("/devicegroup/{id}/resources")
-    public ResponseEntity<List<SimpleAssignment>> getResourceAssignmentsByDeviceGroupId(@PathVariable("id") Long deviceGroupId) {
-        log.info("Fetching resource assignments for device group {}", deviceGroupId);
+    public ResponseEntity<List<Resource>> getResourcesByDeviceGroupId(@PathVariable("id") Long deviceGroupId) {
+        log.info("Fetching resources for device group {}", deviceGroupId);
 
-        List<SimpleAssignment> assignments = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(deviceGroupId)
+        List<Long> resourceIds = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(deviceGroupId)
                 .stream()
-                .map(Assignment::toSimpleAssignment)
+                .map(Assignment::getResourceRef)
+                .distinct()
                 .toList();
 
-        return new ResponseEntity<>(assignments, HttpStatus.OK);
+        return new ResponseEntity<>(resourceRepository.findAllById(resourceIds), HttpStatus.OK);
     }
 
     @OnlyDevelopers
@@ -361,9 +383,22 @@ public class AssignmentController {
         }
     }
 
-    private void validateUserRoleRefs(NewAssignmentRequest request) {
-        if (request.userRef != null && request.roleRef != null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+    private void validateAssignmentTarget(NewAssignmentRequest request) {
+        int assignmentTargetCount = 0;
+        assignmentTargetCount += request.userRef == null ? 0 : 1;
+        assignmentTargetCount += request.roleRef == null ? 0 : 1;
+        assignmentTargetCount += request.deviceGroupRef == null ? 0 : 1;
+
+        if (assignmentTargetCount == 0) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef, roleRef or deviceGroupRef must be set");
+        }
+
+        if (request.userRef != null && request.roleRef != null && request.deviceGroupRef == null) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Cannot assign both role and user");
+        }
+
+        if (assignmentTargetCount > 1) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Only one of userRef, roleRef or deviceGroupRef can be set");
         }
     }
 
