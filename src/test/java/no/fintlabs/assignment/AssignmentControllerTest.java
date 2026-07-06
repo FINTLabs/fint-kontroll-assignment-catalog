@@ -257,12 +257,15 @@ public class AssignmentControllerTest {
         mockMvc.perform(get("/api/assignments/resource/1/deviceGroups")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("20"))
-                .andExpect(jsonPath("$[0].name").value("Device group"))
-                .andExpect(jsonPath("$[0].orgUnitId").value("198"))
-                .andExpect(jsonPath("$[0].platform").value("IOS"))
-                .andExpect(jsonPath("$[0].deviceType").value("MOBILE"))
-                .andExpect(jsonPath("$[0].noOfMembers").value("3"));
+                .andExpect(jsonPath("$.content[0].id").value("20"))
+                .andExpect(jsonPath("$.content[0].name").value("Device group"))
+                .andExpect(jsonPath("$.content[0].orgUnitId").value("198"))
+                .andExpect(jsonPath("$.content[0].platform").value("IOS"))
+                .andExpect(jsonPath("$.content[0].deviceType").value("MOBILE"))
+                .andExpect(jsonPath("$.content[0].noOfMembers").value("3"))
+                .andExpect(jsonPath("$.totalElements").value("1"))
+                .andExpect(jsonPath("$.number").value("0"))
+                .andExpect(jsonPath("$.size").value("20"));
 
         verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
         verify(deviceGroupRepositoryMock).findAllById(List.of(20L));
@@ -292,11 +295,48 @@ public class AssignmentControllerTest {
         mockMvc.perform(get("/api/assignments/resource/1/devicegroups")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("20"))
-                .andExpect(jsonPath("$[0].name").value("Device group"));
+                .andExpect(jsonPath("$.content[0].id").value("20"))
+                .andExpect(jsonPath("$.content[0].name").value("Device group"))
+                .andExpect(jsonPath("$.totalElements").value("1"))
+                .andExpect(jsonPath("$.number").value("0"))
+                .andExpect(jsonPath("$.size").value("20"));
 
         verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
         verify(deviceGroupRepositoryMock).findAllById(List.of(20L));
+    }
+
+    @Test
+    public void shouldPageDeviceGroupAssignmentsByResourceId() throws Exception {
+        Assignment firstAssignment = new Assignment();
+        firstAssignment.setId(10L);
+        firstAssignment.setResourceRef(1L);
+        firstAssignment.setDeviceGroupRef(20L);
+
+        Assignment secondAssignment = new Assignment();
+        secondAssignment.setId(11L);
+        secondAssignment.setResourceRef(1L);
+        secondAssignment.setDeviceGroupRef(21L);
+
+        DeviceGroup deviceGroup = DeviceGroup.builder()
+                .id(21L)
+                .name("Second device group")
+                .build();
+
+        when(deviceAssignmentServiceMock.getActiveAssignmentsByResource(1L)).thenReturn(List.of(firstAssignment, secondAssignment));
+        when(deviceGroupRepositoryMock.findAllById(List.of(21L))).thenReturn(List.of(deviceGroup));
+
+        mockMvc.perform(get("/api/assignments/resource/1/devicegroups?page=1&size=1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("21"))
+                .andExpect(jsonPath("$.content[0].name").value("Second device group"))
+                .andExpect(jsonPath("$.totalElements").value("2"))
+                .andExpect(jsonPath("$.totalPages").value("2"))
+                .andExpect(jsonPath("$.number").value("1"))
+                .andExpect(jsonPath("$.size").value("1"));
+
+        verify(deviceAssignmentServiceMock).getActiveAssignmentsByResource(1L);
+        verify(deviceGroupRepositoryMock).findAllById(List.of(21L));
     }
 
     @Test
@@ -319,13 +359,52 @@ public class AssignmentControllerTest {
         mockMvc.perform(get("/api/assignments/devicegroup/20/resources")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("1"))
-                .andExpect(jsonPath("$[0].resourceId").value("resource-id"))
-                .andExpect(jsonPath("$[0].resourceName").value("Resource"))
-                .andExpect(jsonPath("$[0].resourceType").value("License"));
+                .andExpect(jsonPath("$.content[0].id").value("1"))
+                .andExpect(jsonPath("$.content[0].resourceId").value("resource-id"))
+                .andExpect(jsonPath("$.content[0].resourceName").value("Resource"))
+                .andExpect(jsonPath("$.content[0].resourceType").value("License"))
+                .andExpect(jsonPath("$.totalElements").value("1"))
+                .andExpect(jsonPath("$.number").value("0"))
+                .andExpect(jsonPath("$.size").value("20"));
 
         verify(deviceAssignmentServiceMock).getActiveAssignmentsByDeviceGroup(20L);
         verify(resourceRepositoryMock).findAllById(List.of(1L));
+    }
+
+    @Test
+    public void shouldPageResourceAssignmentsByDeviceGroupId() throws Exception {
+        Assignment firstAssignment = new Assignment();
+        firstAssignment.setId(10L);
+        firstAssignment.setResourceRef(1L);
+        firstAssignment.setDeviceGroupRef(20L);
+
+        Assignment secondAssignment = new Assignment();
+        secondAssignment.setId(11L);
+        secondAssignment.setResourceRef(2L);
+        secondAssignment.setDeviceGroupRef(20L);
+
+        Resource resource = new Resource();
+        resource.setId(2L);
+        resource.setResourceId("second-resource-id");
+        resource.setResourceName("Second resource");
+        resource.setResourceType("License");
+
+        when(deviceAssignmentServiceMock.getActiveAssignmentsByDeviceGroup(20L)).thenReturn(List.of(firstAssignment, secondAssignment));
+        when(resourceRepositoryMock.findAllById(List.of(2L))).thenReturn(List.of(resource));
+
+        mockMvc.perform(get("/api/assignments/devicegroup/20/resources?page=1&size=1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value("2"))
+                .andExpect(jsonPath("$.content[0].resourceId").value("second-resource-id"))
+                .andExpect(jsonPath("$.content[0].resourceName").value("Second resource"))
+                .andExpect(jsonPath("$.totalElements").value("2"))
+                .andExpect(jsonPath("$.totalPages").value("2"))
+                .andExpect(jsonPath("$.number").value("1"))
+                .andExpect(jsonPath("$.size").value("1"));
+
+        verify(deviceAssignmentServiceMock).getActiveAssignmentsByDeviceGroup(20L);
+        verify(resourceRepositoryMock).findAllById(List.of(2L));
     }
 
     @Test
