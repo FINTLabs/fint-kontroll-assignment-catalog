@@ -2,6 +2,7 @@ package no.fintlabs.assignment;
 
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
@@ -263,6 +264,21 @@ class AssignmentServiceTest {
         given(resourceRepository.findById(999L)).willThrow(new ResourceNotFoundException("999"));
 
         assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
+    }
+
+    @Test
+    void shouldCreateNewAssignment_InactiveResource_ThrowsAssignmentException() {
+        Resource inactiveResource = Resource.builder()
+                .id(1L)
+                .status("INACTIVE")
+                .build();
+        given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
+        given(resourceRepository.findById(1L)).willReturn(Optional.of(inactiveResource));
+
+        assertThrows(AssignmentException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, null));
+
+        verify(assignmentRepository, times(0)).saveAndFlush(any());
+        verify(flattenedAssignmentService, times(0)).createFlattenedAssignments(any());
     }
 
     @Test

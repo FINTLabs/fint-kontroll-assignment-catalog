@@ -1,6 +1,8 @@
 package no.fintlabs.user;
 
 import no.fintlabs.assignment.AssignmentService;
+import no.fintlabs.membership.MembershipService;
+import no.fintlabs.role.AssignmentRoleService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +24,12 @@ public class UserServiceTest {
 
     @Mock
     private AssignmentService assignmentService;
+
+    @Mock
+    private AssignmentRoleService assignmentRoleService;
+
+    @Mock
+    private MembershipService membershipService;
 
     @InjectMocks
     private UserService userService;
@@ -74,5 +82,42 @@ public class UserServiceTest {
         assertEquals(user, result);
         verify(userRepository, never()).save(updatedUser);
         verify(assignmentService, never()).deactivateAssignmentsByUserId(updatedUser.getId());
+    }
+
+    @Test
+    void updateUser_shouldDeactivateAssignmentsWhenStatusChangesToInactive() {
+        User user = User.builder()
+                .id(1L)
+                .status("ACTIVE")
+                .identityProviderUserObjectId(new UUID(0, 0))
+                .build();
+        User updatedUser = User.builder()
+                .id(1L)
+                .status("INACTIVE")
+                .identityProviderUserObjectId(new UUID(0, 0))
+                .build();
+        when(userRepository.save(updatedUser)).thenReturn(updatedUser);
+
+        userService.updateUser(user, updatedUser);
+
+        verify(assignmentService).deactivateAssignmentsByUserId(updatedUser.getId());
+    }
+
+    @Test
+    void updateUser_shouldDeactivateAssignmentsWhenStatusChangesFromNullToInactive() {
+        User user = User.builder()
+                .id(1L)
+                .identityProviderUserObjectId(new UUID(0, 0))
+                .build();
+        User updatedUser = User.builder()
+                .id(1L)
+                .status("INACTIVE")
+                .identityProviderUserObjectId(new UUID(0, 0))
+                .build();
+        when(userRepository.save(updatedUser)).thenReturn(updatedUser);
+
+        userService.updateUser(user, updatedUser);
+
+        verify(assignmentService).deactivateAssignmentsByUserId(updatedUser.getId());
     }
 }

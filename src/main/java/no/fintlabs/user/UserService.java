@@ -8,11 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Objects;
+import java.util.Locale;
 
 @Service
 @Slf4j
 @Transactional
 public class UserService {
+    private static final String ACTIVE_STATUS = "ACTIVE";
+
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
     private final AssignmentRoleService assignmentRoleService;
@@ -37,7 +41,7 @@ public class UserService {
         if (!existing.convertedUserEquals(updatedUser)) {
             User savedUser = saveUser(updatedUser);
 
-            if (statusChanged(existing, updatedUser) && !updatedUser.getStatus().equalsIgnoreCase("ACTIVE")) {
+            if (statusChanged(existing, updatedUser) && isInactive(updatedUser)) {
                 assignmentService.deactivateAssignmentsByUserId(updatedUser.getId());
             }
 
@@ -52,11 +56,19 @@ public class UserService {
     }
 
     public boolean statusChanged(User existing, User incoming) {
-        return existing.getStatus() != null && !existing.getStatus().equalsIgnoreCase(incoming.getStatus());
+        return !Objects.equals(normalizedStatus(existing), normalizedStatus(incoming));
     }
 
     public User saveUser(User user) {
         return userRepository.save(user);
+    }
+
+    private boolean isInactive(User user) {
+        return user.getStatus() != null && !ACTIVE_STATUS.equalsIgnoreCase(user.getStatus());
+    }
+
+    private String normalizedStatus(User user) {
+        return user.getStatus() == null ? null : user.getStatus().toUpperCase(Locale.ROOT);
     }
 
     @Transactional

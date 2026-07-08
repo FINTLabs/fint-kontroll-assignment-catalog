@@ -14,13 +14,15 @@ import java.util.Optional;
 @Slf4j
 @Configuration
 public class ResourceConsumerConfiguration {
-
     private final ResourceRepository resourceRepository;
+    private final ResourceService resourceService;
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     public ResourceConsumerConfiguration(ResourceRepository resourceRepository,
+                                         ResourceService resourceService,
                                          KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults) {
         this.resourceRepository = resourceRepository;
+        this.resourceService = resourceService;
         this.kafkaConsumerConfigurationDefaults = kafkaConsumerConfigurationDefaults;
     }
 
@@ -46,12 +48,12 @@ public class ResourceConsumerConfiguration {
         if (existingResourceOptional.isPresent()) {
             Resource existingResource = existingResourceOptional.get();
             if (!existingResource.equals(incomingResource)) {
-                resourceRepository.save(incomingResource);
+                resourceService.saveUpdatedResource(incomingResource);
             } else {
                 log.info("Resource {} already exists and is equal to the incoming resource. Skipping.", incomingResource.getId());
             }
         } else {
-            resourceRepository.save(incomingResource);
+            resourceService.save(incomingResource);
         }
     }
 }
