@@ -269,17 +269,23 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByUserId(Long userId) {
-            getActiveAssignmentsByUser(userId)
-                    .forEach(assignment -> {
-                        log.info("Deactivating assignment with id: {}", assignment.getId());
-                        assignment.setAssignmentRemovedDate(new Date());
-                        assignmentRepository.saveAndFlush(assignment);
-                        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "User is no longer active");
-                        log.info("Removing license from assignment {}", assignment.getId());
-                        log.info("Removed license from assignment {} : {}",
-                                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
-                    });
+        getActiveAssignmentsByUser(userId)
+                .forEach(assignment -> deactivateAssignment(assignment, "User is no longer active"));
+    }
 
+    public void deactivateAssignmentsByResourceId(Long resourceId) {
+        getActiveAssignmentsByResource(resourceId)
+                .forEach(assignment -> deactivateAssignment(assignment, "Resource is no longer active"));
+    }
+
+    private void deactivateAssignment(Assignment assignment, String terminationReason) {
+        log.info("Deactivating assignment with id: {}", assignment.getId());
+        assignment.setAssignmentRemovedDate(new Date());
+        assignmentRepository.saveAndFlush(assignment);
+        flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
+        log.info("Removing license from assignment {}", assignment.getId());
+        log.info("Removed license from assignment {} : {}",
+                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
     }
 
     @Async

@@ -2,12 +2,14 @@ package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,11 +25,13 @@ public class ResourceController {
     private final ResourceResponseFactory resourceResponseFactory;
     private final OpaService opaService;
     private final AssignmentResourceService assignmentResourceService;
+    private final ResourceService resourceService;
 
-    public ResourceController(ResourceResponseFactory resourceResponseFactory, OpaService opaService, AssignmentResourceService assignmentResourceService) {
+    public ResourceController(ResourceResponseFactory resourceResponseFactory, OpaService opaService, AssignmentResourceService assignmentResourceService, ResourceService resourceService) {
         this.resourceResponseFactory = resourceResponseFactory;
         this.opaService = opaService;
         this.assignmentResourceService = assignmentResourceService;
+        this.resourceService = resourceService;
     }
 
     @GetMapping("role/{roleId}/resources")
@@ -122,5 +126,13 @@ public class ResourceController {
                 userAssignmentResources = assignmentResourceService.findUserAssignmentResourcesByUser(userId, resourceType, orgUnits, orgUnitsInScope, resourceIds, search, page, size);
 
         return ResourceResponseFactory.resourceAssignmentUsersToResponseEntity(userAssignmentResources);
+    }
+
+    @OnlyDevelopers
+    @PostMapping("/resources/deactivate-assignments-inactive")
+    public ResponseEntity<Map<String, Object>> deactivateAssignmentsForInactiveResources() {
+        int numberOfResourcesProcessed = resourceService.deactivateAssignmentsForInactiveResources();
+
+        return ResponseEntity.ok(Map.of("resourcesProcessed", numberOfResourcesProcessed));
     }
 }

@@ -42,7 +42,9 @@ public class Resource extends AuditEntity {
     @Column(name="number_of_resources_assigned")
     private Long numberOfResourcesAssigned;
     private Long resourceLimit;
-    private String status;
+    @Column(nullable = false)
+    @Builder.Default
+    private String status = "ACTIVE";
 
     @OneToMany(mappedBy = "resource",
             fetch = FetchType.LAZY,
