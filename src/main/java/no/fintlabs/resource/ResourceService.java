@@ -12,6 +12,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResourceService {
     private static final String DEFAULT_STATUS = "ACTIVE";
+    private static final String ACTIVE_STATUS = "ACTIVE";
 
     private final ResourceRepository resourceRepository;
     private final AssignmentService assignmentService;
@@ -21,12 +22,11 @@ public class ResourceService {
         return resourceRepository.save(resource);
     }
 
-    public Resource saveUpdatedResource(Resource resource) {
+    public void saveUpdatedResource(Resource resource) {
         Resource savedResource = save(resource);
-        if (!isActive(savedResource)) {
-            assignmentService.deactivateAssignmentsByResourceId(savedResource.getId());
+        if (isNotActive(savedResource)) {
+            deactivateResourceAssignments(savedResource);
         }
-        return savedResource;
     }
 
     public List<Resource> findAll() {
@@ -36,10 +36,10 @@ public class ResourceService {
     public int deactivateAssignmentsForInactiveResources() {
         List<Resource> inactiveResources = findAll()
                 .stream()
-                .filter(resource -> !isActive(resource))
+                .filter(this::isNotActive)
                 .toList();
 
-        inactiveResources.forEach(resource -> assignmentService.deactivateAssignmentsByResourceId(resource.getId()));
+        inactiveResources.forEach(this::deactivateResourceAssignments);
 
         return inactiveResources.size();
     }
@@ -50,7 +50,13 @@ public class ResourceService {
         }
     }
 
-    private boolean isActive(Resource resource) {
-        return DEFAULT_STATUS.equalsIgnoreCase(resource.getStatus());
+    private boolean isNotActive(Resource resource) {
+        return !ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus());
+    }
+
+    private void deactivateResourceAssignments(Resource resource) {
+        log.info("Deactivating assignments for inactive resource {}, status {}",
+                resource.getId(), resource.getStatus());
+        assignmentService.deactivateAssignmentsByResourceId(resource.getId());
     }
 }

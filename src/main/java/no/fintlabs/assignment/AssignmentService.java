@@ -291,7 +291,6 @@ public class AssignmentService {
         assignment.setAssignmentRemovedDate(new Date());
         assignmentRepository.saveAndFlush(assignment);
         flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
-        log.info("Removing license from assignment {}", assignment.getId());
         log.info("Removed license from assignment {} : {}",
                 assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
     }
