@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
+import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
@@ -17,6 +18,7 @@ import no.fintlabs.user.User;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AssignmentService {
+
+    private static final String ACTIVE_STATUS = "ACTIVE";
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
@@ -201,6 +205,10 @@ public class AssignmentService {
 
     private void enrichByResource(Assignment assignment, Long resourceRef) {
         resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
+            if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + resourceRef + " is not active");
+            }
+
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
             assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
