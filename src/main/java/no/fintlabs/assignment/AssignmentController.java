@@ -157,7 +157,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveUserAssignmentsByResource(resourceId)
+        assignmentService.getActiveAssignmentsByResource(resourceId)
                 .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
@@ -285,7 +285,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to publish flattened assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveUserAssignmentsByResource(resourceId)
+        assignmentService.getActiveAssignmentsByResource(resourceId)
                 .forEach(flattenedAssignmentService::publishAllActive);
 
         log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
@@ -306,7 +306,7 @@ public class AssignmentController {
         resourceService.findAll().forEach(resource -> {
             log.info("Starting to publish flattened assignments for resource: {}", resource);
 
-            assignmentService.getActiveUserAssignmentsByResource(resource.getId())
+            assignmentService.getActiveAssignmentsByResource(resource.getId())
                     .forEach(assignment -> {
                         flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
                         flattenedAssignmentService.publishAllActive(assignment);
