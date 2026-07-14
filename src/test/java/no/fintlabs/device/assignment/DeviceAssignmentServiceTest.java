@@ -6,6 +6,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
@@ -19,6 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 
 import java.util.*;
@@ -229,6 +234,62 @@ class DeviceAssignmentServiceTest {
 
         assertSame(expected, result);
         verify(assignmentRepository).findActiveDeviceAssignmentsByResourceRef(1L);
+    }
+
+    @Test
+    void findDeviceGroupAssignmentsForResource_shouldReturnMappedDeviceGroupAssignments() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setDeviceGroupRef(100L);
+        assignment.setOrganizationUnitId("ou-1");
+        assignment.setApplicationResourceLocationOrgUnitName("School A");
+        assignment.setAssignerUserName("assigner");
+        assignment.setAssignmentDate(new Date());
+
+        DeviceGroup deviceGroup = DeviceGroup.builder()
+                .id(100L)
+                .sourceId(200L)
+                .name("Device group")
+                .orgUnitId("ou-1")
+                .platform("IOS")
+                .deviceType("MOBILE")
+                .noOfMembers(3L)
+                .build();
+
+        User assigner = User.builder()
+                .firstName("Assigner")
+                .lastName("Name")
+                .build();
+
+        PageRequest pageRequest = PageRequest.of(0, 20);
+
+        when(assignmentRepository.findActiveDeviceAssignmentsByResourceRef(1L)).thenReturn(List.of(assignment));
+        when(deviceGroupRepository.findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroup), pageRequest, 1));
+        when(userRepository.getUserByUserName("assigner")).thenReturn(Optional.of(assigner));
+
+        Page<DeviceGroupAssignment> result = deviceAssignmentService.findDeviceGroupAssignmentsForResource(1L, "device", pageRequest);
+
+        assertEquals(1, result.getTotalElements());
+
+        DeviceGroupAssignment mapped = result.getContent().getFirst();
+        assertEquals(100L, mapped.getId());
+        assertEquals(200L, mapped.getSourceId());
+        assertEquals("Device group", mapped.getName());
+        assertEquals("ou-1", mapped.getOrgUnitId());
+        assertEquals("IOS", mapped.getPlatform());
+        assertEquals("MOBILE", mapped.getDeviceType());
+        assertEquals(3L, mapped.getNoOfMembers());
+        assertEquals(10L, mapped.getAssignmentRef());
+        assertEquals("ou-1", mapped.getOrganizationUnitId());
+        assertEquals("School A", mapped.getOrganisationUnitName());
+        assertEquals("assigner", mapped.getAssignerUsername());
+        assertEquals("Assigner Name", mapped.getAssignerDisplayname());
+        assertEquals(assignment.getAssignmentDate(), mapped.getAssignmentDate());
+
+        verify(assignmentRepository).findActiveDeviceAssignmentsByResourceRef(1L);
+        verify(deviceGroupRepository).findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest));
     }
 
     @Test

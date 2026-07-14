@@ -12,8 +12,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.device.assignment.DeviceAssignmentService;
 import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.group.DeviceGroup;
-import no.fintlabs.device.group.DeviceGroupRepository;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
@@ -52,7 +51,6 @@ public class AssignmentController {
     private final ResourceService resourceService;
     private final DeviceAssignmentService deviceAssignmentService;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
-    private final DeviceGroupRepository deviceGroupRepository;
 
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
@@ -144,37 +142,32 @@ public class AssignmentController {
     }
 
     @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
-    public ResponseEntity<Page<DeviceGroup>> getDeviceGroupsByResourceId(
+    public ResponseEntity<Page<DeviceGroupAssignment>> getDeviceGroupsByResourceId(
             @PathVariable("id") Long resourceId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size
+            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+            @RequestParam(value = "search", required = false) String search
     ) {
-        log.info("Fetching device groups for resource {} with page {} and size {}", resourceId, page, size);
+        log.info("Fetching device groups for resource {} with page {}, size {} and search {}", resourceId, page, size, search);
 
         Pageable pageable = PageRequest.of(page, size);
-        List<Assignment> activeAssignments = deviceAssignmentService.getActiveAssignmentsByResource(resourceId);
-        log.info("Found {} active device assignments for resource {}", activeAssignments.size(), resourceId);
-
-        List<Long> deviceGroupIds = activeAssignments
-                .stream()
-                .map(Assignment::getDeviceGroupRef)
-                .distinct()
-                .toList();
-
-        Page<Long> deviceGroupIdPage = toPage(deviceGroupIds, pageable);
-        List<DeviceGroup> deviceGroups = deviceGroupRepository.findAllById(deviceGroupIdPage.getContent());
+        Page<DeviceGroupAssignment> deviceGroupAssignments = deviceAssignmentService.findDeviceGroupAssignmentsForResource(
+                resourceId,
+                search,
+                pageable
+        );
 
         log.info(
                 "Returning {} device groups for resource {}. Distinct device groups: {}, page: {}, size: {}, total pages: {}",
-                deviceGroups.size(),
+                deviceGroupAssignments.getNumberOfElements(),
                 resourceId,
-                deviceGroupIds.size(),
+                deviceGroupAssignments.getTotalElements(),
                 page,
                 size,
-                deviceGroupIdPage.getTotalPages()
+                deviceGroupAssignments.getTotalPages()
         );
 
-        return new ResponseEntity<>(new PageImpl<>(deviceGroups, pageable, deviceGroupIds.size()), HttpStatus.OK);
+        return new ResponseEntity<>(deviceGroupAssignments, HttpStatus.OK);
     }
 
     @GetMapping("/devicegroup/{id}/resources")
@@ -211,7 +204,7 @@ public class AssignmentController {
         return new ResponseEntity<>(new PageImpl<>(resources, pageable, resourceIds.size()), HttpStatus.OK);
     }
 
-    private Page<Long> toPage(List<Long> ids, Pageable pageable) {
+    private <T> Page<T> toPage(List<T> ids, Pageable pageable) {
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), ids.size());
 
