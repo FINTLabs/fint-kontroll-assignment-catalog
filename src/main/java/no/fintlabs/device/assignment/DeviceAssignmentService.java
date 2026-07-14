@@ -8,7 +8,9 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
+import no.fintlabs.device.group.DeviceGroupSpecificationBuilder;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.opa.OpaService;
@@ -16,12 +18,18 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -139,11 +147,90 @@ public class DeviceAssignmentService {
         return assignmentRepository.findActiveDeviceAssignmentsByResourceRef(resourceId);
     }
 
+    public Page<DeviceGroupAssignment> findDeviceGroupAssignmentsForResource(Long resourceId, String search, Pageable pageable) {
+        List<Assignment> activeAssignments = getDistinctDeviceGroupAssignments(getActiveAssignmentsByResource(resourceId));
+
+        if (activeAssignments.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        Map<Long, Assignment> assignmentsByDeviceGroupId = activeAssignments
+                .stream()
+                .collect(Collectors.toMap(Assignment::getDeviceGroupRef, Function.identity()));
+
+        List<Long> deviceGroupIds = activeAssignments
+                .stream()
+                .map(Assignment::getDeviceGroupRef)
+                .toList();
+
+        return deviceGroupRepository.findAll(
+                        new DeviceGroupSpecificationBuilder(deviceGroupIds, search).assignmentSearch(),
+                        pageable
+                )
+                .map(deviceGroup -> toDeviceGroupAssignment(deviceGroup, assignmentsByDeviceGroupId.get(deviceGroup.getId())));
+    }
+
     public List<Assignment> getActiveAssignmentsByDeviceGroup(Long deviceGroupId) {
         return assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupId);
     }
 
     public Optional<Assignment> getAssignmentById(Long assignmentId) {
         return assignmentRepository.findById(assignmentId);
+    }
+
+    public Optional<String> getAssignerDisplayname(String username) {
+        if (username == null || username.isBlank()) {
+            return Optional.empty();
+        }
+        return userRepository.getUserByUserName(username)
+                .map(user -> {
+                    String firstName = user.getFirstName();
+                    String lastName = user.getLastName();
+                    if (firstName != null && !firstName.isBlank() && lastName != null && !lastName.isBlank()) {
+                        return firstName + " " + lastName;
+                    }
+                    return null;
+                });
+    }
+
+    private List<Assignment> getDistinctDeviceGroupAssignments(List<Assignment> assignments) {
+        return assignments
+                .stream()
+                .filter(assignment -> assignment.getDeviceGroupRef() != null)
+                .collect(Collectors.toMap(
+                        Assignment::getDeviceGroupRef,
+                        Function.identity(),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .toList();
+    }
+
+    private DeviceGroupAssignment toDeviceGroupAssignment(DeviceGroup deviceGroup, Assignment assignment) {
+        if (assignment == null) {
+            log.warn("Assignment not found for device group {}", deviceGroup.getId());
+        }
+
+        String assignerUsername = assignment == null ? null : assignment.getAssignerUserName();
+
+        return DeviceGroupAssignment.builder()
+                .id(deviceGroup.getId())
+                .sourceId(deviceGroup.getSourceId())
+                .name(deviceGroup.getName())
+                .orgUnitId(deviceGroup.getOrgUnitId())
+                .platform(deviceGroup.getPlatform())
+                .deviceType(deviceGroup.getDeviceType())
+                .createdDate(deviceGroup.getCreatedDate())
+                .modifiedDate(deviceGroup.getModifiedDate())
+                .noOfMembers(deviceGroup.getNoOfMembers())
+                .assignmentRef(assignment == null ? null : assignment.getId())
+                .organizationUnitId(assignment == null ? null : assignment.getOrganizationUnitId())
+                .organisationUnitName(assignment == null ? null : assignment.getApplicationResourceLocationOrgUnitName())
+                .assignerUsername(assignerUsername)
+                .assignerDisplayname(getAssignerDisplayname(assignerUsername).orElse(null))
+                .assignmentDate(assignment == null ? null : assignment.getAssignmentDate())
+                .build();
     }
 }
