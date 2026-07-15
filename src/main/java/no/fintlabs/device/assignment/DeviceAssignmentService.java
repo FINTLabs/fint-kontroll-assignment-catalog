@@ -14,6 +14,8 @@ import no.fintlabs.device.group.DeviceGroupSpecificationBuilder;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.AssignmentResource;
+import no.fintlabs.resource.DeviceGroupResourceSpecificationBuilder;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceRepository;
@@ -172,6 +174,30 @@ public class DeviceAssignmentService {
 
     public List<Assignment> getActiveAssignmentsByDeviceGroup(Long deviceGroupId) {
         return assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupId);
+    }
+
+    public Page<AssignmentResource> findResourcesAssignedToDeviceGroup(
+            Long deviceGroupId,
+            String resourceType,
+            String search,
+            List<Long> resourceIds,
+            Pageable pageable
+    ) {
+        return resourceRepository.findAll(
+                        new DeviceGroupResourceSpecificationBuilder(deviceGroupId, resourceType, search, resourceIds).build(),
+                        pageable
+                )
+                .map(Resource::toSimpleResource)
+                .map(resource -> {
+                    assignmentRepository
+                            .findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(deviceGroupId, resource.getId())
+                            .ifPresent(assignment -> {
+                                resource.setAssignmentRef(assignment.getId());
+                                resource.setAssignerUsername(assignment.getAssignerUserName());
+                                resource.setAssignerDisplayname(getAssignerDisplayname(assignment.getAssignerUserName()).orElse(null));
+                            });
+                    return resource;
+                });
     }
 
     public Optional<Assignment> getAssignmentById(Long assignmentId) {

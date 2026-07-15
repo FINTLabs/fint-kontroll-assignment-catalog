@@ -17,13 +17,11 @@ import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -168,51 +166,6 @@ public class AssignmentController {
         );
 
         return new ResponseEntity<>(deviceGroupAssignments, HttpStatus.OK);
-    }
-
-    @GetMapping("/devicegroup/{id}/resources")
-    public ResponseEntity<Page<Resource>> getResourcesByDeviceGroupId(
-            @PathVariable("id") Long deviceGroupId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size
-    ) {
-        log.info("Fetching resources for device group {} with page {} and size {}", deviceGroupId, page, size);
-
-        Pageable pageable = PageRequest.of(page, size);
-        List<Assignment> activeAssignments = deviceAssignmentService.getActiveAssignmentsByDeviceGroup(deviceGroupId);
-        log.info("Found {} active device assignments for device group {}", activeAssignments.size(), deviceGroupId);
-
-        List<Long> resourceIds = activeAssignments
-                .stream()
-                .map(Assignment::getResourceRef)
-                .distinct()
-                .toList();
-
-        Page<Long> resourceIdPage = toPage(resourceIds, pageable);
-        List<Resource> resources = resourceRepository.findAllById(resourceIdPage.getContent());
-
-        log.info(
-                "Returning {} resources for device group {}. Distinct resources: {}, page: {}, size: {}, total pages: {}",
-                resources.size(),
-                deviceGroupId,
-                resourceIds.size(),
-                page,
-                size,
-                resourceIdPage.getTotalPages()
-        );
-
-        return new ResponseEntity<>(new PageImpl<>(resources, pageable, resourceIds.size()), HttpStatus.OK);
-    }
-
-    private <T> Page<T> toPage(List<T> ids, Pageable pageable) {
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), ids.size());
-
-        if (start >= ids.size()) {
-            return new PageImpl<>(List.of(), pageable, ids.size());
-        }
-
-        return new PageImpl<>(ids.subList(start, end), pageable, ids.size());
     }
 
     @OnlyDevelopers

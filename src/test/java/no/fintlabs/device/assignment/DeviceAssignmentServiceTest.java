@@ -12,6 +12,7 @@ import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.resource.AssignmentResource;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.User;
@@ -290,6 +291,56 @@ class DeviceAssignmentServiceTest {
 
         verify(assignmentRepository).findActiveDeviceAssignmentsByResourceRef(1L);
         verify(deviceGroupRepository).findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest));
+    }
+
+    @Test
+    void findResourcesAssignedToDeviceGroup_shouldReturnCompactResourceAssignments() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setResourceRef(1L);
+        assignment.setDeviceGroupRef(100L);
+        assignment.setAssignerUserName("assigner");
+
+        Resource resource = new Resource();
+        resource.setId(1L);
+        resource.setResourceId("resource-id");
+        resource.setResourceName("Resource");
+        resource.setResourceType("License");
+
+        User assigner = User.builder()
+                .firstName("Assigner")
+                .lastName("Name")
+                .build();
+
+        PageRequest pageRequest = PageRequest.of(0, 20);
+
+        when(resourceRepository.findAll(ArgumentMatchers.<Specification<Resource>>any(), eq(pageRequest)))
+                .thenReturn(new PageImpl<>(List.of(resource), pageRequest, 1));
+        when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
+                .thenReturn(Optional.of(assignment));
+        when(userRepository.getUserByUserName("assigner")).thenReturn(Optional.of(assigner));
+
+        Page<AssignmentResource> result = deviceAssignmentService.findResourcesAssignedToDeviceGroup(
+                100L,
+                "ALLTYPES",
+                null,
+                null,
+                pageRequest
+        );
+
+        assertEquals(1, result.getTotalElements());
+
+        AssignmentResource mapped = result.getContent().getFirst();
+        assertEquals(1L, mapped.getId());
+        assertEquals("resource-id", mapped.getResourceId());
+        assertEquals("Resource", mapped.getResourceName());
+        assertEquals("License", mapped.getResourceType());
+        assertEquals(10L, mapped.getAssignmentRef());
+        assertEquals("assigner", mapped.getAssignerUsername());
+        assertEquals("Assigner Name", mapped.getAssignerDisplayname());
+
+        verify(resourceRepository).findAll(ArgumentMatchers.<Specification<Resource>>any(), eq(pageRequest));
+        verify(assignmentRepository).findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L);
     }
 
     @Test
