@@ -1,9 +1,12 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.device.assignment.DeviceAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,12 +29,20 @@ public class ResourceController {
     private final OpaService opaService;
     private final AssignmentResourceService assignmentResourceService;
     private final ResourceService resourceService;
+    private final DeviceAssignmentService deviceAssignmentService;
 
-    public ResourceController(ResourceResponseFactory resourceResponseFactory, OpaService opaService, AssignmentResourceService assignmentResourceService, ResourceService resourceService) {
+    public ResourceController(
+            ResourceResponseFactory resourceResponseFactory,
+            OpaService opaService,
+            AssignmentResourceService assignmentResourceService,
+            ResourceService resourceService,
+            DeviceAssignmentService deviceAssignmentService
+    ) {
         this.resourceResponseFactory = resourceResponseFactory;
         this.opaService = opaService;
         this.assignmentResourceService = assignmentResourceService;
         this.resourceService = resourceService;
+        this.deviceAssignmentService = deviceAssignmentService;
     }
 
     @GetMapping("role/{roleId}/resources")
@@ -53,6 +64,40 @@ public class ResourceController {
         log.info("Fetching resources for roleId: {} with this resource filter {}", roleId, resourceIds);
 
         return resourceResponseFactory.toResponseEntity(null, roleId, resourceType, orgUnits, orgUnitsInScope, search, resourceIds, page, size);
+    }
+
+    @GetMapping({"/devicegroup/{id}/resources", "/deviceGroup/{id}/resources"})
+    public ResponseEntity<Map<String, Object>> getResourcesByDeviceGroupId(
+            @PathVariable("id") Long deviceGroupId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+            @RequestParam(value = "resourceType", defaultValue = "ALLTYPES") String resourceType,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "resourcefilter", required = false) List<Long> resourceIds
+    ) {
+        log.info("Fetching resources for device group {} with page {}, size {}, resourceType {}, search {} and resource filter {}",
+                deviceGroupId, page, size, resourceType, search, resourceIds);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AssignmentResource> resources = deviceAssignmentService.findResourcesAssignedToDeviceGroup(
+                deviceGroupId,
+                resourceType,
+                search,
+                resourceIds,
+                pageable
+        );
+
+        log.info(
+                "Returning {} resources for device group {}. Distinct resources: {}, page: {}, size: {}, total pages: {}",
+                resources.getNumberOfElements(),
+                deviceGroupId,
+                resources.getTotalElements(),
+                page,
+                size,
+                resources.getTotalPages()
+        );
+
+        return ResourceResponseFactory.toResponseEntity(resources);
     }
 
     @GetMapping("/v2/role/{roleId}/resources")

@@ -3,22 +3,27 @@ package no.fintlabs.assignment;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
-import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,73 +31,52 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/assignments")
+@RequiredArgsConstructor
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
-    private final AuthManager authManager;
-    private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final AssigmentEntityProducerService assigmentEntityProducerService;
     private final MembershipService membershipService;
     private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
-
-
-    public AssignmentController(AssignmentService assignmentService,
-                                AssignmentResponseFactory assignmentResponseFactory,
-                                FlattenedAssignmentService flattenedAssignmentService,
-                                AssigmentEntityProducerService assigmentEntityProducerService,
-                                AuthManager authManager,
-                                MembershipService membershipService,
-                                ResourceRepository resourceRepository,
-                                UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
-
-        this.assignmentService = assignmentService;
-        this.assignmentResponseFactory = assignmentResponseFactory;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
-        this.authManager = authManager;
-        this.membershipService = membershipService;
-        this.resourceRepository = resourceRepository;
-        this.updateAssignedResourcesService = updateAssignedResourcesService;
-        this.resourceService = resourceService;
-    }
-
-    @GetMapping()
-    public ResponseEntity<Map<String, Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
-                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                            ".pagesize:20}")
-                                                                    int size,
-                                                                    @RequestParam(defaultValue = "ALLTYPES", required = false)
-                                                                    String userType
-    ) {
-
-        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt), page, size, userType);
-    }
+    private final DeviceAssignmentService deviceAssignmentService;
+    private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
-        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-        validateUserRoleRefs(request);
-        validateResource(request); //TODO is this correct validation?
+        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}",
+                request.userRef, request.roleRef, request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
+        validateAssignmentTarget(request);
+        validateResource(request);
         validateOrganizationUnitId(request);
-
         try {
-            Assignment newAssignment =
-                    assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
+            Assignment newAssignment = createNewAssignment(request);
             return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
         } catch (AssignmentAlreadyExistsException exception) {
             throw new ConflictException("Assignment already exists");
         }
+    }
+
+    private Assignment createNewAssignment(NewAssignmentRequest request) {
+        if (request.deviceGroupRef != null) {
+            Assignment newAssignment = deviceAssignmentService.createNewAssignment(
+                    request.resourceRef,
+                    request.organizationUnitId,
+                    request.deviceGroupRef
+            );
+            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(newAssignment);
+            return newAssignment;
+        }
+
+        return assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
     }
 
     @OnlyDevelopers
@@ -118,7 +102,7 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Starting to sync all assignments");
 
-        List<Assignment> allAssignments = assignmentService.getAssignments();
+        List<Assignment> allAssignments = assignmentService.getAllUserAssignments();
         allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, isSync));
 
         long end = System.currentTimeMillis();
@@ -153,6 +137,35 @@ public class AssignmentController {
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
+    public ResponseEntity<Page<DeviceGroupAssignment>> getDeviceGroupsByResourceId(
+            @PathVariable("id") Long resourceId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        log.info("Fetching device groups for resource {} with page {}, size {} and search {}", resourceId, page, size, search);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DeviceGroupAssignment> deviceGroupAssignments = deviceAssignmentService.findDeviceGroupAssignmentsForResource(
+                resourceId,
+                search,
+                pageable
+        );
+
+        log.info(
+                "Returning {} device groups for resource {}. Distinct device groups: {}, page: {}, size: {}, total pages: {}",
+                deviceGroupAssignments.getNumberOfElements(),
+                resourceId,
+                deviceGroupAssignments.getTotalElements(),
+                page,
+                size,
+                deviceGroupAssignments.getTotalPages()
+        );
+
+        return new ResponseEntity<>(deviceGroupAssignments, HttpStatus.OK);
     }
 
     @OnlyDevelopers
@@ -211,7 +224,7 @@ public class AssignmentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignment/user/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         long start = System.currentTimeMillis();
@@ -308,7 +321,7 @@ public class AssignmentController {
         long start = System.currentTimeMillis();
         log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
 
-        Set<Long> ids = assignmentService.getAssignments()
+        Set<Long> ids = assignmentService.getAllUserAssignments()
                 .stream()
                 .filter(assignment -> {
                     if (updateAllResourceLocationOrgUnits) {
@@ -333,6 +346,7 @@ public class AssignmentController {
 
     @OnlyDevelopers
     @PostMapping("/update-assigned-resources-usage")
+    // runs for both user and device assignments
     public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt) {
 
         long start = System.currentTimeMillis();
@@ -372,9 +386,22 @@ public class AssignmentController {
         }
     }
 
-    private void validateUserRoleRefs(NewAssignmentRequest request) {
-        if (request.userRef != null && request.roleRef != null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+    private void validateAssignmentTarget(NewAssignmentRequest request) {
+        int assignmentTargetCount = 0;
+        assignmentTargetCount += request.userRef == null ? 0 : 1;
+        assignmentTargetCount += request.roleRef == null ? 0 : 1;
+        assignmentTargetCount += request.deviceGroupRef == null ? 0 : 1;
+
+        if (assignmentTargetCount == 0) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef, roleRef or deviceGroupRef must be set");
+        }
+
+        if (request.userRef != null && request.roleRef != null && request.deviceGroupRef == null) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Cannot assign both role and user");
+        }
+
+        if (assignmentTargetCount > 1) {
+            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Only one of userRef, roleRef or deviceGroupRef can be set");
         }
     }
 
@@ -386,4 +413,3 @@ public class AssignmentController {
     }
 
 }
-

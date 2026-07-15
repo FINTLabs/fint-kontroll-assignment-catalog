@@ -1,9 +1,12 @@
 package no.fintlabs.kafka;
 
 import no.novari.kafka.consuming.ListenerConfiguration;
+import no.novari.kafka.topic.configuration.EventCleanupFrequency;
+import no.novari.kafka.topic.configuration.EventTopicConfiguration;
 import no.novari.kafka.topic.configuration.EntityCleanupFrequency;
 import no.novari.kafka.topic.configuration.EntityTopicConfiguration;
 import no.novari.kafka.topic.name.EntityTopicNameParameters;
+import no.novari.kafka.topic.name.EventTopicNameParameters;
 import no.novari.kafka.topic.name.TopicNamePrefixParameters;
 
 import java.time.Duration;
@@ -19,12 +22,24 @@ public final class KafkaEntityTopics {
     public static EntityTopicNameParameters topicNameParameters(String resourceName) {
         return EntityTopicNameParameters
                 .builder()
-                .topicNamePrefixParameters(TopicNamePrefixParameters
-                        .stepBuilder()
-                        .orgIdApplicationDefault()
-                        .domainContextApplicationDefault()
-                        .build())
+                .topicNamePrefixParameters(defaultTopicNamePrefixParameters())
                 .resourceName(resourceName)
+                .build();
+    }
+
+    public static EventTopicNameParameters eventTopicNameParameters(String eventName) {
+        return EventTopicNameParameters
+                .builder()
+                .topicNamePrefixParameters(defaultTopicNamePrefixParameters())
+                .eventName(eventName)
+                .build();
+    }
+
+    private static TopicNamePrefixParameters defaultTopicNamePrefixParameters() {
+        return TopicNamePrefixParameters
+                .stepBuilder()
+                .orgIdApplicationDefault()
+                .domainContextApplicationDefault()
                 .build();
     }
 
@@ -55,6 +70,15 @@ public final class KafkaEntityTopics {
                 .maxPollRecordsKafkaDefault()
                 .maxPollIntervalKafkaDefault()
                 .continueFromPreviousOffsetOnAssignment()
+                .build();
+    }
+
+    public static EventTopicConfiguration eventTopicConfiguration() {
+        return EventTopicConfiguration
+                .stepBuilder()
+                .partitions(DEFAULT_PARTITIONS)
+                .retentionTime(DEFAULT_NULL_VALUE_RETENTION_TIME)
+                .cleanupFrequency(EventCleanupFrequency.NORMAL)
                 .build();
     }
 }
