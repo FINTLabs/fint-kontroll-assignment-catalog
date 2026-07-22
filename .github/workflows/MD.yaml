@@ -41,7 +41,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         name: Get resource group name
         id: rg
         with:
@@ -50,7 +50,7 @@ jobs:
             return `rg-${a[0]}-${a[1]}`
           result-encoding: string
 
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         name: Get environment
         id: environment
         with:
@@ -58,7 +58,7 @@ jobs:
             const a = '${{ inputs.cluster }}'.split('-')
             return `${a[1]}`
           result-encoding: string
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         name: Get auth
         id: auth
         with:
