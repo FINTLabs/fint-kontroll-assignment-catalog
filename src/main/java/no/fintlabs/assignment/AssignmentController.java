@@ -1,5 +1,6 @@
 package no.fintlabs.assignment;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/assignments")
 @RequiredArgsConstructor
 public class AssignmentController {
+    private static final String DEVELOPER_ENDPOINTS_TAG = "Developer endpoints";
 
     private final AssignmentService assignmentService;
     private final FlattenedAssignmentService flattenedAssignmentService;
@@ -80,6 +82,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Republish all assignments",
+            description = "Republishes every flattened assignment to the assignment entity topic."
+    )
     @PostMapping("/republish")
     public ResponseEntity<HttpStatus> republishAllAssignments() {
 
@@ -94,6 +101,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync all flattened assignments",
+            description = "Rebuilds flattened assignment data for all assignments. The sync path variable controls sync mode."
+    )
     @PostMapping("/syncflattenedassignments/{sync}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("sync") String sync) {
         boolean isSync;
@@ -112,6 +124,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync flattened assignment by assignment id",
+            description = "Rebuilds flattened assignment data for one assignment id."
+    )
     @PostMapping("/syncflattenedassignment/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         long start = System.currentTimeMillis();
@@ -127,6 +144,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync flattened assignments by resource id",
+            description = "Rebuilds flattened assignment data for active assignments connected to one resource."
+    )
     @PostMapping("/syncflattenedassignments/resource/{id}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
@@ -169,6 +191,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Republish unconfirmed flattened assignments",
+            description = "Republishes flattened assignments that have not been confirmed."
+    )
     @PostMapping("/republishuconfirmedflattenedassignments")
     public ResponseEntity<HttpStatus> republishUnconfirmedFlattenedAssignments() {
         log.info("Starting to sync all unconfirmed assignments");
@@ -179,6 +206,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Republish selected flattened assignments",
+            description = "Republishes the flattened assignments identified by the request body ids."
+    )
     @PostMapping("/republishselectedflattenedassignments")
     public ResponseEntity<HttpStatus> republishSelectedFlattenedAssignments(@Valid @RequestBody List<Long> ids) {
         log.info("Selected {} flattened assignment to publish", ids.size());
@@ -190,6 +222,11 @@ public class AssignmentController {
 
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Publish all flattened assignments by resource id",
+            description = "Publishes all active flattened assignments connected to one resource."
+    )
     @PostMapping("/publishallflattenedassignments/resource/{id}")
     public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to publish flattened assignments for resource: {}", resourceId);
@@ -203,6 +240,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync and publish flattened assignments for all resources",
+            description = "Syncs and publishes active flattened assignments for every resource."
+    )
     @PostMapping("/syncandpublishflattenedassignmentsallresources")
     public ResponseEntity<HttpStatus> syncAndPublishFlattenedassignmentsAllResources(@AuthenticationPrincipal Jwt jwt) {
         log.info("Starting to sync and publish flattenedAssignments all resources");
@@ -253,6 +295,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync unconfirmed flattened assignments by assignment id",
+            description = "Publishes unconfirmed flattened assignments for one assignment id."
+    )
     @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
     public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
 
@@ -265,6 +312,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync deleted flattened assignments by assignment id",
+            description = "Publishes deletion events for deleted flattened assignments that are not confirmed for one assignment id."
+    )
     @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
     public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
 
@@ -277,6 +329,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync assignments for memberships",
+            description = "Syncs assignments for the membership ids provided in the request body."
+    )
     @PostMapping("/syncassignmentsformemberships")
     public ResponseEntity<HttpStatus> syncAssignmentsForMemberships(@AuthenticationPrincipal Jwt jwt, @RequestBody List<String> membershipIds) {
 
@@ -288,6 +345,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync assignments missing identity provider user object id",
+            description = "Finds flattened assignments missing identityProviderUserObjectId and deactivates them."
+    )
     @PostMapping("/syncassignmentsmissingidentityprovideruserobjectid")
     public ResponseEntity<HttpStatus> syncAssignmentsMissingIdentityProviderUserObjectId(@AuthenticationPrincipal Jwt jwt) {
 
@@ -313,6 +375,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Update application resource location org unit on assignments",
+            description = "Updates application resource location org unit values on assignments, either for all assignments or only where the value is missing."
+    )
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
     public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
 
@@ -345,6 +412,11 @@ public class AssignmentController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Update assigned resources usage",
+            description = "Recalculates assigned resource usage for all resources."
+    )
     @PostMapping("/update-assigned-resources-usage")
     // runs for both user and device assignments
     public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt) {

@@ -1,5 +1,6 @@
 package no.fintlabs.resource;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.assignment.DeviceAssignmentService;
 import no.fintlabs.opa.OpaService;
@@ -24,6 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/assignments")
 public class ResourceController {
+    private static final String DEVELOPER_ENDPOINTS_TAG = "Developer endpoints";
 
     private final ResourceResponseFactory resourceResponseFactory;
     private final OpaService opaService;
@@ -174,6 +176,11 @@ public class ResourceController {
     }
 
     @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Deactivate assignments for inactive resources",
+            description = "Finds inactive resources and deactivates assignments connected to them. Returns the number of processed resources."
+    )
     @PostMapping("/resources/deactivate-assignments-inactive")
     public ResponseEntity<Map<String, Object>> deactivateAssignmentsForInactiveResources() {
         int numberOfResourcesProcessed = resourceService.deactivateAssignmentsForInactiveResources();

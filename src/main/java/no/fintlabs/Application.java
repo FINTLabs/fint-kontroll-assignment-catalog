@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import no.fint.antlr.EnableFintFilter;
 import no.fintlabs.slack.SlackMessenger;
@@ -82,6 +83,9 @@ public class Application {
                               .description("API's for assignment of resources to users")
                               .termsOfService("http://swagger.io/terms/")
                               .license(new License().name("Apache 2.0").url("http://springdoc.org")))
+                .addTagsItem(new Tag()
+                        .name("Developer endpoints")
+                        .description("Operational and maintenance endpoints restricted by @OnlyDevelopers."))
                 .components(new Components()
                                     .addSecuritySchemes("bearer-jwt", new SecurityScheme()
                                             .type(SecurityScheme.Type.HTTP)
