@@ -1,6 +1,7 @@
 package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.role.AssignmentRole;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,18 @@ public class UserResponseFactory {
                         "totalPages", rolePage.getTotalPages(),
                         "size", rolePage.getSize(),
                         "totalItems", rolePage.getTotalElements()
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    public static ResponseEntity<Map<String, Object>> deviceGroupAssignmentToResponseEntity(Page<DeviceGroupAssignment> deviceGroupAssignments){
+        return new ResponseEntity<>(
+                Map.of("deviceGroupAssignments", deviceGroupAssignments.getContent(),
+                        "currentPage", deviceGroupAssignments.getNumber(),
+                        "totalPages", deviceGroupAssignments.getTotalPages(),
+                        "size", deviceGroupAssignments.getSize(),
+                        "totalItems", deviceGroupAssignments.getTotalElements()
                 ),
                 HttpStatus.OK
         );

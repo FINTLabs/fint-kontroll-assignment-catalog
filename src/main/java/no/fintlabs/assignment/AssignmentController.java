@@ -21,6 +21,7 @@ import no.fintlabs.membership.MembershipService;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
+import no.fintlabs.user.UserResponseFactory;
 import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -162,7 +163,7 @@ public class AssignmentController {
     }
 
     @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
-    public ResponseEntity<Page<DeviceGroupAssignment>> getDeviceGroupsByResourceId(
+    public ResponseEntity<?> getDeviceGroupsByResourceId(
             @PathVariable("id") Long resourceId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
@@ -187,7 +188,8 @@ public class AssignmentController {
                 deviceGroupAssignments.getTotalPages()
         );
 
-        return new ResponseEntity<>(deviceGroupAssignments, HttpStatus.OK);
+        //return new ResponseEntity<>(deviceGroupAssignments, HttpStatus.OK);
+        return UserResponseFactory.deviceGroupAssignmentToResponseEntity(deviceGroupAssignments);
     }
 
     @OnlyDevelopers
