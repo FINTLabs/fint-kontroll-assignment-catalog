@@ -12,9 +12,11 @@ fint:
     opa:
       url: http://localhost:8181/v1/data/accessmanagement
     assignment-catalog:
+      scheduling:
+        enabled: true
       publishing:
-        initial-delay: 1
-        fixed-delay: 3
+        initial-delay: PT48H
+        fixed-delay: PT48H
     authorization:
       authorized-org-id: 'vigo.no'
 spring:
@@ -57,4 +59,3 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
-

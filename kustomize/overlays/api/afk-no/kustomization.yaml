@@ -60,6 +60,11 @@ patches:
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx31700m"
+      - op: add
+        path: "/spec/env/6"
+        value:
+          name: "fint.kontroll.assignment-catalog.scheduling.enabled"
+          value: "false"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
