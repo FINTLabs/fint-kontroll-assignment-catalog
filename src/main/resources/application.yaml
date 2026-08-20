@@ -9,12 +9,14 @@ fint:
   kontroll:
     assignment-catalog:
       pagesize: 50
+      scheduling:
+          enabled: true
       publishing:
-          initial-delay: 2
-          fixed-delay: 48
+          initial-delay: PT48H
+          fixed-delay: PT48H
       deletion:
-          initial-delay: 2
-          fixed-delay: 48
+          initial-delay: PT48H
+          fixed-delay: PT48H
       license-enforcement:
         hardstop-enable: true
     slack:
