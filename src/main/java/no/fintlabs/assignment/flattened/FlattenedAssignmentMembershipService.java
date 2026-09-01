@@ -4,14 +4,16 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
+import no.fintlabs.user.User;
+import no.fintlabs.user.UserLookupService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
-import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasIdentityProviderUserObjectId;
 import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
 import static no.fintlabs.assignment.MembershipSpecificationBuilder.memberShipIsActive;
 
@@ -20,10 +22,12 @@ import static no.fintlabs.assignment.MembershipSpecificationBuilder.memberShipIs
 public class FlattenedAssignmentMembershipService {
 
     private final MembershipRepository membershipRepository;
+    private final UserLookupService userLookupService;
     private final FlattenedAssignmentMapper flattenedAssignmentMapper;
 
-    public FlattenedAssignmentMembershipService(MembershipRepository membershipRepository, FlattenedAssignmentMapper flattenedAssignmentMapper) {
+    public FlattenedAssignmentMembershipService(MembershipRepository membershipRepository, UserLookupService userLookupService, FlattenedAssignmentMapper flattenedAssignmentMapper) {
         this.membershipRepository = membershipRepository;
+        this.userLookupService = userLookupService;
         this.flattenedAssignmentMapper = flattenedAssignmentMapper;
     }
 
@@ -38,7 +42,7 @@ public class FlattenedAssignmentMembershipService {
         List<Membership> activeMemberships = membershipRepository.findAll(
                 hasRoleId(assignment.getRoleRef())
                         .and(memberShipIsActive())
-                        .and(hasIdentityProviderUserObjectId()));
+                        );
 
         if (activeMemberships.isEmpty()) {
             log.warn("Role (group) has no active memberships. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
@@ -61,7 +65,7 @@ public class FlattenedAssignmentMembershipService {
 
         List<Membership> memberships = membershipRepository.findAll(
                 hasRoleId(assignment.getRoleRef())
-                .and(hasIdentityProviderUserObjectId()));
+        );
 
         if (memberships.isEmpty()) {
             log.warn("Role (group) has no members. No flattened assignment saved. Roleref: {}", assignment.getRoleRef());
@@ -95,7 +99,7 @@ public class FlattenedAssignmentMembershipService {
             Assignment assignment,
             List<FlattenedAssignment> existingAssignments
     ) {
-        log.info("Preparing {} memberships from role {} for existing assignment {} for flattened assigment update/creation",
+        log.info("Preparing {} memberships from role {} for existing assignment {} for flattened assignment update/creation",
                 memberships.size(),
                 assignment.getRoleRef(),
                 assignment.getId());
@@ -105,8 +109,10 @@ public class FlattenedAssignmentMembershipService {
 
         for (Membership membership : memberships) {
             FlattenedAssignment mappedAssignment =mapToFlattenedAssignment(membership, assignment);
-            flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments) //, isSync
-                    .ifPresent(flattenedAssignments::add);
+            if (mappedAssignment != null) {
+                flattenedAssignmentMapper.mapOriginWithExisting(mappedAssignment, existingAssignments) //, isSync
+                        .ifPresent(flattenedAssignments::add);
+            }
         }
 
         long end = System.currentTimeMillis();
@@ -126,7 +132,17 @@ public class FlattenedAssignmentMembershipService {
                 assignment.getId());
 
         FlattenedAssignment flattenedAssignment = toFlattenedAssignment(assignment);
-        flattenedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
+        Optional<User> user = userLookupService.findById(membership.getMemberId());
+
+        if (user.isEmpty()) {
+            log.warn("User with id {} not found for membership {}. Flattened assignment will not be created.", membership.getMemberId(), membership.getId());
+            return null;
+        }
+        if (user.get().getIdentityProviderUserObjectId() == null) {
+            log.warn("User with id {} in membership {} has no identityProviderUserObjectId. Flattened assignment will not be created.", membership.getMemberId(), membership.getId());
+            return null;
+        }
+        flattenedAssignment.setIdentityProviderUserObjectId(user.get().getIdentityProviderUserObjectId());
         flattenedAssignment.setUserRef(membership.getMemberId());
 
         if (!membership.isActive()) {

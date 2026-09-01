@@ -1,9 +1,10 @@
 package no.fintlabs.assignment.flattened;
 
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.MembershipSpecificationBuilder;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
+import no.fintlabs.user.UserLookupService;
+import no.fintlabs.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +20,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
-import static no.fintlabs.assignment.MembershipSpecificationBuilder.hasRoleId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -28,6 +28,8 @@ public class FlattenedAssignmentMembershipServiceTest {
 
     @Mock
     private MembershipRepository membershipRepository;
+    @Mock
+    private UserLookupService userLookupService;
 
     @Mock
     private FlattenedAssignmentMapper flattenedAssignmentMapper;
@@ -76,20 +78,28 @@ public class FlattenedAssignmentMembershipServiceTest {
     @Test
     void findMembershipsToCreateOrUpdate_shouldSetAssignmentRemovedDateForInactiveMemberships() {
 
+        UUID identityProviderUserObjectId = UUID.randomUUID();
+
         Date memberStatusChangedDate = new Date();
         Membership membership = new Membership();
         membership.setId("123_1");
-        membership.setIdentityProviderUserObjectId(UUID.randomUUID());
+        membership.setMemberId(1L);
+        membership.setIdentityProviderUserObjectId(identityProviderUserObjectId);
         membership.setMemberStatus("inactive");
         membership.setMemberStatusChanged(memberStatusChangedDate);
         List<Membership> memberships = List.of(membership);
 
+        User user = new User();
+        user.setId(1L);
+        user.setIdentityProviderUserObjectId(identityProviderUserObjectId);
+
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         flattenedAssignment.setAssignmentTerminationDate(memberStatusChangedDate);
+        flattenedAssignment.setIdentityProviderUserObjectId(identityProviderUserObjectId);
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
         when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any())).thenReturn(Optional.of(flattenedAssignment));//, anyBoolean()
-
+        when(userLookupService.findById(1L)).thenReturn(Optional.of(user));
         List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
 
@@ -99,12 +109,19 @@ public class FlattenedAssignmentMembershipServiceTest {
 
     @Test
     void findMembershipsToCreateOrUpdate_shouldMapAndAddFlattenedAssignments() {
+
+        UUID identityProviderUserObjectId = UUID.randomUUID();
+
         Membership membership = new Membership();
         membership.setId("123_1");
-        membership.setIdentityProviderUserObjectId(UUID.randomUUID());
+        membership.setIdentityProviderUserObjectId(identityProviderUserObjectId);
         membership.setMemberStatus("active");
-        membership.setMemberId(123L);
+        membership.setMemberId(1L);
         List<Membership> memberships = List.of(membership);
+
+        User user = new User();
+        user.setId(1L);
+        user.setIdentityProviderUserObjectId(identityProviderUserObjectId);
 
         FlattenedAssignment mappedAssignment = toFlattenedAssignment(assignment);
         mappedAssignment.setIdentityProviderUserObjectId(membership.getIdentityProviderUserObjectId());
@@ -112,7 +129,7 @@ public class FlattenedAssignmentMembershipServiceTest {
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
         when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any())).thenReturn(Optional.of(mappedAssignment));//, anyBoolean()
-
+        when(userLookupService.findById(1L)).thenReturn(Optional.of(user));
         List<FlattenedAssignment> result = flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments);//, false);
 
         assertEquals(1, result.size());

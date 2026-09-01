@@ -11,19 +11,12 @@ import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kodeverk.Handhevingstype;
-import no.fintlabs.kodeverk.ScopeType;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
-import no.fintlabs.user.AssignmentUser;
-import no.fintlabs.user.AssignmentUserService;
-import no.fintlabs.user.ResourceAssignmentUser;
-import no.fintlabs.user.User;
-import no.fintlabs.user.UserRepository;
-import no.fintlabs.user.UserSpecificationBuilder;
-import org.junit.jupiter.api.BeforeEach;
+import no.fintlabs.user.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -55,6 +48,9 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private UserRepository userRepository;
+
+    @MockBean
+    UserLookupService userLookupService;
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;

@@ -12,10 +12,9 @@ import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
-import no.fintlabs.resource.ResourceAvailabilityProducerService;
-import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
+import no.fintlabs.user.UserLookupService;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import no.fintlabs.util.AuthenticationUtil;
@@ -52,6 +51,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private UserLookupService userLookupService;
 
     @Autowired
     private ResourceRepository resourceRepository;

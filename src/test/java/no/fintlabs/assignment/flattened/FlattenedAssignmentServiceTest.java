@@ -3,6 +3,8 @@ package no.fintlabs.assignment.flattened;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
+import no.fintlabs.user.User;
+import no.fintlabs.user.UserLookupService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,8 @@ public class FlattenedAssignmentServiceTest {
 
     @Mock
     private AssigmentEntityProducerService assigmentEntityProducerService;
+    @Mock
+    private UserLookupService userLookupService;
 
     @InjectMocks
     private FlattenedAssignmentService flattenedAssignmentService;
@@ -46,13 +50,18 @@ public class FlattenedAssignmentServiceTest {
         return assignment;
     }
 
-    private Membership membership(long userRef, long roleRef, String status, UUID idp) {
+    private Membership membership(long userRef, long roleRef, String status) {
         Membership membership = new Membership();
         membership.setMemberId(userRef);
         membership.setRoleId(roleRef);
         membership.setMemberStatus(status);
-        membership.setIdentityProviderUserObjectId(idp);
         return membership;
+    }
+    private User user(long id,  UUID idp) {
+        User user = new User();
+        user.setId(id);
+        user.setIdentityProviderUserObjectId(idp);
+        return user;
     }
 
     private FlattenedAssignment flattenedAssignment(Long id, Date terminationDate, UUID idp) {
@@ -176,7 +185,10 @@ public class FlattenedAssignmentServiceTest {
     @Test
     void shouldDoNothing_whenInactiveMembershipAndNoExistingActiveFlattenedAssignments() {
         Assignment a = assignment(100L);
-        Membership m = membership(10L, 20L,  "inactive", null);
+        Membership m = membership(10L, 20L,  "inactive");
+        User u = user(10L, UUID.randomUUID());
+
+        when(userLookupService.findById(10L)).thenReturn(Optional.of(u));
 
         when(flattenedAssignmentRepository
                 .findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(
@@ -193,10 +205,13 @@ public class FlattenedAssignmentServiceTest {
     @Test
     void shouldTerminateActiveFlattenedAssignments_whenMembershipBecomesInactive() {
         Assignment a = assignment(100L);
-        Membership m = membership(10L, 20L, /*active*/ "inactive", UUID.randomUUID());
+        Membership m = membership(10L, 20L, /*active*/ "inactive");
+        User user = user(10L, UUID.randomUUID());
 
         FlattenedAssignment active1 = flattenedAssignment(1L, null,  UUID.randomUUID());
         FlattenedAssignment active2 = flattenedAssignment(2L, null,  UUID.randomUUID());
+
+        when(userLookupService.findById(10L)).thenReturn(Optional.of(user));
 
         when(flattenedAssignmentRepository
                 .findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(
@@ -224,7 +239,10 @@ public class FlattenedAssignmentServiceTest {
     @Test
     void shouldCreateNewFlattenedAssignment_whenActiveMembershipAndNoExistingActiveFlattenedAssignments() {
         Assignment a = assignment(100L);
-        Membership m = membership(10L, 20L, "ACTIVE", UUID.randomUUID());
+        Membership m = membership(10L, 20L, "ACTIVE");
+        User user = user(10L, UUID.randomUUID());
+
+        when(userLookupService.findById(10L)).thenReturn(Optional.of(user));
 
         when(flattenedAssignmentRepository
                 .findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(

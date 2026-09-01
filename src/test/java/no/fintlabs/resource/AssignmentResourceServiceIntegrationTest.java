@@ -18,6 +18,7 @@ import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleRepository;
+import no.fintlabs.user.UserLookupService;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,10 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
     @Autowired
     private UserRepository userRepository;
+
+    @MockBean
+    private UserLookupService userLookupService;
+
     @Autowired
     private RoleRepository roleRepository;
 

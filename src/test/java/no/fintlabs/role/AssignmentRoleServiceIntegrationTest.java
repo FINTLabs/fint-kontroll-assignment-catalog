@@ -13,6 +13,7 @@ import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.user.UserLookupService;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,9 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
 
     @Autowired
     private UserRepository userRepository;
+
+    @MockBean
+    private UserLookupService userLookupService;
 
     @Autowired
     private AssignmentRepository assignmentRepository;

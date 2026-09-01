@@ -68,6 +68,7 @@ public class UserServiceTest {
         assertEquals(updatedUser, result);
         verify(userRepository).save(updatedUser);
         verify(assignmentService, never()).deactivateAssignmentsByUserId(updatedUser.getId());
+        verify(assignmentService, never()).updateAllAssignmentsOnUserChange(updatedUser);
     }
 
     @Test
@@ -82,6 +83,7 @@ public class UserServiceTest {
         assertEquals(user, result);
         verify(userRepository, never()).save(updatedUser);
         verify(assignmentService, never()).deactivateAssignmentsByUserId(updatedUser.getId());
+        verify(assignmentService, never()).updateAllAssignmentsOnUserChange(updatedUser);
     }
 
     @Test
@@ -101,6 +103,7 @@ public class UserServiceTest {
         userService.updateUser(user, updatedUser);
 
         verify(assignmentService).deactivateAssignmentsByUserId(updatedUser.getId());
+        verify(assignmentService, never()).updateAllAssignmentsOnUserChange(updatedUser);
     }
 
     @Test
@@ -119,5 +122,24 @@ public class UserServiceTest {
         userService.updateUser(user, updatedUser);
 
         verify(assignmentService).deactivateAssignmentsByUserId(updatedUser.getId());
+        verify(assignmentService, never()).updateAllAssignmentsOnUserChange(updatedUser);
+    }
+
+    @Test
+    void updateUser_shouldUpdateAllAssignmentsOnUserWhenIdpUserObjectIdIsChanged() {
+        User user = User.builder()
+                .id(1L)
+                .identityProviderUserObjectId(new UUID(0, 0))
+                .build();
+        User updatedUser = User.builder()
+                .id(1L)
+                .identityProviderUserObjectId(new UUID(1, 0))
+                .build();
+
+        when(userRepository.save(updatedUser)).thenReturn(updatedUser);
+
+        userService.updateUser(user, updatedUser);
+
+        verify(assignmentService).updateAllAssignmentsOnUserChange(updatedUser);
     }
 }

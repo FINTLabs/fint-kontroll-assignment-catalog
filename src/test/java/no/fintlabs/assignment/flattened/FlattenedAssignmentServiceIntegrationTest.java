@@ -6,6 +6,7 @@ import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.opa.OpaService;
+import no.fintlabs.user.UserLookupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,8 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
     private FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
+    @MockBean
+    private UserLookupService userLookupService;
 //    @MockBean
 //    private OpaService opaService;
 

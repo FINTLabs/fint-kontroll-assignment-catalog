@@ -5,7 +5,7 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.membership.MembershipRepository;
-import no.fintlabs.opa.OpaService;
+import no.fintlabs.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Testcontainers
 @Import({FlattenedAssignmentService.class,
         FlattenedAssignmentMapper.class,
-        FlattenedAssignmentMembershipService.class
+        FlattenedAssignmentMembershipService.class,
+        UserLookupService.class
 })
 public class FlattenedAssignmentMembershipServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -34,11 +35,16 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
     private FlattenedAssignmentService flattenedAssignmentService;
     @Autowired
     private MembershipRepository membershipRepository;
+    @Autowired
+    private UserLookupService userLookupService;
+    @Autowired
+    private UserRepository userRepository;
     @MockBean
     private AssigmentEntityProducerService assigmentEntityProducerService;
 //    @MockBean
 //    private OpaService opaService;
 
+    private User activeUser, inactiveUser;
     private Membership activeMembership, inactiveMembership;
     private UUID activeUserObjectId, inactiveUserObjectId, groupObjectId;
     private Assignment assignment;
@@ -51,19 +57,29 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
         inactiveUserObjectId = UUID.randomUUID();
         groupObjectId = UUID.randomUUID();
 
-        existingAssignments = new ArrayList<>();
+        activeUser = new User();
+        activeUser.setId(10L);
+        activeUser.setIdentityProviderUserObjectId(activeUserObjectId);
+
+        inactiveUser = new User();
+        inactiveUser.setId(20L);
+        inactiveUser.setIdentityProviderUserObjectId(inactiveUserObjectId);
+
+        userRepository.save(activeUser);
+        userRepository.save(inactiveUser);
+
         activeMembership = new Membership();
         activeMembership.setId("1_10");
         activeMembership.setRoleId(1L);
         activeMembership.setMemberId(10L);
-        activeMembership.setIdentityProviderUserObjectId(activeUserObjectId);
+        //activeMembership.setIdentityProviderUserObjectId(activeUserObjectId);
         activeMembership.setMemberStatus("ACTIVE");
 
         inactiveMembership = new Membership();
         inactiveMembership.setId("1_20");
         inactiveMembership.setRoleId(1L);
         inactiveMembership.setMemberId(20L);
-        inactiveMembership.setIdentityProviderUserObjectId(inactiveUserObjectId);
+        //inactiveMembership.setIdentityProviderUserObjectId(inactiveUserObjectId);
         inactiveMembership.setMemberStatus("INACTIVE");
 
         membershipRepository.save(activeMembership);
@@ -94,6 +110,7 @@ public class FlattenedAssignmentMembershipServiceIntegrationTest extends Databas
         flattenedAssignment2.setResourceRef(15L);
         flattenedAssignment2.setAssignmentViaRoleRef(1L);
 
+        existingAssignments = new ArrayList<>();
         existingAssignments.add(flattenedAssignment1);
         existingAssignments.add(flattenedAssignment2);
     }
