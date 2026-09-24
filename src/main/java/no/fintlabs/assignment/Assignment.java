@@ -24,7 +24,6 @@ import no.fintlabs.audit.AuditEntity;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
@@ -59,6 +58,7 @@ public class Assignment extends AuditEntity {
     private String userUserType;
     @Column(name = "resource_ref")
     private Long resourceRef;
+    private Long deviceGroupRef;
     private String resourceName;
     private UUID azureAdGroupId;
     private String organizationUnitId;
@@ -66,16 +66,11 @@ public class Assignment extends AuditEntity {
     private String applicationResourceLocationOrgUnitId;
     @Column(name = "resource_consumer_org_unit_name")
     private String applicationResourceLocationOrgUnitName;
-    private Long assignerRef;
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;
     private String assignerUserName;
-    private UUID assignerAzureAdUserId;
-    private Long assignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
-    private Date validFrom;
-    private Date validTo;
     @Builder.Default
     private Boolean isInvalid = false;
 
@@ -121,10 +116,10 @@ public class Assignment extends AuditEntity {
                 .azureGroupRef(azureAdGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
+                .deviceGroupRef(deviceGroupRef)
                 .azureUserRef(azureAdUserId)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
-                .assignerRef(assignerRef)
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
@@ -143,5 +138,9 @@ public class Assignment extends AuditEntity {
     @JsonIgnore
     public boolean isGroupAssignment() {
         return roleRef != null;
+    }
+    @JsonIgnore
+    public boolean isDeviceGroupAssignment() {
+        return deviceGroupRef != null && azureAdGroupId != null;
     }
 }
