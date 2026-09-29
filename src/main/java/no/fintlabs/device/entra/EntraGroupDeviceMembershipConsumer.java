@@ -36,7 +36,7 @@ public class EntraGroupDeviceMembershipConsumer {
                         this::processGroupMembership,
                         KafkaEntityTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.eventTopicNameParameters("entra-device-group-membership"));
+                .createContainer(KafkaEntityTopics.eventTopicNameParameters("graph-device-group-membership"));
     }
 
     @Transactional
