@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -92,6 +93,34 @@ public class MembershipConsumerTest {
         Membership savedMembership = new Membership();
         savedMembership.setId("1");
         savedMembership.setMemberStatus("Whatever");
+
+        ConsumerRecord<String, Membership> consumerRecord = new ConsumerRecord<>("topic", 0, 0, "key", incomingMembership);
+
+        when(membershipCache.getOptional("1")).thenReturn(Optional.of(cachedMembership));
+        when(membershipRepository.findById("1")).thenReturn(Optional.of(cachedMembership));
+        when(membershipRepository.saveAndFlush(incomingMembership)).thenReturn(savedMembership);
+
+        membershipConsumer.processMemberships(consumerRecord);
+
+        verify(membershipRepository).saveAndFlush(incomingMembership);
+        verify(membershipCache).put("1", savedMembership);
+        verify(membershipService).syncAssignmentsForMembership(savedMembership);
+    }
+    @Test
+    public void process_shouldHandleChangedUserObjectId() {
+        UUID oldId = UUID.randomUUID();
+        UUID newId = UUID.randomUUID();
+        Membership cachedMembership = new Membership();
+        cachedMembership.setId("1");
+        cachedMembership.setIdentityProviderUserObjectId(oldId);
+
+        Membership incomingMembership = new Membership();
+        incomingMembership.setId("1");
+        incomingMembership.setIdentityProviderUserObjectId(newId);
+
+        Membership savedMembership = new Membership();
+        savedMembership.setId("1");
+        savedMembership.setIdentityProviderUserObjectId(newId);
 
         ConsumerRecord<String, Membership> consumerRecord = new ConsumerRecord<>("topic", 0, 0, "key", incomingMembership);
 

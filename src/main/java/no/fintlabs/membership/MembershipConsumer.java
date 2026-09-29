@@ -147,6 +147,7 @@ public class MembershipConsumer {
     }
 
     private Membership mapIncomingMembershipToExistingMembership(Membership incomingMembership, Membership existingMembership) {
+        existingMembership.setIdentityProviderUserObjectId(incomingMembership.getIdentityProviderUserObjectId());
         existingMembership.setMemberStatus(incomingMembership.getMemberStatus());
         existingMembership.setMemberStatusChanged(incomingMembership.getMemberStatusChanged());
         return existingMembership;
