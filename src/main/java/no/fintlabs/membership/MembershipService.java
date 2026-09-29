@@ -3,12 +3,15 @@ package no.fintlabs.membership;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
+import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.user.User;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,11 +21,13 @@ public class MembershipService {
 
     private final MembershipRepository membershipRepository;
     private final FlattenedAssignmentService flattenedAssignmentService;
+    private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
     private final AssignmentService assignmentService;
 
-    public MembershipService(MembershipRepository membershipRepository, FlattenedAssignmentService flattenedAssignmentService, AssignmentService assignmentService) {
+    public MembershipService(MembershipRepository membershipRepository, FlattenedAssignmentService flattenedAssignmentService, FlattenedAssignmentMembershipService flattenedAssignmentMembershipService, AssignmentService assignmentService) {
         this.membershipRepository = membershipRepository;
         this.flattenedAssignmentService = flattenedAssignmentService;
+        this.flattenedAssignmentMembershipService = flattenedAssignmentMembershipService;
         this.assignmentService = assignmentService;
     }
 
@@ -42,7 +47,7 @@ public class MembershipService {
         membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
     }
 
-   @Async
+    @Async
     public void deactivateFlattenedAssignmentsForMembership(Membership membership) {
         log.info("Find flattened assignments associated with inactive membership {} to be deactivated",
                 membership.getId()
@@ -65,29 +70,42 @@ public class MembershipService {
 
     @Async
     public void syncAssignmentsForMembership(Membership savedMembership) {
-        if (savedMembership.getIdentityProviderUserObjectId() == null) {
-            log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}",
+
+        List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
+
+        if (assignmentsByRole.isEmpty()) {
+            log.info("No assignments associated with roleId {}. No processing will be done for membership {}.",
                     savedMembership.getRoleId(),
-                    savedMembership.getMemberId(),
                     savedMembership.getId()
             );
             return;
         }
-
-        List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
-
-        if (!assignmentsByRole.isEmpty()) {
-            log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignmentsByRole.size());
-        }
-
+        log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}",
+                savedMembership.getRoleId(),
+                savedMembership.getMemberId(),
+                assignmentsByRole.size()
+        );
+        List<FlattenedAssignment> flattenedAssignments = new ArrayList<>();
         assignmentsByRole
                 .forEach(assignment -> {
                     try {
-                        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
+                        List<FlattenedAssignment> existingFlattenedAssignments =
+                                flattenedAssignmentService.getFlattenedAssignmentsByAssignmentAndUserAndRoleAssignmentNotTerminated(
+                                        assignment.getId(),
+                                        savedMembership.getMemberId(),
+                                        savedMembership.getRoleId()
+                                );
+                        flattenedAssignments.addAll(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(
+                                assignment,
+                                existingFlattenedAssignments
+                        ));
                     } catch (Exception e) {
                         log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
                     }
                 });
+        if (!flattenedAssignments.isEmpty()) {
+            flattenedAssignmentService.saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, true);
+        }
     }
 
     public void updateUserMemberships(User savedUser) {

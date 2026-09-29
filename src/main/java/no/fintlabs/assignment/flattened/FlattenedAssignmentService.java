@@ -302,6 +302,10 @@ public class FlattenedAssignmentService {
         return new HashSet<>(flattenedAssignmentRepository.findIdsWhereIdentityProviderUserObjectIdIsNull());
     }
 
+    public List<FlattenedAssignment> getFlattenedAssignmentsByAssignmentAndUserAndRoleAssignmentNotTerminated(Long assignmentId, Long userRef, Long roleRef) {
+        return flattenedAssignmentRepository.findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(assignmentId, userRef, roleRef);
+    }
+
     private void saveDeactivatedFlattenedAssignments(List<FlattenedAssignment> flattenedAssignments, String deactivationReason, Date deactivationDate) {
 
         flattenedAssignments.forEach(flattenedAssignment -> {
