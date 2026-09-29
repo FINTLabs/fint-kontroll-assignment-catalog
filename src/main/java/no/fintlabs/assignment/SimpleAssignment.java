@@ -15,6 +15,7 @@ public class SimpleAssignment {
     private UUID azureGroupRef;
     private String resourceName;
     private Long userRef;
+    private Long deviceGroupRef;
     private UUID  azureUserRef;
     private String userDisplayname;
     private String userUsername;

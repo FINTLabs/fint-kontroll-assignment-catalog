@@ -42,7 +42,6 @@ public class FlattenedAssignment extends AuditEntity {
     private Long userRef;
     private UUID identityProviderUserObjectId;
     private Long resourceRef;
-    //private String licenseEnforcement;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
     private UUID identityProviderGroupObjectId;

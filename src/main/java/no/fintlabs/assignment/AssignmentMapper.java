@@ -3,13 +3,13 @@ package no.fintlabs.assignment;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getAzureAdUserId())
                 .resourceRef(assignment.getResourceRef())
@@ -24,10 +24,22 @@ public class AssignmentMapper {
                 .build();
     }
 
+    public static FlattenedDeviceAssignment toFlattenedDeviceAssignment(Assignment assignment) {
+        return FlattenedDeviceAssignment.builder()
+                .assignmentId(assignment.getId())
+                .resourceRef(assignment.getResourceRef())
+                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
+                .identityProviderGroupObjectId(assignment.getAzureAdGroupId())
+                .assignmentCreationDate(assignment.getAssignmentDate())
+                .terminationDate(assignment.getAssignmentRemovedDate())
+                .terminationReason(null)
+                .assignmentViaGroupRef(assignment.getDeviceGroupRef())
+                .build();
+    }
+
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getAzureAdUserId())
                 .resourceRef(assignment.getResourceRef())
@@ -45,7 +57,6 @@ public class AssignmentMapper {
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed, boolean identityProviderGroupMembershipDeletionConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getAzureAdUserId())
                 .resourceRef(assignment.getResourceRef())
