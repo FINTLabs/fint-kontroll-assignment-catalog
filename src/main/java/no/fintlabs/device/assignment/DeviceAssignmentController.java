@@ -1,45 +1,34 @@
 package no.fintlabs.device.assignment;
 
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.SimpleAssignment;
-import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
-import no.fintlabs.exception.ConflictException;
 import no.fintlabs.util.OnlyDevelopers;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Maintenance/admin endpoints for device assignments.
+ *
+ * Normal assignment writes, including device-group assignment create/delete, are handled by
+ * {@code AssignmentController} under {@code /api/assignments}.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/device-assignments")
 @RequiredArgsConstructor
+@Tag(
+        name = "Device assignment maintenance",
+        description = "Maintenance/admin endpoints for device assignments. Normal create and delete operations are handled by the generic /api/assignments controller."
+)
 public class DeviceAssignmentController {
 
     private final DeviceAssignmentService deviceAssignmentService;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
-
-
-    @PostMapping
-    @OnlyDevelopers
-    public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewDeviceAssignmentRequest request) {
-        log.info("Creating assignment. Request - deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}", request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
-
-        try {
-            Assignment newAssignment =
-                    deviceAssignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.deviceGroupRef);
-            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(newAssignment);
-            return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
-        } catch (AssignmentAlreadyExistsException exception) {
-            throw new ConflictException("Assignment already exists");
-        }
-    }
 
     @OnlyDevelopers
     @PostMapping("/syncflattenedassignments")
@@ -67,12 +56,6 @@ public class DeviceAssignmentController {
                 .forEach(flattenedDeviceAssignmentService::syncFlattenedAssignments);
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
-    }
-
-    @DeleteMapping("{id}")
-    @OnlyDevelopers
-    public void deleteAssignment(@PathVariable("id") Long id) {
-        deviceAssignmentService.deleteAssignment(id);
     }
 
     @PostMapping("/update-assigned-resources-usage")

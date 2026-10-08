@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DeviceAssignmentService {
 
+    private static final String ACTIVE_STATUS = "ACTIVE";
+
     private final DeviceGroupRepository deviceGroupRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
@@ -99,6 +101,10 @@ public class DeviceAssignmentService {
     private Resource getResourceOrThrow(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found: " + id));
+
+        if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
+            throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + id + " is not active");
+        }
 
         if (resource.getIdentityProviderGroupObjectId() == null) {
             throw new AssignmentException(

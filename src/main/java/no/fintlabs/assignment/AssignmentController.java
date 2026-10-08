@@ -284,13 +284,25 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
         log.info("Deleting assignment with id {}", id);
         try {
-            assignmentService.deleteAssignment(id);
+            deleteAssignmentByType(id);
         } catch (UserNotFoundException userNotFoundException) {
             log.error("Logged in user not found in the users table", userNotFoundException);
 
             throw new ResourceNotFoundException("Logged in user not found in the users table");
         }
         return new ResponseEntity<>(HttpStatus.GONE);
+    }
+
+    private void deleteAssignmentByType(Long id) {
+        Assignment assignment = assignmentService.getAssignmentById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found: " + id));
+
+        if (assignment.getDeviceGroupRef() != null) {
+            deviceAssignmentService.deleteAssignment(id);
+            return;
+        }
+
+        assignmentService.deleteAssignment(id);
     }
 
     @OnlyDevelopers

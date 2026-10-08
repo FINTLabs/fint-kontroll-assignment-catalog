@@ -54,7 +54,7 @@ class DeviceGroupMembershipService {
             DeviceGroupMembership existing,
             DeviceGroupMembership incoming
     ) {
-        String existingMembershipStatus = new String(existing.getMembershipStatus());
+        String existingMembershipStatus = existing.getMembershipStatus();
         DeviceGroupMembership updated =
                 deviceGroupMembershipRepository.save(mapExistingFromIncoming(existing, incoming));
 
@@ -64,21 +64,30 @@ class DeviceGroupMembershipService {
     }
 
     private void transition(String from, String to, DeviceGroupMembership updated) {
-        if ("ACTIVE".equals(from) && !"ACTIVE".equals(to)) {
+        boolean wasActive = isActive(from);
+        boolean isActive = isActive(to);
+
+        if (wasActive && !isActive) {
             flattenedDeviceAssignmentService.deactivateAssignmentsForMembership(
                     updated.getDeviceId(),
                     updated.getDeviceGroupId()
             );
-        } else if (!"ACTIVE".equals(from) && "ACTIVE".equals(to)) {
+        } else if (!wasActive && isActive) {
             flattenedDeviceAssignmentService.addAssignmentsForMembership(updated);
         }
+    }
+
+    private boolean isActive(String membershipStatus) {
+        return "ACTIVE".equalsIgnoreCase(membershipStatus);
     }
 
     private void createNewDeviceGroupMembership(DeviceGroupMembership incoming) {
         DeviceGroupMembership newDeviceGroupMembership = mapFromIncoming(incoming);
         DeviceGroupMembership saved = deviceGroupMembershipRepository.save(newDeviceGroupMembership);
         log.info("Saved new device group membership {}", newDeviceGroupMembership.getDeviceId());
-        flattenedDeviceAssignmentService.addAssignmentsForMembership(saved);
+        if (saved.isActive()) {
+            flattenedDeviceAssignmentService.addAssignmentsForMembership(saved);
+        }
 
     }
 

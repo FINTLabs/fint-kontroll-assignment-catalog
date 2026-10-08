@@ -51,6 +51,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -449,18 +450,43 @@ public class AssignmentControllerTest {
     @Test
     public void shouldDeleteAssignment_validId_deletesAssignment() throws Exception {
         Long validId = 1L;
+        Assignment assignment = new Assignment();
+        assignment.setId(validId);
+
+        when(assignmentServiceMock.getAssignmentById(validId)).thenReturn(Optional.of(assignment));
 
         mockMvc.perform(delete("/api/assignments/" + validId)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isGone());
 
         verify(assignmentServiceMock, times(1)).deleteAssignment(validId);
+        verify(deviceAssignmentServiceMock, never()).deleteAssignment(validId);
+    }
+
+    @Test
+    public void shouldDeleteDeviceAssignmentWithDeviceAssignmentService() throws Exception {
+        Long validId = 1L;
+        Assignment assignment = new Assignment();
+        assignment.setId(validId);
+        assignment.setDeviceGroupRef(2L);
+
+        when(assignmentServiceMock.getAssignmentById(validId)).thenReturn(Optional.of(assignment));
+
+        mockMvc.perform(delete("/api/assignments/" + validId)
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isGone());
+
+        verify(deviceAssignmentServiceMock, times(1)).deleteAssignment(validId);
+        verify(assignmentServiceMock, never()).deleteAssignment(validId);
     }
 
     @Test
     public void shouldDeleteAssignment_invalidId_throwsUserNotFoundException() throws Exception {
         Long invalidId = 2L;
+        Assignment assignment = new Assignment();
+        assignment.setId(invalidId);
 
+        when(assignmentServiceMock.getAssignmentById(invalidId)).thenReturn(Optional.of(assignment));
         doThrow(UserNotFoundException.class).when(assignmentServiceMock).deleteAssignment(invalidId);
 
         mockMvc.perform(delete("/api/assignments/" + invalidId)

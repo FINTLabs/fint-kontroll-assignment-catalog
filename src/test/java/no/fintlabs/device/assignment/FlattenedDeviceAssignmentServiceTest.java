@@ -2,6 +2,7 @@ package no.fintlabs.device.assignment;
 
 import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.Assignment;
+import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.device.*;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
@@ -38,6 +39,9 @@ class FlattenedDeviceAssignmentServiceTest {
 
     @Mock
     private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
+
+    @Mock
+    private AssignmentRepository assignmentRepository;
 
     @InjectMocks
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
@@ -321,5 +325,20 @@ class FlattenedDeviceAssignmentServiceTest {
         verify(fda).setTerminationReason("Role membership deactivated");
         verify(flattenedDeviceAssignmentRepository).saveAll(anyList());
         verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
+    }
+
+    @Test
+    void addAssignmentsForMembership_shouldSkipInactiveMembership() {
+        DeviceGroupMembership membership = DeviceGroupMembership.builder()
+                .deviceId(1L)
+                .deviceGroupId(100L)
+                .membershipStatus("INACTIVE")
+                .build();
+
+        flattenedDeviceAssignmentService.addAssignmentsForMembership(membership);
+
+        verifyNoInteractions(assignmentRepository);
+        verify(flattenedDeviceAssignmentRepository, never()).saveAll(anyList());
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
     }
 }

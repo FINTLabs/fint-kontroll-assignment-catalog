@@ -39,11 +39,15 @@ public class DeviceAssigmentEntityProducerService {
     }
 
     public void publish(DeviceEntraMembership deviceEntraMembership, boolean force) {
-        if (deviceEntraMembership.getEntraStatus().equals(EntraStatus.ERROR) || force) {
+        if (EntraStatus.ERROR.equals(deviceEntraMembership.getEntraStatus()) && !force) {
             log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
+            return;
+        }
+        if (EntraStatus.ERROR.equals(deviceEntraMembership.getEntraStatus())) {
+            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Force publishing to Azure.", deviceEntraMembership.getId());
         }
         log.info("Publishing to Azure - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
-        if (deviceEntraMembership.getMembershipStatus().equals(MembershipStatus.ACTIVE)) {
+        if (MembershipStatus.ACTIVE.equals(deviceEntraMembership.getMembershipStatus())) {
             publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
             deviceEntraMembership.setEntraStatus(EntraStatus.SENT);
             deviceEntraMembership.setSentToEntraAt(new Date());

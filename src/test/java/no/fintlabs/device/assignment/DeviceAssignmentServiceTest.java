@@ -60,6 +60,7 @@ class DeviceAssignmentServiceTest {
         r.setResourceId(String.valueOf(id));
         r.setResourceName(name);
         r.setIdentityProviderGroupObjectId(azureGroupId);
+        r.setStatus("ACTIVE");
         return r;
     }
 
@@ -102,6 +103,24 @@ class DeviceAssignmentServiceTest {
         );
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ex.getStatus());
+        verify(assignmentRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(licenseEnforcementService);
+    }
+
+    @Test
+    void createNewAssignment_shouldThrowUnprocessable_whenResourceIsInactive() {
+        when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
+
+        Resource r = resource(1L, "R", UUID.randomUUID());
+        r.setStatus("INACTIVE");
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+
+        AssignmentException ex = assertThrows(AssignmentException.class, () ->
+                deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
+        );
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ex.getStatus());
+        assertEquals("Resource 1 is not active", ex.getMessage());
         verify(assignmentRepository, never()).saveAndFlush(any());
         verifyNoInteractions(licenseEnforcementService);
     }

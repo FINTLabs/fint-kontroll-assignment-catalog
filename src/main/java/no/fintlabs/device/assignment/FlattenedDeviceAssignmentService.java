@@ -255,6 +255,11 @@ public class FlattenedDeviceAssignmentService {
     }
 
     public void addAssignmentsForMembership(DeviceGroupMembership deviceGroupMembership) {
+        if (!deviceGroupMembership.isActive()) {
+            log.info("Device group membership for device {} and group {} is not active. No flattened assignments will be added",
+                    deviceGroupMembership.getDeviceId(), deviceGroupMembership.getDeviceGroupId());
+            return;
+        }
         List<Assignment> activeGroupAssignments = assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(deviceGroupMembership.getDeviceGroupId());
         List<FlattenedDeviceAssignment> newAssignments = activeGroupAssignments.stream().map(assignment -> mapToFlattenedAssignment(deviceGroupMembership, assignment)).toList();
         saveAndPublishFlattenedAssignmentsBatch(newAssignments);
