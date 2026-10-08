@@ -40,7 +40,8 @@ public class Resource extends AuditEntity {
     private String resourceType;
     private String licenseEnforcement;
     @Column(name="number_of_resources_assigned")
-    private Long numberOfResourcesAssigned;
+    @Builder.Default
+    private Long numberOfResourcesAssigned = 0L;
     private Long resourceLimit;
     @Column(nullable = false)
     @Builder.Default

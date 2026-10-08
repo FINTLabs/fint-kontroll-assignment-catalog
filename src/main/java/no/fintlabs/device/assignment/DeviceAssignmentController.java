@@ -41,6 +41,7 @@ public class DeviceAssignmentController {
         }
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignments")
     public void syncFlattenedAssignments() {
         log.info("Starting to sync all flattened assignments");
@@ -48,6 +49,7 @@ public class DeviceAssignmentController {
         allAssignments.forEach(flattenedDeviceAssignmentService::syncFlattenedAssignments);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignments/{assignmentId}")
     public void syncFlattenedAssignmentById(@PathVariable("assignmentId") Long assignmentId) {
         log.info("Starting to sync flattened assignments for assignment {}", assignmentId);
@@ -56,6 +58,7 @@ public class DeviceAssignmentController {
                 .ifPresent(flattenedDeviceAssignmentService::syncFlattenedAssignments);
     }
 
+    @OnlyDevelopers
     @PostMapping("/syncflattenedassignments/resource/{id}")
     public void syncFlattenedAssignmentsByResourceId(@PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
@@ -81,4 +84,3 @@ public class DeviceAssignmentController {
     }
 
 }
-

@@ -108,8 +108,7 @@ public class AssignmentController {
     )
     @PostMapping("/syncflattenedassignments/{sync}")
     public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("sync") String sync) {
-        boolean isSync;
-        isSync = sync == null || sync.isEmpty();
+        boolean isSync = Boolean.parseBoolean(sync);
 
         long start = System.currentTimeMillis();
         log.info("Starting to sync all assignments");
@@ -196,7 +195,7 @@ public class AssignmentController {
             summary = "Republish unconfirmed flattened assignments",
             description = "Republishes flattened assignments that have not been confirmed."
     )
-    @PostMapping("/republishuconfirmedflattenedassignments")
+    @PostMapping({"/republishunconfirmedflattenedassignments", "/republishuconfirmedflattenedassignments"})
     public ResponseEntity<HttpStatus> republishUnconfirmedFlattenedAssignments() {
         log.info("Starting to sync all unconfirmed assignments");
 

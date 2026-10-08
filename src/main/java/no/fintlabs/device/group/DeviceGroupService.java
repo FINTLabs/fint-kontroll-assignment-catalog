@@ -23,6 +23,7 @@ public class DeviceGroupService {
                 .platform(incoming.getPlatform())
                 .orgUnitId(incoming.getOrgUnitId())
                 .name(incoming.getName())
+                .noOfMembers(incoming.getNoOfMembers())
                 .build();
     }
 

@@ -386,6 +386,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
         assertNull(assignment.getAssignmentRemovedDate());
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
@@ -416,6 +417,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
         when(assignmentRepository.saveAndFlush(any(Assignment.class)))
@@ -437,6 +439,7 @@ class DeviceAssignmentServiceTest {
 
         Assignment assignment = new Assignment();
         assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
 
         when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
         when(userRepository.getUserByUserName("dev-user")).thenReturn(Optional.empty());
@@ -454,5 +457,38 @@ class DeviceAssignmentServiceTest {
         verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(saved);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
+    }
+
+    @Test
+    void deleteAssignment_shouldThrowNotFound_whenAssignmentIsNotDeviceAssignment() {
+        when(opaService.getUserNameAuthenticatedUser()).thenReturn("dev-user");
+
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+
+        when(assignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
+
+        assertThrows(ResourceNotFoundException.class, () -> deviceAssignmentService.deleteAssignment(10L));
+
+        verify(assignmentRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(flattenedDeviceAssignmentService);
+        verifyNoInteractions(licenseEnforcementService);
+    }
+
+    @Test
+    void deactivateAssignmentsByResourceId_shouldDeactivateActiveDeviceAssignmentsForResource() {
+        Assignment assignment = new Assignment();
+        assignment.setId(10L);
+        assignment.setDeviceGroupRef(100L);
+
+        when(assignmentRepository.findActiveDeviceAssignmentsByResourceRef(1L)).thenReturn(List.of(assignment));
+
+        deviceAssignmentService.deactivateAssignmentsByResourceId(1L);
+
+        assertNotNull(assignment.getAssignmentRemovedDate());
+        verify(assignmentRepository).saveAndFlush(assignment);
+        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
+        verify(flattenedDeviceAssignmentService)
+                .deleteFlattenedDeviceAssignments(assignment, "Resource is no longer active");
     }
 }

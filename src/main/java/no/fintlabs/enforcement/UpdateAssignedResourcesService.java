@@ -18,10 +18,12 @@ public class UpdateAssignedResourcesService {
     private final ResourceCountService resourceCountService;
 
     @Transactional
-    public void updateAssignedResources() {
+    public int updateAssignedResources() {
         log.info("Start updating assignedResources initiated by api call");
-        List<Resource> resources = resourceRepository.findByStatusACTIVE();
-        log.info("ACTIVE resources to update: {}", resources.size());
+        List<Resource> resources = resourceRepository.findAll();
+        log.info("Resources to update: {}", resources.size());
         resources.forEach(resourceCountService::updateNumberOfLicenses);
+        resourceRepository.flush();
+        return resources.size();
     }
 }

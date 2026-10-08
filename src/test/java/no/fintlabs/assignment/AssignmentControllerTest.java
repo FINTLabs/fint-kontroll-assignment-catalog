@@ -141,6 +141,41 @@ public class AssignmentControllerTest {
     }
 
     @Test
+    public void shouldSyncFlattenedAssignmentsInSyncModeWhenPathVariableIsTrue() throws Exception {
+        Assignment assignment = new Assignment();
+
+        when(assignmentServiceMock.getAllUserAssignments()).thenReturn(List.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignments/true")
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+    }
+
+    @Test
+    public void shouldSyncFlattenedAssignmentsInPublishModeWhenPathVariableIsFalse() throws Exception {
+        Assignment assignment = new Assignment();
+
+        when(assignmentServiceMock.getAllUserAssignments()).thenReturn(List.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignments/false")
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, false);
+    }
+
+    @Test
+    public void shouldRepublishUnconfirmedFlattenedAssignmentsOnCorrectlySpelledPath() throws Exception {
+        mockMvc.perform(post("/api/assignments/republishunconfirmedflattenedassignments")
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).republishUnconfirmedFlattenedAssignments();
+    }
+
+    @Test
     public void shouldCreateValidUserAssignment() throws Exception {
         NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
         newAssignmentRequest.resourceRef = 1L;

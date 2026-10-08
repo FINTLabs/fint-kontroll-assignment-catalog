@@ -128,17 +128,33 @@ public class DeviceAssignmentService {
         String userName = opaService.getUserNameAuthenticatedUser();
 
         Assignment assignment = assignmentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Assignment not found: " + id));
-        assignment.setAssignmentRemovedDate(new Date());
+        validateDeviceAssignment(assignment);
 
         if (!userName.isEmpty()) {
             userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
         }
 
+        deactivateAssignment(assignment, "Associated assignment terminated by user");
+
+    }
+
+    public void deactivateAssignmentsByResourceId(Long resourceId) {
+        getActiveAssignmentsByResource(resourceId)
+                .forEach(assignment -> deactivateAssignment(assignment, "Resource is no longer active"));
+    }
+
+    private void deactivateAssignment(Assignment assignment, String terminationReason) {
+        assignment.setAssignmentRemovedDate(new Date());
         assignmentRepository.saveAndFlush(assignment);
         licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment);
 
-        flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "Associated assignment terminated by user");
+        flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, terminationReason);
+    }
 
+    private void validateDeviceAssignment(Assignment assignment) {
+        if (assignment.getDeviceGroupRef() == null) {
+            throw new ResourceNotFoundException("Device assignment not found: " + assignment.getId());
+        }
     }
 
     private boolean existingDeviceGroupAssignment(Long deviceGroupRef, Long resourceRef) {
