@@ -171,13 +171,28 @@ public class FlattenedDeviceAssignmentService {
     }
 
     public void publishDeactivatedFlattenedAssignmentsForDeletion(List<FlattenedDeviceAssignment> flattenedDeviceAssignments) {
-        flattenedDeviceAssignments.forEach(flattenedAssignment -> {
-            DeviceEntraMembership deviceEntraMembership = flattenedAssignment.getDeviceEntraMembership();
-            if ((EntraStatus.activeStatuses().contains(deviceEntraMembership.getEntraStatus()) || EntraStatus.ERROR.equals(deviceEntraMembership.getEntraStatus())) && deviceEntraMembership.getFlattenedDeviceAssignments().isEmpty()) {
+        Set<DeviceEntraMembership> memberships = flattenedDeviceAssignments.stream()
+                .map(FlattenedDeviceAssignment::getDeviceEntraMembership)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        memberships.forEach(deviceEntraMembership -> {
+            boolean hasActiveAssignments =
+                    flattenedDeviceAssignmentRepository.existsByDeviceEntraMembershipAndTerminationDateIsNull(deviceEntraMembership);
+            if (shouldPublishDeviceMembershipDeletion(deviceEntraMembership, hasActiveAssignments)) {
                 deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
                 deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
             }
         });
+    }
+
+    private boolean shouldPublishDeviceMembershipDeletion(
+            DeviceEntraMembership deviceEntraMembership,
+            boolean hasActiveAssignments
+    ) {
+        return !hasActiveAssignments
+                && (EntraStatus.activeStatuses().contains(deviceEntraMembership.getEntraStatus())
+                || EntraStatus.ERROR.equals(deviceEntraMembership.getEntraStatus()));
     }
 
 
@@ -254,6 +269,25 @@ public class FlattenedDeviceAssignmentService {
         publishDeactivatedFlattenedAssignmentsForDeletion(activeAssignments);
     }
 
+    public void deactivateAndDeleteAssignmentsForDevice(Long deviceId) {
+        List<FlattenedDeviceAssignment> activeAssignments =
+                flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(deviceId);
+
+        activeAssignments.forEach(assignment -> {
+            assignment.setTerminationDate(new Date());
+            assignment.setTerminationReason("Device deleted");
+        });
+
+        if (!activeAssignments.isEmpty()) {
+            flattenedDeviceAssignmentRepository.saveAll(activeAssignments);
+            entityManager.flush();
+            publishDeactivatedFlattenedAssignmentsForDeletion(activeAssignments);
+        }
+
+        flattenedDeviceAssignmentRepository.deleteAllByDeviceRef(deviceId);
+        flattenedDeviceAssignmentRepository.flush();
+    }
+
     public void addAssignmentsForMembership(DeviceGroupMembership deviceGroupMembership) {
         if (!deviceGroupMembership.isActive()) {
             log.info("Device group membership for device {} and group {} is not active. No flattened assignments will be added",
@@ -273,19 +307,40 @@ public class FlattenedDeviceAssignmentService {
             return;
         }
 
+        Set<DeviceEntraMembership> membershipsToPublish = new LinkedHashSet<>();
         for (FlattenedDeviceAssignment flattenedDeviceAssignment : assignments) {
             flattenedDeviceAssignment.setIdentityProviderDeviceObjectId(azureDeviceId);
-            flattenedDeviceAssignment.getDeviceEntraMembership().setDeviceEntraId(azureDeviceId);
+            DeviceEntraMembership deviceEntraMembership = flattenedDeviceAssignment.getDeviceEntraMembership();
+            deviceEntraMembership.setDeviceEntraId(azureDeviceId);
+            membershipsToPublish.add(deviceEntraMembership);
         }
 
+        flattenedDeviceAssignmentRepository.saveAll(assignments);
+        deviceEntraMembershipRepository.saveAll(membershipsToPublish);
+
         log.info("Updated device azure id for {} flattened assignments", assignments.size());
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (FlattenedDeviceAssignment assignment : assignments) {
-                    deviceAssigmentEntityProducerService.publish(assignment.getDeviceEntraMembership(), false);
+        publishAfterCommit(membershipsToPublish);
+    }
+
+    private void publishAfterCommit(Set<DeviceEntraMembership> membershipsToPublish) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publishDeviceMemberships(membershipsToPublish);
                 }
-            }
-        });
+            });
+        } else {
+            publishDeviceMemberships(membershipsToPublish);
+        }
+    }
+
+    private void publishDeviceMemberships(Set<DeviceEntraMembership> membershipsToPublish) {
+        membershipsToPublish.forEach(membership ->
+                deviceAssigmentEntityProducerService.publish(
+                        membership,
+                        EntraStatus.ERROR.equals(membership.getEntraStatus())
+                )
+        );
     }
 }
