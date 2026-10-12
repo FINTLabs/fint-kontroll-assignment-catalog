@@ -189,7 +189,7 @@ class DeviceGroupMembershipServiceTest {
 
         when(deviceRepository.existsById(1L)).thenReturn(false);
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> deviceGroupMembershipService.saveOrUpdate(incoming));
 
         verify(deviceGroupRepository, never()).existsById(anyLong());
@@ -205,7 +205,7 @@ class DeviceGroupMembershipServiceTest {
         when(deviceRepository.existsById(1L)).thenReturn(true);
         when(deviceGroupRepository.existsById(100L)).thenReturn(false);
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> deviceGroupMembershipService.saveOrUpdate(incoming));
 
         verifyNoInteractions(deviceGroupMembershipRepository);

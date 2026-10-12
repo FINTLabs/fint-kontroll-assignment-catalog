@@ -33,4 +33,23 @@ class FlattenedAssignmentMapperTest {
         assertThat(existing.getAssignmentTerminationDate()).isEqualTo(terminationDate);
         assertThat(existing.getAssignmentTerminationReason()).isEqualTo("User is no longer active");
     }
+
+    @Test
+    void mapOriginWithExisting_shouldNotCopyTerminationReasonWithoutTerminationDate() {
+        FlattenedAssignment origin = new FlattenedAssignment();
+        origin.setAssignmentId(1L);
+        origin.setUserRef(10L);
+        origin.setResourceRef(20L);
+        origin.setAssignmentTerminationReason("Reason without date should not be copied");
+
+        FlattenedAssignment existing = new FlattenedAssignment();
+        existing.setAssignmentId(1L);
+        existing.setUserRef(10L);
+        existing.setResourceRef(20L);
+
+        mapper.mapOriginWithExisting(origin, List.of(existing));
+
+        assertThat(existing.getAssignmentTerminationDate()).isNull();
+        assertThat(existing.getAssignmentTerminationReason()).isNull();
+    }
 }

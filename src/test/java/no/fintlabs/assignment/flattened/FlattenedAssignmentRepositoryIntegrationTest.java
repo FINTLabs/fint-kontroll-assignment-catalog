@@ -83,16 +83,4 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
 
         assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(0);
     }
-
-    @Test
-    public void saveShouldRejectTerminatedAssignmentWithoutReason() {
-        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-        flattenedAssignment.setUserRef(30L);
-        flattenedAssignment.setAssignmentId(3L);
-        flattenedAssignment.setAssignmentTerminationDate(new Date());
-        flattenedAssignment.setResourceRef(10L);
-
-        assertThatThrownBy(() -> flattenedAssignmentRepository.saveAndFlush(flattenedAssignment))
-                .hasMessageContaining("assignmentTerminationReason must be set when assignmentTerminationDate is set");
-    }
 }

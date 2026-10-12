@@ -10,8 +10,6 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class FlattenedAssignmentMapper {
-    private static final String ASSIGNMENT_TERMINATED_REASON = "Assignment has been terminated";
-
 
     public Optional<FlattenedAssignment> mapOriginWithExisting(FlattenedAssignment originalAssignment, List<FlattenedAssignment> existingAssignments) {
         log.info("Trying to map flattened assignment with assignmentId: {}, userref: {}, via roleref: {} and resourceref: {} to existing assignments",
@@ -57,22 +55,9 @@ public class FlattenedAssignmentMapper {
     }
 
     private void mapWithOrigin(FlattenedAssignment origin, FlattenedAssignment existing) {
-        if (existing.getAssignmentTerminationDate() == null) {
+        if (existing.getAssignmentTerminationDate() == null && origin.getAssignmentTerminationDate() != null) {
             existing.setAssignmentTerminationDate(origin.getAssignmentTerminationDate());
-            existing.setAssignmentTerminationReason(getTerminationReason(origin));
+            existing.setAssignmentTerminationReason(origin.getAssignmentTerminationReason());
         }
-    }
-
-    private String getTerminationReason(FlattenedAssignment origin) {
-        if (origin.getAssignmentTerminationDate() == null) {
-            return origin.getAssignmentTerminationReason();
-        }
-        return isBlank(origin.getAssignmentTerminationReason())
-                ? ASSIGNMENT_TERMINATED_REASON
-                : origin.getAssignmentTerminationReason();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }
