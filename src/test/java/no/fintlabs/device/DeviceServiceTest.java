@@ -131,6 +131,37 @@ class DeviceServiceTest {
     }
 
     @Test
+    void saveOrUpdate_shouldUpdateActiveAssignments_whenJpaMergeMutatesExistingDevice() {
+        UUID oldAzureId = UUID.randomUUID();
+        UUID newAzureId = UUID.randomUUID();
+
+        Device existing = Device.builder()
+                .id(1L)
+                .dataObjectId(oldAzureId)
+                .name("Device")
+                .build();
+
+        Device incoming = Device.builder()
+                .id(1L)
+                .dataObjectId(newAzureId)
+                .name("Device")
+                .build();
+
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(deviceRepository.save(any())).thenAnswer(invocation -> {
+            Device saved = invocation.getArgument(0);
+            existing.setDataObjectId(saved.getDataObjectId());
+            return existing;
+        });
+
+        deviceService.saveOrUpdate(incoming);
+
+        verify(flattenedDeviceAssignmentService).updateDeviceAzureId(argThat(device ->
+                device.getId().equals(1L) && device.getDataObjectId().equals(newAzureId)
+        ));
+    }
+
+    @Test
     void saveOrUpdate_shouldReturnEarly_whenNoChangesDetected() {
         Device existing = Device.builder()
                 .id(1L)

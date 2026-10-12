@@ -72,10 +72,11 @@ public class DeviceService {
             log.info("Device {} already exists and has no changes", existing.getId());
             return;
         }
+        boolean dataObjectIdChanged = !Objects.equals(incomingDevice.getDataObjectId(), existing.getDataObjectId());
         Device saved = deviceRepository.save(mapExistingFromIncoming(existing, incomingDevice));
         log.info("Updated device {} with sourceId {}", existing.getId(), existing.getSourceId());
 
-        if(!Objects.equals(incomingDevice.getDataObjectId(), existing.getDataObjectId()))
+        if(dataObjectIdChanged)
         {
             flattenedDeviceAssignmentService.updateDeviceAzureId(saved);
         }

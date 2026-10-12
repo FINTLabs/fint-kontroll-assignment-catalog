@@ -34,6 +34,7 @@ public class DeviceGroupService {
                 .platform(incoming.getPlatform())
                 .name(incoming.getName())
                 .noOfMembers(incoming.getNoOfMembers())
+                .orgUnitId(incoming.getOrgUnitId())
                 .build();
     }
 
@@ -47,11 +48,12 @@ public class DeviceGroupService {
             log.info("Device group {} already exists and has no changes", existing.getId());
             return;
         }
+        long noOfMembersDelta = incomingDeviceGroup.getNoOfMembers() - existing.getNoOfMembers();
         DeviceGroup saved = deviceGroupRepository.save(mapExistingFromIncoming(existing, incomingDeviceGroup));
 
         log.info("Updated device group {} with sourceId {}", existing.getId(), existing.getSourceId());
-        if (existing.getNoOfMembers() != incomingDeviceGroup.getNoOfMembers()) {
-            licenseEnforcementService.updateAssignedResourcesOnDeviceGroupUpdate(saved, incomingDeviceGroup.getNoOfMembers() - existing.getNoOfMembers());
+        if (noOfMembersDelta != 0) {
+            licenseEnforcementService.updateAssignedResourcesOnDeviceGroupUpdate(saved, noOfMembersDelta);
         }
     }
 

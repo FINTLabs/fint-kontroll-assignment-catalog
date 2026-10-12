@@ -11,6 +11,8 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
+import static no.fintlabs.common.RetryConfig.KAFKA_RETRY_MAX_ATTEMPTS;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -33,10 +35,33 @@ public class DeviceGroupMembershipConsumer {
                 .createContainer(KafkaEntityTopics.topicNameParameters("kontroll-device-group-membership"));
     }
     private void processWithRetry(ConsumerRecord<String, DeviceGroupMembership> record) {
-        kafkaRetryTemplate.execute(context -> {
-            processDeviceGroupMembership(record);
-            return null;
-        });
+        try {
+            kafkaRetryTemplate.execute(context -> {
+                if (context.getRetryCount() > 0) {
+                    log.warn(
+                            "Retrying device group membership processing. attempt={} of {}, key={}, deviceId={}, deviceGroupId={}, reason={}",
+                            context.getRetryCount() + 1,
+                            KAFKA_RETRY_MAX_ATTEMPTS,
+                            record.key(),
+                            getDeviceId(record),
+                            getDeviceGroupId(record),
+                            context.getLastThrowable().getMessage()
+                    );
+                }
+                processDeviceGroupMembership(record);
+                return null;
+            });
+        } catch (RuntimeException exception) {
+            log.error(
+                    "Failed to process device group membership after {} attempts. key={}, deviceId={}, deviceGroupId={}. Record will be handled by Kafka error handler.",
+                    KAFKA_RETRY_MAX_ATTEMPTS,
+                    record.key(),
+                    getDeviceId(record),
+                    getDeviceGroupId(record),
+                    exception
+            );
+            throw exception;
+        }
     }
     private void processDeviceGroupMembership(ConsumerRecord<String, DeviceGroupMembership> stringDeviceGroupMembershipConsumerRecord) {
         DeviceGroupMembership incomingMembership = stringDeviceGroupMembershipConsumerRecord.value();
@@ -45,5 +70,12 @@ public class DeviceGroupMembershipConsumer {
         }
     }
 
+    private Long getDeviceId(ConsumerRecord<String, DeviceGroupMembership> record) {
+        return record.value() == null ? null : record.value().getDeviceId();
+    }
+
+    private Long getDeviceGroupId(ConsumerRecord<String, DeviceGroupMembership> record) {
+        return record.value() == null ? null : record.value().getDeviceGroupId();
+    }
 
 }
