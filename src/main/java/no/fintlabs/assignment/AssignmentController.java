@@ -195,7 +195,7 @@ public class AssignmentController {
             summary = "Republish unconfirmed flattened assignments",
             description = "Republishes flattened assignments that have not been confirmed."
     )
-    @PostMapping({"/republishunconfirmedflattenedassignments", "/republishuconfirmedflattenedassignments"})
+    @PostMapping("/republishunconfirmedflattenedassignments")
     public ResponseEntity<HttpStatus> republishUnconfirmedFlattenedAssignments() {
         log.info("Starting to sync all unconfirmed assignments");
 

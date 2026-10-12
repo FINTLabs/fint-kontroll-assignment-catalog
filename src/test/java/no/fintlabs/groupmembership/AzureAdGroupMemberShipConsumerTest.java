@@ -53,6 +53,7 @@ public class AzureAdGroupMemberShipConsumerTest {
 
         FlattenedAssignment flattenedAssignmentForDeletion = new FlattenedAssignment();
         flattenedAssignmentForDeletion.setAssignmentTerminationDate(new Date());
+        flattenedAssignmentForDeletion.setAssignmentTerminationReason("Assignment removed");
 
         when(repo.findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(groupIdUuid, userIdUuid)).thenReturn(
                 List.of(flattenedAssignmentForDeletion));

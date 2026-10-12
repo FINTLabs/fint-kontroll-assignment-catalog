@@ -86,7 +86,7 @@ public class FlattenedDeviceAssignmentService {
         flattenedAssignment.setIdentityProviderDeviceObjectId(deviceAzureId);
         flattenedAssignment.setDeviceRef(device.getId());
 
-        DeviceEntraMembership azureInfo = deviceEntraMembershipRepository
+        DeviceEntraMembership deviceEntraMembership = deviceEntraMembershipRepository
                 .findByDeviceEntraIdAndResourceEntraId(deviceAzureId, resourceAzureId)
                 .map(this::getAzureInfoForNewFlattenedAssignment)
                 .orElseGet(() -> DeviceEntraMembership.builder()
@@ -97,7 +97,7 @@ public class FlattenedDeviceAssignmentService {
                         .build()
                 );
 
-        azureInfo.addFlattenedAssignment(flattenedAssignment);
+        deviceEntraMembership.addFlattenedAssignment(flattenedAssignment);
 
         return flattenedAssignment;
     }

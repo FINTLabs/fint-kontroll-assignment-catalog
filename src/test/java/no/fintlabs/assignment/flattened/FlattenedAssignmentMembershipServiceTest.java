@@ -86,6 +86,7 @@ public class FlattenedAssignmentMembershipServiceTest {
 
         FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
         flattenedAssignment.setAssignmentTerminationDate(memberStatusChangedDate);
+        flattenedAssignment.setAssignmentTerminationReason("Role membership deactivated");
 
         when(membershipRepository.findAll(any(Specification.class))).thenReturn(memberships);
         when(flattenedAssignmentMapper.mapOriginWithExisting(any(), any())).thenReturn(Optional.of(flattenedAssignment));//, anyBoolean()

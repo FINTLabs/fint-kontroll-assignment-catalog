@@ -7,6 +7,8 @@ import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AssignmentMapper {
+    private static final String ASSIGNMENT_TERMINATED_REASON = "Assignment has been terminated";
+
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
@@ -20,7 +22,7 @@ public class AssignmentMapper {
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
     }
 
@@ -32,7 +34,7 @@ public class AssignmentMapper {
                 .identityProviderGroupObjectId(assignment.getAzureAdGroupId())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .terminationDate(assignment.getAssignmentRemovedDate())
-                .terminationReason(null)
+                .terminationReason(getTerminationReason(assignment))
                 .assignmentViaGroupRef(assignment.getDeviceGroupRef())
                 .build();
     }
@@ -50,7 +52,7 @@ public class AssignmentMapper {
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
     }
 
@@ -67,7 +69,11 @@ public class AssignmentMapper {
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
+    }
+
+    private static String getTerminationReason(Assignment assignment) {
+        return assignment.getAssignmentRemovedDate() == null ? null : ASSIGNMENT_TERMINATED_REASON;
     }
 }

@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 @DataJpaTest
 @Testcontainers
@@ -35,6 +36,7 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
         flattenedAssignment2.setUserRef(20L);
         flattenedAssignment2.setAssignmentId(1L);
         flattenedAssignment2.setAssignmentTerminationDate(new Date());
+        flattenedAssignment2.setAssignmentTerminationReason("Assignment removed");
         flattenedAssignment2.setResourceRef(10L);
         flattenedAssignment2.setAssignmentViaRoleRef(2L);
 
@@ -80,5 +82,17 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
                 );
 
         assertThat(otherActiveFlattenedAssignments.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void saveShouldRejectTerminatedAssignmentWithoutReason() {
+        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
+        flattenedAssignment.setUserRef(30L);
+        flattenedAssignment.setAssignmentId(3L);
+        flattenedAssignment.setAssignmentTerminationDate(new Date());
+        flattenedAssignment.setResourceRef(10L);
+
+        assertThatThrownBy(() -> flattenedAssignmentRepository.saveAndFlush(flattenedAssignment))
+                .hasMessageContaining("assignmentTerminationReason must be set when assignmentTerminationDate is set");
     }
 }

@@ -215,6 +215,7 @@ public class FlattenedAssignmentServiceTest {
         Assertions.assertEquals(2, saved.size());
         for (FlattenedAssignment f : saved) {
             assertNotNull(f.getAssignmentTerminationDate(), "Termination date must be set");
+            assertEquals("Role membership deactivated", f.getAssignmentTerminationReason());
             long ts = f.getAssignmentTerminationDate().getTime();
             assertTrue(ts >= before && ts <= after, "Termination timestamp should be 'now'");
         }
