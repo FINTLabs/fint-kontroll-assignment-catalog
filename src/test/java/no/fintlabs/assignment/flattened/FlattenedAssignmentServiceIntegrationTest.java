@@ -54,6 +54,7 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         flattenedAssignment1.setResourceRef(10L);
         flattenedAssignment1.setAssignmentViaRoleRef(2L);
         flattenedAssignment1.setAssignmentTerminationDate(new Date());
+        flattenedAssignment1.setAssignmentTerminationReason("Assignment removed");
 
         flattenedAssignment2 = new FlattenedAssignment();
         flattenedAssignment2.setUserRef(20L);
@@ -116,4 +117,3 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
     }
 }
-

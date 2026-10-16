@@ -2,17 +2,20 @@ package no.fintlabs.applicationresourcelocation;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface ApplicationResourceLocationRepository extends JpaRepository<ApplicationResourceLocation,Long>{
+public interface ApplicationResourceLocationRepository extends JpaRepository<ApplicationResourceLocation, Long> {
 
     @Query("select a from ApplicationResourceLocation a where a.applicationResourceId = ?1 and a.orgUnitId = ?2")
     List<ApplicationResourceLocation> findByApplicationResourceIdAndOrgUnitId(Long applicationResourceId, String orgUnitId);
+
+    List<ApplicationResourceLocation> findByApplicationResourceId(Long applicationResourceId);
 
 
     @Query("SELECT new no.fintlabs.applicationresourcelocation.NearestResourceLocationDto(arl.orgUnitId, arl.orgUnitName) " +
@@ -23,21 +26,15 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     List<NearestResourceLocationDto> findNearestApplicationResourceLocationForOrgUnit(@Param("resourceRef") Long resourceRef,
                                                                                       @Param("orgUnitId") String orgUnitId);
 
-    @Modifying
-    @Transactional
-    @Query(value = "UPDATE application_resource_location SET numberofresourcesassigned = null", nativeQuery = true)
-    void clearNumberOfResourcesAssignedInLocations();
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-        select arl
-        from ApplicationResourceLocation arl
-        where arl.applicationResourceId = :resourceId and arl.orgUnitId = :orgUnitId
-    """)
+                select arl
+                from ApplicationResourceLocation arl
+                where arl.applicationResourceId = :resourceId and arl.orgUnitId = :orgUnitId
+            """)
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
     List<ApplicationResourceLocation> lockByResourceAndOrgUnit(@Param("resourceId") Long resourceId,
-                                                                   @Param("orgUnitId") String orgUnitId);
+                                                               @Param("orgUnitId") String orgUnitId);
 
 }
-
 

@@ -3,6 +3,7 @@ package no.fintlabs.resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
+import no.fintlabs.device.assignment.DeviceAssignmentService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,13 +17,16 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final AssignmentService assignmentService;
+    private final DeviceAssignmentService deviceAssignmentService;
 
     public Resource save(Resource resource) {
         setDefaultStatusIfMissing(resource);
+        setDefaultAssignedResourcesIfMissing(resource);
         return resourceRepository.save(resource);
     }
 
     public void saveUpdatedResource(Resource resource) {
+        preserveAssignedResources(resource);
         Resource savedResource = save(resource);
         if (isNotActive(savedResource)) {
             deactivateResourceAssignments(savedResource);
@@ -50,6 +54,18 @@ public class ResourceService {
         }
     }
 
+    private void setDefaultAssignedResourcesIfMissing(Resource resource) {
+        if (resource.getNumberOfResourcesAssigned() == null) {
+            resource.setNumberOfResourcesAssigned(0L);
+        }
+    }
+
+    private void preserveAssignedResources(Resource resource) {
+        resourceRepository.findById(resource.getId())
+                .map(Resource::getNumberOfResourcesAssigned)
+                .ifPresent(resource::setNumberOfResourcesAssigned);
+    }
+
     private boolean isNotActive(Resource resource) {
         return !ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus());
     }
@@ -58,5 +74,6 @@ public class ResourceService {
         log.info("Deactivating assignments for inactive resource {}, status {}",
                 resource.getId(), resource.getStatus());
         assignmentService.deactivateAssignmentsByResourceId(resource.getId());
+        deviceAssignmentService.deactivateAssignmentsByResourceId(resource.getId());
     }
 }

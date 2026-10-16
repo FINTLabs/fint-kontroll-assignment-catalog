@@ -41,7 +41,7 @@ public class ResourceResponseFactory {
         }
     }
 
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
+    public static ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
 
         return new ResponseEntity<>(
                 Map.of( "resources", resourcePage.getContent(),
@@ -67,5 +67,4 @@ public class ResourceResponseFactory {
         );
     }
 }
-
 
