@@ -6,6 +6,7 @@ import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.user.User;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,8 @@ import static no.fintlabs.assignment.AssignmentMapper.toFlattenedAssignment;
 @Slf4j
 @Service
 public class FlattenedAssignmentService {
+
+    private static final int REPUBLISH_BATCH_SIZE = 500;
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final FlattenedAssignmentMembershipService flattenedAssignmentMembershipService;
@@ -249,8 +252,22 @@ public class FlattenedAssignmentService {
         });
     }
 
-    public List<FlattenedAssignment> getAllFlattenedAssignments() {
-        return flattenedAssignmentRepository.findAll();
+    public void republishAllActiveFlattenedAssignments() {
+        long lastProcessedId = 0L;
+        List<FlattenedAssignment> flattenedAssignments;
+
+        do {
+            flattenedAssignments = flattenedAssignmentRepository
+                    .findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(
+                            lastProcessedId,
+                            PageRequest.of(0, REPUBLISH_BATCH_SIZE));
+
+            flattenedAssignments.forEach(assigmentEntityProducerService::rePublish);
+
+            if (!flattenedAssignments.isEmpty()) {
+                lastProcessedId = flattenedAssignments.getLast().getId();
+            }
+        } while (flattenedAssignments.size() == REPUBLISH_BATCH_SIZE);
     }
 
     public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {

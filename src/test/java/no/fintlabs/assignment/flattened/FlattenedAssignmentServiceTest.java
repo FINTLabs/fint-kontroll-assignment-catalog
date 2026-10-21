@@ -62,6 +62,30 @@ public class FlattenedAssignmentServiceTest {
         flattenedAssignment.setIdentityProviderUserObjectId(idp);
         return flattenedAssignment;
     }
+
+    @Test
+    void shouldRepublishActiveFlattenedAssignmentsInBatches() {
+        FlattenedAssignment first = flattenedAssignment(1L, null, UUID.randomUUID());
+        FlattenedAssignment second = flattenedAssignment(2L, null, UUID.randomUUID());
+        FlattenedAssignment third = flattenedAssignment(3L, null, UUID.randomUUID());
+
+        List<FlattenedAssignment> firstBatch = new ArrayList<>(Collections.nCopies(500, first));
+        firstBatch.set(499, second);
+
+        when(flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(0L), any()))
+                .thenReturn(firstBatch);
+        when(flattenedAssignmentRepository.findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(2L), any()))
+                .thenReturn(List.of(third));
+
+        flattenedAssignmentService.republishAllActiveFlattenedAssignments();
+
+        verify(assigmentEntityProducerService, times(499)).rePublish(first);
+        verify(assigmentEntityProducerService).rePublish(second);
+        verify(assigmentEntityProducerService).rePublish(third);
+        verifyNoMoreInteractions(assigmentEntityProducerService);
+        verify(flattenedAssignmentRepository).findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(0L), any());
+        verify(flattenedAssignmentRepository).findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(eq(2L), any());
+    }
     @Test
     public void shouldCreateUserAssignment_manual() {
         Assignment assignment = assignment(1L);

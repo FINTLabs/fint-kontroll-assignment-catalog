@@ -111,16 +111,13 @@ public class AssignmentControllerTest {
 
     @Test
     public void shouldRepublishAllAssignments() throws Exception {
-        FlattenedAssignment flattenedAssignment = new FlattenedAssignment();
-
         when(authManagerMock.hasAdminAdminAccess(isA(Jwt.class))).thenReturn(true);
-        when(flattenedAssignmentServiceMock.getAllFlattenedAssignments()).thenReturn(List.of(flattenedAssignment));
 
         mockMvc.perform(post("/api/assignments/republish")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(assigmentEntityProducerServiceMock).rePublish(flattenedAssignment);
+        verify(flattenedAssignmentServiceMock).republishAllActiveFlattenedAssignments();
     }
 
     @Test

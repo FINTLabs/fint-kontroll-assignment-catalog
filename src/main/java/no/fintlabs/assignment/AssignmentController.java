@@ -8,7 +8,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
@@ -108,8 +107,7 @@ public class AssignmentController {
 
         log.info("Republishing all assignments");
 
-        List<FlattenedAssignment> allAssignments = flattenedAssignmentService.getAllFlattenedAssignments();
-        allAssignments.forEach(assigmentEntityProducerService::rePublish);
+        flattenedAssignmentService.republishAllActiveFlattenedAssignments();
 
         log.info("Republishing all assignments done");
 
