@@ -211,7 +211,7 @@ public class AssignmentService {
 
             assignment.setResourceName(resource.getResourceName());
             assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
+            assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
 
             Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
                     resourceRef, assignment.getOrganizationUnitId());
@@ -277,22 +277,16 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByUserId(Long userId) {
-        getActiveAssignmentsByUser(userId)
-                .forEach(assignment -> deactivateAssignment(assignment, "User is no longer active"));
-    }
+            getActiveAssignmentsByUser(userId)
+                    .forEach(assignment -> {
+                        log.info("Deactivating assignment with id: {}", assignment.getId());
+                        assignment.setAssignmentRemovedDate(new Date());
+                        assignmentRepository.saveAndFlush(assignment);
+                        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "User is no longer active");
+                        log.info("Updated license count after deactivating assignment {} : {}",
+                                assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
+                    });
 
-    public void deactivateAssignmentsByResourceId(Long resourceId) {
-        getActiveAssignmentsByResource(resourceId)
-                .forEach(assignment -> deactivateAssignment(assignment, "Resource is no longer active"));
-    }
-
-    private void deactivateAssignment(Assignment assignment, String terminationReason) {
-        log.info("Deactivating assignment with id: {}", assignment.getId());
-        assignment.setAssignmentRemovedDate(new Date());
-        assignmentRepository.saveAndFlush(assignment);
-        flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
-        log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment) ? "Success" : "Failure");
     }
 
     @Async
