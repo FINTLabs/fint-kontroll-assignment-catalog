@@ -3,7 +3,7 @@ package no.fintlabs.assignment;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.groupmembership.ResourceGroupMembership;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -28,16 +28,16 @@ public class AssigmentEntityProducerService {
     ) {
         entityProducer = entityProducerFactory.createTemplate(ResourceGroupMembership.class);
 
-        resourceGroupMembershipTopicNameParameters = KafkaEntityTopics.topicNameParameters("resource-group-membership");
+        resourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("resource-group-membership");
         entityTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
-                KafkaEntityTopics.compactedTopicConfiguration()
+                KafkaTopics.compactedTopicConfiguration()
         );
 
-        fullResourceGroupMembershipTopicNameParameters = KafkaEntityTopics.topicNameParameters("full-resource-group-membership");
+        fullResourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("full-resource-group-membership");
         entityTopicService.createOrModifyTopic(
                 fullResourceGroupMembershipTopicNameParameters,
-                KafkaEntityTopics.compactedTopicConfiguration(Duration.ofMinutes(5))
+                KafkaTopics.compactedTopicConfiguration(Duration.ofMinutes(5))
         );
     }
 

@@ -6,7 +6,7 @@ import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.device.EntraStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
 import no.fintlabs.device.MembershipStatus;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -34,9 +34,9 @@ public class EntraGroupDeviceMembershipConsumer {
         return eventConsumerFactoryService.createRecordListenerContainerFactory(
                         EntraDeviceGroupMembership.class,
                         this::processGroupMembership,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.eventTopicNameParameters("graph-device-group-membership"));
+                .createContainer(KafkaTopics.eventTopicNameParameters("graph-device-group-membership"));
     }
 
     @Transactional

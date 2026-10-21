@@ -3,7 +3,7 @@ package no.fintlabs.orgunitdistance;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -26,8 +26,8 @@ public class OrgUnitDistanceConsumerConfiguration {
                     log.debug("Processing orgunitdistance with id: {}", consumerRecord.value().getId());
                     orgUnitDistanceService.save(consumerRecord.value());
                 },
-                KafkaEntityTopics.defaultListenerConfiguration(),
+                KafkaTopics.defaultListenerConfiguration(),
                 kafkaConsumerConfigurationDefaults.defaultErrorHandler()
-        ).createContainer(KafkaEntityTopics.topicNameParameters("orgunitdistance"));
+        ).createContainer(KafkaTopics.topicNameParameters("orgunitdistance"));
     }
 }

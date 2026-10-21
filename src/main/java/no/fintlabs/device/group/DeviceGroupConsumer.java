@@ -3,7 +3,7 @@ package no.fintlabs.device.group;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -26,9 +26,9 @@ public class DeviceGroupConsumer {
                 .createRecordListenerContainerFactory(
                         DeviceGroup.class,
                         this::processDeviceGroup,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("kontroll-device-group"));
+                .createContainer(KafkaTopics.topicNameParameters("kontroll-device-group"));
     }
 
     private void processDeviceGroup(ConsumerRecord<String, DeviceGroup> stringDeviceGroupConsumerRecord) {

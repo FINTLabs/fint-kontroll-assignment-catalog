@@ -6,7 +6,7 @@ import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -44,9 +44,9 @@ public class AzureAdGroupMemberShipConsumer {
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         AzureAdGroupMembership.class,
                         this::processGroupMembership,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("azuread-resource-group-membership"));
+                .createContainer(KafkaTopics.topicNameParameters("azuread-resource-group-membership"));
 
     }
 
