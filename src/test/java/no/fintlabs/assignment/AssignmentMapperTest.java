@@ -1,6 +1,7 @@
 package no.fintlabs.assignment;
 
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
@@ -23,6 +24,7 @@ class AssignmentMapperTest {
 
         assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
         assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+        assertNull(flattenedAssignment.getAssignmentTerminationReason());
     }
 
     @Test
@@ -34,6 +36,7 @@ class AssignmentMapperTest {
 
         assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
         assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+        assertNull(flattenedAssignment.getAssignmentTerminationReason());
     }
 
     @Test
@@ -49,18 +52,29 @@ class AssignmentMapperTest {
         assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
         assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
         assertNotNull(flattenedAssignment.getAssignmentTerminationDate());
+        assertEquals("Assignment has been terminated", flattenedAssignment.getAssignmentTerminationReason());
+    }
+
+    @Test
+    void toFlattenedDeviceAssignment_shouldSetReasonWhenTerminationDateIsSet() {
+        Assignment assignment = AssignmentMother.createDefaultAssignment()
+                .assignmentRemovedDate(new Date())
+                .build();
+
+        FlattenedDeviceAssignment flattenedAssignment = AssignmentMapper.toFlattenedDeviceAssignment(assignment);
+
+        assertNotNull(flattenedAssignment.getTerminationDate());
+        assertEquals("Assignment has been terminated", flattenedAssignment.getTerminationReason());
     }
 
     private void assertCommonFields(FlattenedAssignment flattenedAssignment) {
         assertNotNull(flattenedAssignment);
         assertEquals(111L, flattenedAssignment.getAssignmentId());
-        assertEquals(222L, flattenedAssignment.getAssignerRef());
         assertEquals(333L, flattenedAssignment.getUserRef());
         assertEquals("123e4567-e89b-12d3-a456-426614174000", flattenedAssignment.getIdentityProviderUserObjectId().toString());
         assertEquals(444L, flattenedAssignment.getResourceRef());
         assertEquals("456e4567-e89b-12d3-a456-426614174000", flattenedAssignment.getIdentityProviderGroupObjectId().toString());
         assertEquals(555L, flattenedAssignment.getAssignmentViaRoleRef());
         assertNotNull(flattenedAssignment.getAssignmentCreationDate());
-        assertNull(flattenedAssignment.getAssignmentTerminationReason());
     }
 }

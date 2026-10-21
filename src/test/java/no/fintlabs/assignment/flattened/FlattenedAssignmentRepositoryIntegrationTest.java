@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 @DataJpaTest
 @Testcontainers
@@ -35,6 +36,7 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
         flattenedAssignment2.setUserRef(20L);
         flattenedAssignment2.setAssignmentId(1L);
         flattenedAssignment2.setAssignmentTerminationDate(new Date());
+        flattenedAssignment2.setAssignmentTerminationReason("Assignment removed");
         flattenedAssignment2.setResourceRef(10L);
         flattenedAssignment2.setAssignmentViaRoleRef(2L);
 

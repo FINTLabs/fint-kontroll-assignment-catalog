@@ -92,7 +92,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToUserHardstop = Assignment.builder()
                 .id(111L)
-                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(1L)
                 .organizationUnitId("org1")
@@ -102,7 +101,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToRoleHardstop = Assignment.builder()
                 .id(222L)
-                .assignerRef(222L)
                 .resourceRef(1L)
                 .roleRef(555L)
                 .organizationUnitId("org1")
@@ -112,7 +110,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToRoleFree = Assignment.builder()
                 .id(333L)
-                .assignerRef(222L)
                 .resourceRef(2L)
                 .roleRef(555L)
                 .organizationUnitId("org1")
@@ -122,7 +119,6 @@ class LicenseEnforcementServiceTest {
 
         assignmentToUserFree = Assignment.builder()
                 .id(444L)
-                .assignerRef(222L)
                 .userRef(333L)
                 .resourceRef(2L)
                 .organizationUnitId("org1")
@@ -140,7 +136,7 @@ class LicenseEnforcementServiceTest {
     @Test
     public void incrementAssignLicensesHardstopForUser() {
 
-        given(resourceRepository.lockByResourceId(1L)).willReturn(Optional.ofNullable(resourceHardstop));
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(List.of(applicationResourceLocationHardstop));
@@ -155,7 +151,7 @@ class LicenseEnforcementServiceTest {
     @DisplayName("Test for role assignment. Resource has hardstop")
     @Test
     public void incrementAssignLicensesHardstopForRole() {
-        given(resourceRepository.lockByResourceId(1L)).willReturn(Optional.ofNullable(resourceHardstop));
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
         given(roleRepository.findById(555L)).willReturn(Optional.ofNullable(role));
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToRoleHardstop.getApplicationResourceLocationOrgUnitId()))
@@ -172,7 +168,7 @@ class LicenseEnforcementServiceTest {
     @Test
     public void incrementAssignLicensesFreeAllForUser() {
 
-        given(resourceRepository.lockByResourceId(2L)).willReturn(Optional.ofNullable(resourceFree));
+        given(resourceRepository.lockByResourceId(2L)).willReturn(resourceFree);
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(resourceFree.getId(), assignmentToRoleFree.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(List.of(applicationResourceLocationFreeall));
@@ -187,7 +183,7 @@ class LicenseEnforcementServiceTest {
     @DisplayName("Test for role assignment. Resource has freeforall")
     @Test
     public void incrementAssignLicensesFreeAllForRole() {
-        given(resourceRepository.lockByResourceId(2L)).willReturn(Optional.ofNullable(resourceFree));
+        given(resourceRepository.lockByResourceId(2L)).willReturn(resourceFree);
         given(roleRepository.findById(555L)).willReturn(Optional.ofNullable(role));
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(assignmentToRoleFree.getResourceRef(), assignmentToRoleFree.getApplicationResourceLocationOrgUnitId()))
@@ -204,7 +200,7 @@ class LicenseEnforcementServiceTest {
     @Test
     public void doNotAssignLicensesHardstopForUserExeededResourceLimit() {
         resourceHardstop.setResourceLimit(100L);
-        given(resourceRepository.lockByResourceId(1L)).willReturn(Optional.ofNullable(resourceHardstop));
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(List.of(applicationResourceLocationHardstop));
@@ -221,7 +217,7 @@ class LicenseEnforcementServiceTest {
     @Test
     public void doNotAssignLicensesHardstopForUserExeededConsumerResourceLimit() {
         applicationResourceLocationHardstop.setResourceLimit(30L);
-        given(resourceRepository.lockByResourceId(1L)).willReturn(Optional.ofNullable(resourceHardstop));
+        given(resourceRepository.lockByResourceId(1L)).willReturn(resourceHardstop);
         given(applicationResourceLocationRepository
                 .lockByResourceAndOrgUnit(resourceHardstop.getId(), assignmentToUserHardstop.getApplicationResourceLocationOrgUnitId()))
                 .willReturn(List.of(applicationResourceLocationHardstop));
