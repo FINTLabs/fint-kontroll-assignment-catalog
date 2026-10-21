@@ -5,7 +5,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.enforcement.LicenseEnforcementService;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -40,9 +40,9 @@ public class RoleConsumer {
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Role.class,
                         this::process,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("role-catalog-role"));
+                .createContainer(KafkaTopics.topicNameParameters("role-catalog-role"));
     }
 
     void process(ConsumerRecord<String, Role> consumerRecord) {

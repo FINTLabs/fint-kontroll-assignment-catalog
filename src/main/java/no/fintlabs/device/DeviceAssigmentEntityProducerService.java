@@ -3,7 +3,12 @@ package no.fintlabs.device;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.groupmembership.MembershipEventNames;
+import no.fintlabs.groupmembership.OperationType;
+import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -31,10 +36,10 @@ public class DeviceAssigmentEntityProducerService {
         eventProducer = entityProducerFactory.createTemplate(DeviceResourceGroupMembership.class);
         this.deviceEntraMembershipRepository = deviceEntraMembershipRepository;
 
-        resourceGroupMembershipTopicNameParameters = KafkaEntityTopics.eventTopicNameParameters("resource-group-membership-device");
+        resourceGroupMembershipTopicNameParameters = KafkaTopics.eventTopicNameParameters("resource-group-membership-device");
         entityTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
-                KafkaEntityTopics.eventTopicConfiguration()
+                KafkaTopics.eventTopicConfiguration()
         );
     }
 

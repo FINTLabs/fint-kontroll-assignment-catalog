@@ -3,7 +3,7 @@ package no.fintlabs.device.groupmembership;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -30,9 +30,9 @@ public class DeviceGroupMembershipConsumer {
                 .createRecordListenerContainerFactory(
                         DeviceGroupMembership.class,
                         this::processWithRetry,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("kontroll-device-group-membership"));
+                .createContainer(KafkaTopics.topicNameParameters("kontroll-device-group-membership"));
     }
     private void processWithRetry(ConsumerRecord<String, DeviceGroupMembership> record) {
         try {

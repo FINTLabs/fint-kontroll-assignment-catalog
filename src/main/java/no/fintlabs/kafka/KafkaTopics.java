@@ -11,12 +11,12 @@ import no.novari.kafka.topic.name.TopicNamePrefixParameters;
 
 import java.time.Duration;
 
-public final class KafkaEntityTopics {
+public final class KafkaTopics {
 
     private static final int DEFAULT_PARTITIONS = 1;
     private static final Duration DEFAULT_NULL_VALUE_RETENTION_TIME = Duration.ofDays(1);
 
-    private KafkaEntityTopics() {
+    private KafkaTopics() {
     }
 
     public static EntityTopicNameParameters topicNameParameters(String resourceName) {

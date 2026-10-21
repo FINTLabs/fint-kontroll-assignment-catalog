@@ -9,7 +9,7 @@ import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.groupmembership.MembershipEventNames;
 import no.fintlabs.groupmembership.OperationType;
 import no.fintlabs.groupmembership.ResourceGroupMembership;
-import no.fintlabs.kafka.KafkaEventTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -39,10 +39,16 @@ public class AssigmentEntityProducerService {
         membershipProducer = producerFactory.createTemplate(ResourceGroupMembership.class);
         this.userEntraMembershipRepository = userEntraMembershipRepository;
 
-        resourceGroupMembershipTopicNameParameters = KafkaEventTopics.topicNameParameters(MembershipEventNames.RESOURCE_GROUP_MEMBERSHIP_USER);
-        eventTopicService.createOrModifyTopic(
+        resourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("resource-group-membership");
+        entityTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
-                KafkaEventTopics.topicConfiguration()
+                KafkaTopics.compactedTopicConfiguration()
+        );
+
+        fullResourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("full-resource-group-membership");
+        entityTopicService.createOrModifyTopic(
+                fullResourceGroupMembershipTopicNameParameters,
+                KafkaTopics.compactedTopicConfiguration(Duration.ofMinutes(5))
         );
     }
 
