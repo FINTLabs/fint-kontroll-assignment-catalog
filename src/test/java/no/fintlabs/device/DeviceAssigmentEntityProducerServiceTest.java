@@ -1,5 +1,7 @@
 package no.fintlabs.device;
 
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.novari.kafka.producing.ParameterizedProducerRecord;

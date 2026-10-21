@@ -1,5 +1,7 @@
 package no.fintlabs.device.assignment;
 
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
@@ -10,6 +12,7 @@ import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +72,9 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     @MockBean
     private DeviceAssigmentEntityProducerService deviceAssigmentEntityProducerService;
 
+    @MockBean
+    private LicenseEnforcementService licenseEnforcementService;
+
     Long deviceId, deviceGroupId, assignmentId;
     UUID deviceAzureId, deviceGroupAzureId;
     Device device;
@@ -108,7 +114,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assignment = new Assignment();
         assignment.setId(assignmentId);
         assignment.setDeviceGroupRef(deviceGroupId);
-        assignment.setAzureAdGroupId(deviceGroupAzureId);
+        assignment.setEntraGroupId(deviceGroupAzureId);
         assignmentRepository.saveAndFlush(assignment);
     }
 
@@ -290,7 +296,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 //        Assignment assignment = new Assignment();
 //        assignment.setId(99L);
 //        assignment.setDeviceGroupRef(deviceGroupRef);
-//        assignment.setAzureAdGroupId(UUID.randomUUID());
+//        assignment.setEntraGroupId(UUID.randomUUID());
 //
 //        DeviceGroupMembership membership = DeviceGroupMembership.builder()
 //                .deviceId(1L)

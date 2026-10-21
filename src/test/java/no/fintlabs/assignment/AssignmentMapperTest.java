@@ -22,8 +22,7 @@ class AssignmentMapperTest {
 
         assertCommonFields(flattenedAssignment);
 
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+        assertNull(flattenedAssignment.getUserEntraMembership());
         assertNull(flattenedAssignment.getAssignmentTerminationReason());
     }
 
@@ -34,8 +33,7 @@ class AssignmentMapperTest {
 
         assertCommonFields(flattenedAssignment);
 
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertFalse(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
+        assertNull(flattenedAssignment.getUserEntraMembership());
         assertNull(flattenedAssignment.getAssignmentTerminationReason());
     }
 

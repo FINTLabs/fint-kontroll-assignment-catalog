@@ -3,12 +3,13 @@ package no.fintlabs.enforcement;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.group.DeviceGroup;
-import no.fintlabs.device.group.DeviceGroupRepository;
+import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
+import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
-import no.fintlabs.role.Role;
-import no.fintlabs.role.RoleRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,13 +29,16 @@ import static org.mockito.Mockito.when;
 class ResourceCountServiceTest {
 
     @Mock
-    private RoleRepository roleRepository;
+    private UserEntraMembershipRepository userEntraMembershipRepository;
 
     @Mock
-    private DeviceGroupRepository deviceGroupRepository;
+    private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     @Mock
-    private LicenseEnforcementService licenseEnforcementService;
+    private FlattenedAssignmentRepository flattenedAssignmentRepository;
+
+    @Mock
+    private FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
 
     @Mock
     private ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
@@ -67,12 +70,11 @@ class ResourceCountServiceTest {
 
         assertThat(resource.getNumberOfResourcesAssigned()).isZero();
         assertThat(location.getNumberOfResourcesAssigned()).isZero();
-        verify(applicationResourceLocationRepository).saveAll(List.of(location));
         verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(location, resource);
     }
 
     @Test
-    void updateNumberOfLicenses_sumsUserRoleAndDeviceGroupAssignments() {
+    void updateNumberOfLicenses_countsDistinctActiveMembershipsAcrossAssignmentTypes() {
         ApplicationResourceLocation locationA = ApplicationResourceLocation.builder()
                 .id(10L)
                 .applicationResourceId(1L)
@@ -110,31 +112,46 @@ class ResourceCountServiceTest {
                 .id(102L)
                 .assignmentId("device-assignment")
                 .deviceGroupRef(30L)
-                .azureAdGroupId(UUID.randomUUID())
+                .entraGroupId(UUID.randomUUID())
                 .resourceRef(1L)
                 .applicationResourceLocationOrgUnitId("org-b")
                 .build();
 
+        UUID resourceEntraId = UUID.randomUUID();
         Resource resource = Resource.builder()
                 .id(1L)
                 .resourceId("resource-1")
+                .identityProviderGroupObjectId(resourceEntraId)
                 .assignments(new HashSet<>(Set.of(userAssignment, roleAssignment, deviceAssignment)))
                 .build();
 
-        when(roleRepository.findById(20L)).thenReturn(Optional.of(Role.builder().id(20L).noOfMembers(3L).build()));
-        when(deviceGroupRepository.findById(30L)).thenReturn(Optional.of(DeviceGroup.builder().id(30L).noOfMembers(5L).build()));
-        when(licenseEnforcementService.getApplicationResourceLocation(userAssignment)).thenReturn(Optional.of(locationA));
-        when(licenseEnforcementService.getApplicationResourceLocation(roleAssignment)).thenReturn(Optional.of(locationA));
-        when(licenseEnforcementService.getApplicationResourceLocation(deviceAssignment)).thenReturn(Optional.of(locationB));
+        when(userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE))
+                .thenReturn(2L);
+        when(deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resourceEntraId, MembershipStatus.ACTIVE))
+                .thenReturn(3L);
+        when(flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-a", MembershipStatus.ACTIVE))
+                .thenReturn(2L);
+        when(flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-b", MembershipStatus.ACTIVE))
+                .thenReturn(0L);
+        when(flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-c", MembershipStatus.ACTIVE))
+                .thenReturn(0L);
+        when(flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-a", MembershipStatus.ACTIVE))
+                .thenReturn(0L);
+        when(flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-b", MembershipStatus.ACTIVE))
+                .thenReturn(3L);
+        when(flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(1L, "org-c", MembershipStatus.ACTIVE))
+                .thenReturn(0L);
         when(applicationResourceLocationRepository.findByApplicationResourceId(1L))
                 .thenReturn(List.of(locationA, locationB, unusedLocation));
 
         resourceCountService.updateNumberOfLicenses(resource);
 
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(9L);
-        assertThat(locationA.getNumberOfResourcesAssigned()).isEqualTo(4L);
-        assertThat(locationB.getNumberOfResourcesAssigned()).isEqualTo(5L);
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(5L);
+        assertThat(locationA.getNumberOfResourcesAssigned()).isEqualTo(2L);
+        assertThat(locationB.getNumberOfResourcesAssigned()).isEqualTo(3L);
         assertThat(unusedLocation.getNumberOfResourcesAssigned()).isZero();
-        verify(applicationResourceLocationRepository).saveAll(List.of(locationA, locationB, unusedLocation));
+        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(locationA, resource);
+        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(locationB, resource);
+        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(unusedLocation, resource);
     }
 }

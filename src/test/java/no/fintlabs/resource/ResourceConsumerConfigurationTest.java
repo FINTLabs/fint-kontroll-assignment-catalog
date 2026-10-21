@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -13,6 +14,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ResourceConsumerConfigurationTest {
+
+    private static final UUID RESOURCE_ENTRA_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
 
     private final ResourceRepository resourceRepository = mock(ResourceRepository.class);
     private final ResourceService resourceService = mock(ResourceService.class);
@@ -24,6 +27,7 @@ class ResourceConsumerConfigurationTest {
     void processResourceShouldSkipIncomingInactiveResourceWhenUnchanged() {
         Resource resource = Resource.builder()
                 .id(1L)
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .status("INACTIVE")
                 .build();
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
@@ -38,11 +42,13 @@ class ResourceConsumerConfigurationTest {
     void processResourceShouldSaveUpdatedIncomingResource() {
         Resource existingResource = Resource.builder()
                 .id(1L)
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .status("ACTIVE")
                 .resourceName("Old name")
                 .build();
         Resource incomingResource = Resource.builder()
                 .id(1L)
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .status("INACTIVE")
                 .resourceName("New name")
                 .build();
@@ -57,6 +63,7 @@ class ResourceConsumerConfigurationTest {
     void processResourceShouldSkipIncomingActiveResourceWhenUnchanged() {
         Resource resource = Resource.builder()
                 .id(1L)
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
                 .status("ACTIVE")
                 .build();
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));

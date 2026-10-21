@@ -1,8 +1,8 @@
 package no.fintlabs.device.azure;
 
-import no.fintlabs.device.EntraStatus;
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
 import no.fintlabs.device.entra.EntraGroupDeviceMembershipConsumer;
 import no.fintlabs.device.entra.EntraDeviceGroupMembership;
 import no.fintlabs.device.entra.EntraReturnCode;

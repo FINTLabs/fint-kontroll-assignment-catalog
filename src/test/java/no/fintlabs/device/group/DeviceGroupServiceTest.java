@@ -116,6 +116,6 @@ class DeviceGroupServiceTest {
 
         deviceGroupService.saveOrUpdate(incoming);
 
-        verify(licenseEnforcementService).updateAssignedResourcesOnDeviceGroupUpdate(any(DeviceGroup.class), eq(3L));
+        verify(licenseEnforcementService).updateAssignedResourcesOnDeviceGroupUpdate(any(DeviceGroup.class));
     }
 }

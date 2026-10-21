@@ -1,5 +1,6 @@
 package no.fintlabs.groupmembership;
 
+import no.fintlabs.device.entra.EntraReturnCode;
 import no.fintlabs.assignment.AssigmentEntityProducerService;
 import no.fintlabs.assignment.entra.UserEntraMembership;
 import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
@@ -49,7 +50,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.REMOVED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.REMOVED, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.EntraStatus.DELETION_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -65,7 +66,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.ADDED, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.EntraStatus.MEMBERSHIP_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -81,7 +82,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.REMOVED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.REMOVED, groupId, userId)));
 
         verify(assigmentEntityProducerService).publish(userEntraMembership, true);
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -96,7 +97,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.ADDED, groupId, userId)));
 
         verify(assigmentEntityProducerService).publish(userEntraMembership, true);
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -111,7 +112,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.NO_CHANGES, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.EntraStatus.MEMBERSHIP_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -127,7 +128,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.NO_CHANGES, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.NO_CHANGES, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.EntraStatus.DELETION_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -143,7 +144,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.FAILED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.FAILED, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.EntraStatus.NEEDS_REPUBLISH, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -158,7 +159,7 @@ public class EntraIdGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.empty());
 
-        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraStatus.ADDED, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraIdGroupMembership(EntraReturnCode.ADDED, groupId, userId)));
 
         verify(userEntraMembershipRepository, times(1)).findByUserEntraIdAndResourceEntraId(userId, groupId);
         verify(userEntraMembershipRepository, never()).save(org.mockito.ArgumentMatchers.any());

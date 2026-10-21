@@ -125,7 +125,7 @@ class DeviceServiceTest {
         deviceService.saveOrUpdate(incoming);
 
         verify(deviceRepository).save(any());
-        verify(flattenedDeviceAssignmentService).updateDeviceAzureId(argThat(device ->
+        verify(flattenedDeviceAssignmentService).updateDeviceEntraId(argThat(device ->
                 device.getId().equals(1L) && device.getDataObjectId().equals(newAzureId)
         ));
     }
@@ -156,7 +156,7 @@ class DeviceServiceTest {
 
         deviceService.saveOrUpdate(incoming);
 
-        verify(flattenedDeviceAssignmentService).updateDeviceAzureId(argThat(device ->
+        verify(flattenedDeviceAssignmentService).updateDeviceEntraId(argThat(device ->
                 device.getId().equals(1L) && device.getDataObjectId().equals(newAzureId)
         ));
     }

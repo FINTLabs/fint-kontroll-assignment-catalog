@@ -53,7 +53,7 @@ public class DeviceGroupService {
 
         log.info("Updated device group {} with sourceId {}", existing.getId(), existing.getSourceId());
         if (noOfMembersDelta != 0) {
-            licenseEnforcementService.updateAssignedResourcesOnDeviceGroupUpdate(saved, noOfMembersDelta);
+            licenseEnforcementService.updateAssignedResourcesOnDeviceGroupUpdate(saved);
         }
     }
 

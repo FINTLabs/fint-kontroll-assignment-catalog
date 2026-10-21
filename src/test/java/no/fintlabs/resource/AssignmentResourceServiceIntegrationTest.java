@@ -223,7 +223,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();

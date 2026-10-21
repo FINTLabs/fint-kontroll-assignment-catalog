@@ -1,5 +1,7 @@
 package no.fintlabs.device.assignment;
 
+import no.fintlabs.entra.EntraStatus;
+import no.fintlabs.entra.MembershipStatus;
 import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
@@ -8,11 +10,14 @@ import no.fintlabs.device.entra.DeviceEntraMembership;
 import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
+import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -43,6 +48,9 @@ class FlattenedDeviceAssignmentServiceTest {
     @Mock
     private AssignmentRepository assignmentRepository;
 
+    @Mock
+    private LicenseEnforcementService licenseEnforcementService;
+
     @InjectMocks
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
@@ -66,7 +74,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
         assignment.setRoleRef(50L);
 
         Device device = new Device();
@@ -100,7 +108,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         Device device = new Device();
         device.setId(10L);
@@ -258,7 +266,7 @@ class FlattenedDeviceAssignmentServiceTest {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
         assignment.setDeviceGroupRef(100L);
-        assignment.setAzureAdGroupId(UUID.randomUUID());
+        assignment.setEntraGroupId(UUID.randomUUID());
 
         // Existing
         FlattenedDeviceAssignment existingFda = FlattenedDeviceAssignment.builder()
@@ -350,7 +358,7 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
-    void updateDeviceAzureId_shouldUpdateActiveAssignmentsAndMemberships() {
+    void updateDeviceEntraId_shouldUpdateActiveAssignmentsAndMemberships() {
         UUID oldAzureId = UUID.randomUUID();
         UUID newAzureId = UUID.randomUUID();
         Device device = Device.builder()
@@ -373,7 +381,7 @@ class FlattenedDeviceAssignmentServiceTest {
         when(flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(fda));
 
-        flattenedDeviceAssignmentService.updateDeviceAzureId(device);
+        flattenedDeviceAssignmentService.updateDeviceEntraId(device);
 
         assertEquals(newAzureId, fda.getIdentityProviderDeviceObjectId());
         assertEquals(newAzureId, azureInfo.getDeviceEntraId());
@@ -383,7 +391,7 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
-    void updateDeviceAzureId_shouldForcePublishErrorMemberships() {
+    void updateDeviceEntraId_shouldForcePublishErrorMemberships() {
         UUID newAzureId = UUID.randomUUID();
         Device device = Device.builder()
                 .id(1L)
@@ -404,9 +412,54 @@ class FlattenedDeviceAssignmentServiceTest {
         when(flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(fda));
 
-        flattenedDeviceAssignmentService.updateDeviceAzureId(device);
+        flattenedDeviceAssignmentService.updateDeviceEntraId(device);
 
         verify(deviceAssigmentEntityProducerService).publish(azureInfo, true);
+    }
+
+    @Test
+    void updateDeviceEntraId_shouldPublishSharedMembershipOnceAfterCommit() {
+        UUID newEntraId = UUID.randomUUID();
+        Device device = Device.builder().id(1L).dataObjectId(newEntraId).build();
+        DeviceEntraMembership membership = DeviceEntraMembership.builder()
+                .deviceEntraId(UUID.randomUUID())
+                .resourceEntraId(UUID.randomUUID())
+                .entraStatus(EntraStatus.SENT)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .build();
+        FlattenedDeviceAssignment firstAssignment = FlattenedDeviceAssignment.builder()
+                .id(10L)
+                .assignmentId(100L)
+                .deviceRef(1L)
+                .deviceEntraMembership(membership)
+                .build();
+        FlattenedDeviceAssignment secondAssignment = FlattenedDeviceAssignment.builder()
+                .id(11L)
+                .assignmentId(101L)
+                .deviceRef(1L)
+                .deviceEntraMembership(membership)
+                .build();
+        when(flattenedDeviceAssignmentRepository.findByDeviceRefAndTerminationDateIsNull(1L))
+                .thenReturn(List.of(firstAssignment, secondAssignment));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            flattenedDeviceAssignmentService.updateDeviceEntraId(device);
+
+            assertEquals(newEntraId, firstAssignment.getIdentityProviderDeviceObjectId());
+            assertEquals(newEntraId, secondAssignment.getIdentityProviderDeviceObjectId());
+            assertEquals(newEntraId, membership.getDeviceEntraId());
+            verifyNoInteractions(deviceAssigmentEntityProducerService);
+            assertEquals(1, TransactionSynchronizationManager.getSynchronizations().size());
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(TransactionSynchronization::afterCommit);
+
+            verify(deviceAssigmentEntityProducerService).publish(membership, false);
+            verifyNoMoreInteractions(deviceAssigmentEntityProducerService);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

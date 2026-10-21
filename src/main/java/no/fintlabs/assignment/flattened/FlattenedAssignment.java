@@ -55,6 +55,6 @@ public class FlattenedAssignment extends AuditEntity {
     private String assignmentTerminationReason;
 
     @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "user_entra_membership_id", updatable = false)
+    @JoinColumn(name = "user_entra_membership_id")
     private UserEntraMembership userEntraMembership;
 }

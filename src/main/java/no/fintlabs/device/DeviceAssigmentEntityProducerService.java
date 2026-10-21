@@ -16,6 +16,8 @@ import no.novari.kafka.topic.EventTopicService;
 import no.novari.kafka.topic.name.EventTopicNameParameters;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Date;
 import java.util.UUID;
@@ -65,11 +67,25 @@ public class DeviceAssigmentEntityProducerService {
     }
 
     private void publish(UUID azureAdGroupId, UUID azureDeviceId, OperationType action) {
-        String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
         DeviceResourceGroupMembership azureAdGroupMembership = new DeviceResourceGroupMembership(action, azureAdGroupId, azureDeviceId);
 
         log.info("Publishing to Azure - groupId: {}, deviceId: {}, action: {}", azureAdGroupId, azureDeviceId, action);
 
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    send(azureAdGroupMembership);
+                }
+            });
+            return;
+        }
+
+        send(azureAdGroupMembership);
+    }
+
+    private void send(DeviceResourceGroupMembership azureAdGroupMembership) {
+        String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
         eventProducer.send(
                 ParameterizedProducerRecord.<DeviceResourceGroupMembership>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)

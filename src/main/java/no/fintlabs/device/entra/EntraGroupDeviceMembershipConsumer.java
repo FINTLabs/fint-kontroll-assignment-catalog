@@ -3,13 +3,11 @@ package no.fintlabs.device.entra;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.MembershipStatus;
+import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.groupmembership.MembershipEventNames;
 import no.fintlabs.kafka.KafkaTopics;
 import no.fintlabs.entra.EntraStatus;
-import no.fintlabs.entra.MembershipStatus;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.groupmembership.MembershipEventNames;
-import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +37,7 @@ public class EntraGroupDeviceMembershipConsumer {
                         this::processGroupMembership,
                         KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaTopics.eventTopicNameParameters("graph-device-group-membership"));
+                .createContainer(KafkaTopics.eventTopicNameParameters(MembershipEventNames.ENTRA_DEVICE_GROUP_MEMBERSHIP));
     }
 
     @Transactional

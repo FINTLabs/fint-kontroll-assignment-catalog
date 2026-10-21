@@ -242,7 +242,7 @@ class AssignmentServiceTest {
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
+        given(resourceRepository.findById(1L)).willReturn(Optional.of(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
@@ -254,11 +254,11 @@ class AssignmentServiceTest {
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(licenseEnforcementService,times(1)).validateAssignmentCapacity(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
     }
 
     @Test
-    void shouldScheduleFlattenedAssignmentCreationAfterCommit_whenTransactionSynchronizationIsActive() {
+    void shouldCreateFlattenedAssignmentsBeforeTransactionCommit() {
         Assignment assignment = Assignment.builder()
                 .id(123L)
                 .userRef(1L)
@@ -267,29 +267,16 @@ class AssignmentServiceTest {
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
+        given(resourceRepository.findById(1L)).willReturn(Optional.of(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
         given(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(1L, "orgid1")).willReturn(Optional.empty());
 
-        TransactionSynchronizationManager.initSynchronization();
-        try {
-            Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
+        Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
-            assertThat(returnedAssignment).isEqualTo(assignment);
-            verify(flattenedAssignmentService, never()).createFlattenedAssignments(any());
-
-            List<TransactionSynchronization> synchronizations =
-                    new ArrayList<>(TransactionSynchronizationManager.getSynchronizations());
-            assertThat(synchronizations.size()).isEqualTo(1);
-
-            synchronizations.forEach(TransactionSynchronization::afterCommit);
-
-            verify(flattenedAssignmentService).createFlattenedAssignments(assignment);
-            verify(flattenedAssignmentService, never()).createFlattenedAssignmentsSync(any());
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
+        assertThat(returnedAssignment).isEqualTo(assignment);
+        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
+        verify(flattenedAssignmentService, never()).createFlattenedAssignments(any());
     }
 
     @Test
@@ -311,7 +298,7 @@ class AssignmentServiceTest {
     void shouldCreateNewAssignment_InvalidResourceReference_ThrowsResourceNotFoundException() {
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-        given(resourceRepository.getReferenceById(999L)).willThrow(new ResourceNotFoundException("999"));
+        given(resourceRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
     }
@@ -398,7 +385,7 @@ class AssignmentServiceTest {
 
         when(assignmentRepository.findActiveUserAssignmentsByResourceRef(1L)).thenReturn(expected);
 
-        List<Assignment> actual = assignmentService.getActiveAssignmentsByResource(1L);
+        List<Assignment> actual = assignmentService.getActiveUserAssignmentsByResource(1L);
 
         assertThat(actual).isSameAs(expected);
         verify(assignmentRepository).findActiveUserAssignmentsByResourceRef(1L);
@@ -406,7 +393,7 @@ class AssignmentServiceTest {
     }
 
     @Test
-    void deactivateAssignmentsByResourceId_shouldDecreaseAssignedResourcesUsingAssignmentType() {
+    void deactivateAssignmentsByResourceId_shouldRecalculateAssignedResourcesAfterDeactivation() {
         Assignment roleAssignment = Assignment.builder()
                 .id(10L)
                 .roleRef(5L)
@@ -419,8 +406,7 @@ class AssignmentServiceTest {
 
         verify(assignmentRepository).saveAndFlush(roleAssignment);
         verify(flattenedAssignmentService).deleteFlattenedAssignments(roleAssignment, "Resource is no longer active");
-        verify(licenseEnforcementService).decreaseAssignedResourcesWhenAssignmentRemoved(roleAssignment);
-        verify(licenseEnforcementService, never()).updateAssignedLicense(any(), anyLong());
+        verify(licenseEnforcementService).recalculateAssignedResources(roleAssignment);
     }
 
     // Copilot tests for createNewAssignment
@@ -433,7 +419,7 @@ class AssignmentServiceTest {
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
+        given(resourceRepository.findById(1L)).willReturn(Optional.of(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
@@ -441,7 +427,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
     }
 
     @DisplayName("Create new assignment - valid role reference")
@@ -453,7 +439,7 @@ class AssignmentServiceTest {
                 .build();
 
         given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-        given(resourceRepository.getReferenceById(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").build());
+        given(resourceRepository.findById(1L)).willReturn(Optional.of(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build()));
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);
 
@@ -461,7 +447,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(1)).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
     }
 
 //    @DisplayName("Create new assignment - invalid user reference")

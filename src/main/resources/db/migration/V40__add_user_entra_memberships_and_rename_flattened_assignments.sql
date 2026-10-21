@@ -1,3 +1,27 @@
+DELETE FROM flattened_device_assignments
+WHERE resource_ref IN (
+    SELECT id
+    FROM assignment_resources
+    WHERE identity_provider_group_object_id IS NULL
+);
+
+DELETE FROM flattened_assignments
+WHERE resource_ref IN (
+    SELECT id
+    FROM assignment_resources
+    WHERE identity_provider_group_object_id IS NULL
+);
+
+DELETE FROM assignments
+WHERE resource_ref IN (
+    SELECT id
+    FROM assignment_resources
+    WHERE identity_provider_group_object_id IS NULL
+);
+
+DELETE FROM assignment_resources
+WHERE identity_provider_group_object_id IS NULL;
+
 ALTER TABLE flattened_assignments
     RENAME TO flattened_user_assignments;
 

@@ -286,7 +286,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
+                .entraUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -400,7 +400,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
+                .entraUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -512,7 +512,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(savedUser.getIdentityProviderUserObjectId())
+                .entraUserId(savedUser.getIdentityProviderUserObjectId())
                 .resourceRef(savedResourceAdobek12.getId())
                 .build();
 
@@ -559,7 +559,7 @@ public class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTes
                 .assignmentRemovedDate(assignmentRemovedDate)
                 .roleRef(roleId)
                 .userRef(userId)
-                .azureAdUserId(azureUserId)
+                .entraUserId(azureUserId)
                 .resourceRef(resourceId)
                 .build();
         return assignmentRepository.saveAndFlush(assignment);

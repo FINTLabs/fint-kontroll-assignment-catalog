@@ -1,8 +1,8 @@
 package no.fintlabs.device.entra;
 
+import no.fintlabs.entra.EntraStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceAssigmentEntityProducerService;
-import no.fintlabs.device.EntraStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

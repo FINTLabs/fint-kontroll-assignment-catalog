@@ -12,7 +12,6 @@ import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.flattened.FlattenedAssignment;
 import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
 import no.fintlabs.device.assignment.DeviceAssignmentService;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
@@ -50,7 +49,6 @@ public class AssignmentController {
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
     private final DeviceAssignmentService deviceAssignmentService;
-    private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
     @PostMapping()
     public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
@@ -74,7 +72,6 @@ public class AssignmentController {
                     request.organizationUnitId,
                     request.deviceGroupRef
             );
-            flattenedDeviceAssignmentService.createAndPublishFlattenedAssignments(newAssignment);
             return newAssignment;
         }
 

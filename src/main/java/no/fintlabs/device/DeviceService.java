@@ -78,7 +78,7 @@ public class DeviceService {
 
         if(dataObjectIdChanged)
         {
-            flattenedDeviceAssignmentService.updateDeviceAzureId(saved);
+            flattenedDeviceAssignmentService.updateDeviceEntraId(saved);
         }
     }
 

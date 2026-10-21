@@ -39,16 +39,10 @@ public class AssigmentEntityProducerService {
         membershipProducer = producerFactory.createTemplate(ResourceGroupMembership.class);
         this.userEntraMembershipRepository = userEntraMembershipRepository;
 
-        resourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("resource-group-membership");
-        entityTopicService.createOrModifyTopic(
+        resourceGroupMembershipTopicNameParameters = KafkaTopics.eventTopicNameParameters(MembershipEventNames.RESOURCE_GROUP_MEMBERSHIP_USER);
+        eventTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
-                KafkaTopics.compactedTopicConfiguration()
-        );
-
-        fullResourceGroupMembershipTopicNameParameters = KafkaTopics.topicNameParameters("full-resource-group-membership");
-        entityTopicService.createOrModifyTopic(
-                fullResourceGroupMembershipTopicNameParameters,
-                KafkaTopics.compactedTopicConfiguration(Duration.ofMinutes(5))
+                KafkaTopics.eventTopicConfiguration()
         );
     }
 

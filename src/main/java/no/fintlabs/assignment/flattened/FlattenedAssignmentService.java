@@ -185,7 +185,7 @@ public class FlattenedAssignmentService {
                 newflattenedAssignment.getAssignmentViaRoleRef(),
                 newflattenedAssignment.getUserRef(),
                 newflattenedAssignment.getAssignmentId());
-        MembershipLinkAction linkAction = addUserEntraMembership(newflattenedAssignment);
+        MembershipLinkAction linkAction = addUserEntraMembership(newflattenedAssignment, new HashMap<>());
         FlattenedAssignment savedFlattened = flattenedAssignmentRepository.saveAndFlush(newflattenedAssignment);
         log.info("saveAndPublishNewFlattenedAssignment - Saved new flattened assignment with id: {}, assignmentId: {}",
                 savedFlattened.getId(),
@@ -206,6 +206,7 @@ public class FlattenedAssignmentService {
         log.info("saveAndPublish - {} flattened assignments", flattenedAssignmentsForUpdate.size());
         int batchSize = 800;
         Set<Long> affectedResourceRefs = new HashSet<>();
+        Map<EntraMembershipKey, UserEntraMembership> membershipsByEntraId = new HashMap<>();
         EnumMap<MembershipLinkAction, Integer> totalLinkActions = new EnumMap<>(MembershipLinkAction.class);
         int totalMembershipMessagesScheduled = 0;
 
@@ -214,7 +215,7 @@ public class FlattenedAssignmentService {
             List<FlattenedAssignment> batch = flattenedAssignmentsForUpdate.subList(i, end);
             EnumMap<MembershipLinkAction, Integer> batchLinkActions = new EnumMap<>(MembershipLinkAction.class);
             batch.forEach(flattenedAssignment ->
-                    increment(batchLinkActions, addUserEntraMembership(flattenedAssignment))
+                    increment(batchLinkActions, addUserEntraMembership(flattenedAssignment, membershipsByEntraId))
             );
             batchLinkActions.forEach((action, count) -> totalLinkActions.merge(action, count, Integer::sum));
             List<FlattenedAssignment> savedFlattened = flattenedAssignmentRepository.saveAll(batch);
@@ -409,11 +410,22 @@ public class FlattenedAssignmentService {
         flattenedAssignments.stream().filter(f -> f.getAssignmentTerminationDate() == null).forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
 
+    @Transactional
     public void updateAssignmentsOnUserChange(User user) {
         List<FlattenedAssignment> flattenedAssignments = flattenedAssignmentRepository.findByUserRefAndAssignmentTerminationDateIsNull(user.getId());
         flattenedAssignments.forEach(flattenedAssignment -> flattenedAssignment.setIdentityProviderUserObjectId(user.getIdentityProviderUserObjectId()));
-        flattenedAssignments.forEach(this::addUserEntraMembership);
-        flattenedAssignmentRepository.saveAll(flattenedAssignments);
+
+        Map<EntraMembershipKey, UserEntraMembership> membershipsByEntraId = new HashMap<>();
+        for (FlattenedAssignment flattenedAssignment : flattenedAssignments) {
+            UserEntraMembership membership = flattenedAssignment.getUserEntraMembership();
+            if (membership == null) {
+                addUserEntraMembership(flattenedAssignment, membershipsByEntraId);
+            } else {
+                migrateUserEntraMembership(membership, user.getIdentityProviderUserObjectId());
+            }
+        }
+
+        flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
         flattenedAssignments.forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
@@ -430,7 +442,10 @@ public class FlattenedAssignmentService {
                 .forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
 
-    private MembershipLinkAction addUserEntraMembership(FlattenedAssignment flattenedAssignment) {
+    private MembershipLinkAction addUserEntraMembership(
+            FlattenedAssignment flattenedAssignment,
+            Map<EntraMembershipKey, UserEntraMembership> membershipsByEntraId
+    ) {
         if (flattenedAssignment.getIdentityProviderUserObjectId() == null || flattenedAssignment.getIdentityProviderGroupObjectId() == null) {
             log.warn("Skipping user Entra membership linking for flattened assignment {}. Missing user Entra ID ({}) or resource Entra ID ({})",
                     flattenedAssignment.getId(),
@@ -439,23 +454,32 @@ public class FlattenedAssignmentService {
             return MembershipLinkAction.SKIPPED_MISSING_IDS;
         }
 
-        Optional<UserEntraMembership> existingMembership = userEntraMembershipRepository
-                .findByUserEntraIdAndResourceEntraId(flattenedAssignment.getIdentityProviderUserObjectId(), flattenedAssignment.getIdentityProviderGroupObjectId());
-
         MembershipLinkAction linkAction;
-        UserEntraMembership userEntraMembership;
-        if (existingMembership.isPresent()) {
-            userEntraMembership = existingMembership.get();
-            boolean reset = resetMembershipForNewFlattenedAssignmentIfNeeded(userEntraMembership);
-            linkAction = reset ? MembershipLinkAction.RESET_EXISTING : MembershipLinkAction.REUSED_EXISTING;
+        EntraMembershipKey membershipKey = new EntraMembershipKey(
+                flattenedAssignment.getIdentityProviderUserObjectId(),
+                flattenedAssignment.getIdentityProviderGroupObjectId()
+        );
+        UserEntraMembership userEntraMembership = membershipsByEntraId.get(membershipKey);
+        if (userEntraMembership != null) {
+            linkAction = MembershipLinkAction.REUSED_EXISTING;
         } else {
-            userEntraMembership = UserEntraMembership.builder()
-                    .userEntraId(flattenedAssignment.getIdentityProviderUserObjectId())
-                    .resourceEntraId(flattenedAssignment.getIdentityProviderGroupObjectId())
-                    .entraStatus(EntraStatus.NOT_SENT)
-                    .membershipStatus(MembershipStatus.ACTIVE)
-                    .build();
-            linkAction = MembershipLinkAction.CREATED_NEW;
+            Optional<UserEntraMembership> existingMembership = userEntraMembershipRepository
+                    .findByUserEntraIdAndResourceEntraId(membershipKey.userEntraId(), membershipKey.resourceEntraId());
+
+            if (existingMembership.isPresent()) {
+                userEntraMembership = existingMembership.get();
+                boolean reset = resetMembershipForNewFlattenedAssignmentIfNeeded(userEntraMembership);
+                linkAction = reset ? MembershipLinkAction.RESET_EXISTING : MembershipLinkAction.REUSED_EXISTING;
+            } else {
+                userEntraMembership = UserEntraMembership.builder()
+                        .userEntraId(membershipKey.userEntraId())
+                        .resourceEntraId(membershipKey.resourceEntraId())
+                        .entraStatus(EntraStatus.NOT_SENT)
+                        .membershipStatus(MembershipStatus.ACTIVE)
+                        .build();
+                linkAction = MembershipLinkAction.CREATED_NEW;
+            }
+            membershipsByEntraId.put(membershipKey, userEntraMembership);
         }
 
         userEntraMembership.addFlattenedAssignment(flattenedAssignment);
@@ -468,6 +492,38 @@ public class FlattenedAssignmentService {
                 userEntraMembership.getEntraStatus(),
                 userEntraMembership.getMembershipStatus());
         return linkAction;
+    }
+
+    private void migrateUserEntraMembership(UserEntraMembership membership, UUID updatedUserEntraId) {
+        if (Objects.equals(membership.getUserEntraId(), updatedUserEntraId)) {
+            return;
+        }
+
+        UUID previousUserEntraId = membership.getUserEntraId();
+        UserEntraMembership targetMembership = userEntraMembershipRepository
+                .findByUserEntraIdAndResourceEntraId(updatedUserEntraId, membership.getResourceEntraId())
+                .filter(existingMembership -> !Objects.equals(existingMembership.getId(), membership.getId()))
+                .orElse(membership);
+
+        assigmentEntityProducerService.publishDeletion(membership.getResourceEntraId(), previousUserEntraId);
+
+        if (targetMembership != membership) {
+            List<FlattenedAssignment> linkedAssignments = flattenedAssignmentRepository.findByUserEntraMembership(membership);
+            linkedAssignments.forEach(targetMembership::addFlattenedAssignment);
+            flattenedAssignmentRepository.saveAllAndFlush(linkedAssignments);
+            userEntraMembershipRepository.delete(membership);
+        } else {
+            membership.setUserEntraId(updatedUserEntraId);
+        }
+
+        targetMembership.setMembershipStatus(MembershipStatus.ACTIVE);
+        targetMembership.setEntraStatus(EntraStatus.NOT_SENT);
+        targetMembership.setSentToEntraAt(null);
+        targetMembership.setDeletionSentToEntraAt(null);
+        userEntraMembershipRepository.save(targetMembership);
+    }
+
+    private record EntraMembershipKey(UUID userEntraId, UUID resourceEntraId) {
     }
 
     private boolean resetMembershipForNewFlattenedAssignmentIfNeeded(UserEntraMembership userEntraMembership) {

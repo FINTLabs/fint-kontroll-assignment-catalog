@@ -2,6 +2,7 @@ package no.fintlabs.assignment.flattened;
 
 import jakarta.persistence.QueryHint;
 import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.assignment.entra.UserEntraMembership;
 import no.fintlabs.reporting.FlattenedAssignmentReport;
 import no.fintlabs.entra.EntraStatus;
 import org.hibernate.jpa.AvailableHints;
@@ -45,6 +46,8 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("resourceRef") Long resourceRef);
 
     List<FlattenedAssignment> findByUserRefAndAssignmentTerminationDateIsNull(Long userRef);
+
+    List<FlattenedAssignment> findByUserEntraMembership(UserEntraMembership userEntraMembership);
 
     List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndIdIn(List<EntraStatus> entraStatuses, List<Long> ids);
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdIn(List<Long> ids);

@@ -190,7 +190,7 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(UUID.randomUUID());
 
-        when(resourceRepositoryMock.existsById(1L)).thenReturn(true);
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", 1L, null)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -220,7 +220,7 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(UUID.randomUUID());
 
-        when(resourceRepositoryMock.existsById(1L)).thenReturn(true);
+        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -266,7 +266,7 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.organizationUnitId").value("198"));
 
         verify(deviceAssignmentServiceMock).createNewAssignment(6L, "198", 2L);
-        verify(flattenedDeviceAssignmentServiceMock).createAndPublishFlattenedAssignments(expectedReturnAssignment);
+        verify(flattenedDeviceAssignmentServiceMock, never()).createAndPublishFlattenedAssignments(expectedReturnAssignment);
     }
 
     @Test
@@ -404,7 +404,7 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void createAssignment_failMissingIdentityProviderGroupObjectId() throws Exception {
+    public void createAssignment_rejectsResourceWithoutIdentityProviderGroupObjectId() throws Exception {
         NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
         newAssignmentRequest.resourceRef = 123L;
         newAssignmentRequest.organizationUnitId = "99999999";
@@ -414,19 +414,14 @@ public class AssignmentControllerTest {
         value.setId(1L);
         value.setIdentityProviderGroupObjectId(null);
 
-        Assignment expectedReturnAssignment = new Assignment();
-        expectedReturnAssignment.setId(1L);
-        expectedReturnAssignment.setResourceRef(123L);
-        expectedReturnAssignment.setOrganizationUnitId("99999999");
-        expectedReturnAssignment.setRoleRef(1L);
-
-        when(resourceRepositoryMock.existsById(123L)).thenReturn(true);
-        when(assignmentServiceMock.createNewAssignment(123L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
+        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.of(value));
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isUnprocessableEntity());
+
+        verify(assignmentServiceMock, never()).createNewAssignment(123L, "99999999", null, 1L);
     }
 
     @Test
@@ -436,7 +431,7 @@ public class AssignmentControllerTest {
         newAssignmentRequest.organizationUnitId = "99999999";
         newAssignmentRequest.roleRef = 1L;
 
-        when(resourceRepositoryMock.existsById(123L)).thenReturn(false);
+        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
