@@ -3,7 +3,7 @@ package no.fintlabs.device.groupmembership;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.device.DeviceRepository;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -2,8 +2,8 @@ package no.fintlabs.assignment;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignment;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AssignmentMapper {

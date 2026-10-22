@@ -3,7 +3,7 @@ package no.fintlabs.membership;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.user.User;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;

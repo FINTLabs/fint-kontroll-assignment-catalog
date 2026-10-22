@@ -4,7 +4,7 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.slack.SlackMessenger;

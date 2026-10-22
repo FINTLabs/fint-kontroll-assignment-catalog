@@ -2,7 +2,7 @@ package no.fintlabs.reporting;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

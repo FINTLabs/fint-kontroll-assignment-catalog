@@ -5,10 +5,11 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -90,7 +91,7 @@ public class AssignmentControllerTest {
     private FlattenedAssignmentService flattenedAssignmentServiceMock;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerServiceMock;
+    private UserEntraMembershipPublisher assigmentEntityProducerServiceMock;
 
     @MockBean
     private MembershipService membershipServiceMock;

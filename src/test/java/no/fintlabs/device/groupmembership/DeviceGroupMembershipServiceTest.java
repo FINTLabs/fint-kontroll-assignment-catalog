@@ -1,7 +1,7 @@
 package no.fintlabs.device.groupmembership;
 
 import no.fintlabs.device.DeviceRepository;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.junit.jupiter.api.Test;

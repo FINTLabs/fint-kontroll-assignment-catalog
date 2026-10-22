@@ -4,19 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
-import no.fintlabs.assignment.Assignment;
-import no.fintlabs.device.group.DeviceGroup;
-import no.fintlabs.device.group.DeviceGroupRepository;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentRepository;
+import no.fintlabs.assignment.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
-import no.fintlabs.role.Role;
-import no.fintlabs.role.RoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Transactional
@@ -24,69 +22,48 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public class ResourceCountService {
 
-    private final RoleRepository roleRepository;
-    private final DeviceGroupRepository deviceGroupRepository;
-    private final LicenseEnforcementService licenseEnforcementService;
-    private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
+    private final UserEntraMembershipRepository userEntraMembershipRepository;
+    private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
+    private final FlattenedAssignmentRepository flattenedAssignmentRepository;
+    private final FlattenedDeviceAssignmentRepository flattenedDeviceAssignmentRepository;
     private final ApplicationResourceLocationRepository applicationResourceLocationRepository;
+    private final ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
 
 
     public void updateNumberOfLicenses(Resource resource) {
         log.info("Updating assigned resources for {} : {}", resource.getResourceId(), resource.getResourceName());
-        AtomicLong totalNumberOfAssignedLicences = new AtomicLong(0L);
-        List<Assignment> assignments = resource.getAssignments().stream()
-                .filter(assignment -> assignment.getAssignmentRemovedDate() == null)
-                .toList();
-        log.info("Resource {} has {} assignments", resource.getResourceId(), assignments.size());
-        java.util.Map<ApplicationResourceLocation, Long> byLocation = new java.util.HashMap<>();
 
-        assignments.forEach(assignment -> {
-            log.info("Update assigned resources for asignment {}", assignment.getAssignmentId());
-            long requestedNumberOfLicences = calculateAssignedLicenses(assignment);
-            totalNumberOfAssignedLicences.addAndGet(requestedNumberOfLicences);
-            Optional<ApplicationResourceLocation> applicationResourceLocationOptional =
-                    licenseEnforcementService.getApplicationResourceLocation(assignment);
-            if (applicationResourceLocationOptional.isPresent()) {
-                ApplicationResourceLocation applicationResourceLocation = applicationResourceLocationOptional.get();
-                byLocation.merge(applicationResourceLocation, requestedNumberOfLicences, Long::sum);
-            }
-            else {
-                log.warn("No applicationResourceLocation entity found for assignment {}", assignment.getAssignmentId());
-            }
+        long totalNumberOfAssignedLicences = countActiveMemberships(resource);
+        resource.setNumberOfResourcesAssigned(totalNumberOfAssignedLicences);
 
+        List<ApplicationResourceLocation> locations =
+                applicationResourceLocationRepository.findByApplicationResourceId(resource.getId());
+        locations.forEach(location -> {
+            long locationAssignedResources = countActiveMembershipsForLocation(resource.getId(), location.getOrgUnitId());
+            location.setNumberOfResourcesAssigned(locationAssignedResources);
+            resourceAvailabilityPublishingComponent.updateResourceAvailability(location, resource);
         });
-        resource.setNumberOfResourcesAssigned(totalNumberOfAssignedLicences.get());
-        updateApplicationResourceLocationCounts(resource, byLocation);
+
         log.info("Resource {} -> assigned total {}", resource.getResourceId(), totalNumberOfAssignedLicences);
     }
 
-    private long calculateAssignedLicenses(Assignment assignment) {
-        if (assignment.isGroupAssignment()) {
-            log.info("Processing assigned licences for group {}", assignment.getRoleRef());
-            long requestedNumberOfLicences = roleRepository.findById(assignment.getRoleRef())
-                    .map(Role::getNoOfMembers)
-                    .orElse(0L);
-            log.info("Number of licences assigned to group {}", requestedNumberOfLicences);
-            return requestedNumberOfLicences;
+    private long countActiveMemberships(Resource resource) {
+        if (resource.getIdentityProviderGroupObjectId() == null) {
+            return 0L;
         }
 
-        if (assignment.isDeviceGroupAssignment()) {
-            long requestedNumberOfLicences = deviceGroupRepository.findById(assignment.getDeviceGroupRef())
-                    .map(DeviceGroup::getNoOfMembers)
-                    .orElse(0L);
-            log.info("Processing assigned licences for device group {}", assignment.getDeviceGroupRef());
-            log.info("Number of licences assigned to device group {}", requestedNumberOfLicences);
-            return requestedNumberOfLicences;
-        }
-
-        log.info("Processing assigned licences for user {}", assignment.getUserRef());
-        return 1L;
+        return userEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE)
+                + deviceEntraMembershipRepository.countByResourceEntraIdAndMembershipStatus(resource.getIdentityProviderGroupObjectId(), MembershipStatus.ACTIVE);
     }
 
-    private void updateApplicationResourceLocationCounts(Resource resource, java.util.Map<ApplicationResourceLocation, Long> byLocation) {
-        List<ApplicationResourceLocation> locations = applicationResourceLocationRepository.findByApplicationResourceId(resource.getId());
-        locations.forEach(location -> location.setNumberOfResourcesAssigned(byLocation.getOrDefault(location, 0L)));
-        applicationResourceLocationRepository.saveAll(locations);
-        locations.forEach(location -> resourceAvailabilityPublishingComponent.updateResourceAvailability(location, resource));
+    private long countActiveMembershipsForLocation(Long resourceId, String orgUnitId) {
+        return flattenedAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(
+                resourceId,
+                orgUnitId,
+                MembershipStatus.ACTIVE)
+                + flattenedDeviceAssignmentRepository.countDistinctMembershipsByResourceRefAndOrgUnitIdAndMembershipStatus(
+                resourceId,
+                orgUnitId,
+                MembershipStatus.ACTIVE);
     }
 }

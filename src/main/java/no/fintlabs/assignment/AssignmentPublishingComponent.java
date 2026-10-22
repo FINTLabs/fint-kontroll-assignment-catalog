@@ -1,7 +1,8 @@
 package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -11,9 +12,9 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class AssignmentPublishingComponent {
     private final FlattenedAssignmentService flattenedAssignmentService;
-    private final AssigmentEntityProducerService assigmentEntityProducerService;
+    private final UserEntraMembershipPublisher assigmentEntityProducerService;
 
-    public AssignmentPublishingComponent(FlattenedAssignmentService flattenedAssignmentService, AssigmentEntityProducerService assigmentEntityProducerService) {
+    public AssignmentPublishingComponent(FlattenedAssignmentService flattenedAssignmentService, UserEntraMembershipPublisher assigmentEntityProducerService) {
         this.flattenedAssignmentService = flattenedAssignmentService;
         this.assigmentEntityProducerService = assigmentEntityProducerService;
     }

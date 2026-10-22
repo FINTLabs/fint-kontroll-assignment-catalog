@@ -3,7 +3,7 @@ package no.fintlabs.assignment;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentException;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;

@@ -5,20 +5,20 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
-import no.fintlabs.assignment.entra.UserEntraMembership;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.entra.UserEntraMembership;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.device.Device;
 import no.fintlabs.device.DeviceRepository;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignmentRepository;
-import no.fintlabs.device.entra.DeviceEntraMembership;
-import no.fintlabs.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignment;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentRepository;
+import no.fintlabs.assignment.device.entra.DeviceEntraMembership;
+import no.fintlabs.assignment.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupRepository;
-import no.fintlabs.entra.EntraStatus;
-import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
+import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
@@ -226,7 +226,7 @@ class ResourceCountServiceIntegrationTest extends DatabaseIntegrationTest {
         return userEntraMembershipRepository.saveAndFlush(UserEntraMembership.builder()
                 .userEntraId(userEntraId)
                 .resourceEntraId(resourceEntraId)
-                .entraStatus(status == MembershipStatus.ACTIVE ? EntraStatus.MEMBERSHIP_CONFIRMED : EntraStatus.DELETION_CONFIRMED)
+                .entraStatus(status == MembershipStatus.ACTIVE ? EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED : EntraMembershipSyncStatus.DELETION_CONFIRMED)
                 .membershipStatus(status)
                 .build());
     }
@@ -235,7 +235,7 @@ class ResourceCountServiceIntegrationTest extends DatabaseIntegrationTest {
         return deviceEntraMembershipRepository.saveAndFlush(DeviceEntraMembership.builder()
                 .deviceEntraId(deviceEntraId)
                 .resourceEntraId(resourceEntraId)
-                .entraStatus(status == MembershipStatus.ACTIVE ? EntraStatus.MEMBERSHIP_CONFIRMED : EntraStatus.DELETION_CONFIRMED)
+                .entraStatus(status == MembershipStatus.ACTIVE ? EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED : EntraMembershipSyncStatus.DELETION_CONFIRMED)
                 .membershipStatus(status)
                 .build());
     }

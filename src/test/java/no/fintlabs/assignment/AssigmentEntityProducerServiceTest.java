@@ -1,12 +1,13 @@
 package no.fintlabs.assignment;
 
-import no.fintlabs.assignment.entra.UserEntraMembership;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.entra.EntraStatus;
-import no.fintlabs.entra.MembershipStatus;
-import no.fintlabs.groupmembership.OperationType;
-import no.fintlabs.groupmembership.ResourceGroupMembership;
+import no.fintlabs.assignment.user.entra.UserEntraMembership;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
+import no.fintlabs.entra.membership.MembershipStatus;
+import no.fintlabs.entra.membership.event.OperationType;
+import no.fintlabs.entra.membership.event.UserResourceGroupMembershipCommand;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -44,13 +45,13 @@ public class AssigmentEntityProducerServiceTest {
     @Mock
     private UserEntraMembershipRepository userEntraMembershipRepository;
 
-    private AssigmentEntityProducerService service;
+    private UserEntraMembershipPublisher service;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         when(entityProducerFactory.createTemplate(any())).thenReturn(entityProducer);
-        service = new AssigmentEntityProducerService(entityProducerFactory, eventTopicService, userEntraMembershipRepository);
+        service = new UserEntraMembershipPublisher(entityProducerFactory, eventTopicService, userEntraMembershipRepository);
     }
 
     @Test
@@ -63,7 +64,7 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publish(assignment);
 
-        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.ADD, record.getValue().getOperation());
         assertEquals(groupRef, record.getValue().getEntraGroupRef());
         assertEquals(userRef, record.getValue().getEntraUserRef());
@@ -88,7 +89,7 @@ public class AssigmentEntityProducerServiceTest {
 
         service.publishDeletion(assignment);
 
-        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.REMOVE, record.getValue().getOperation());
         assertEquals(groupRef, record.getValue().getEntraGroupRef());
         assertEquals(userRef, record.getValue().getEntraUserRef());
@@ -111,14 +112,14 @@ public class AssigmentEntityProducerServiceTest {
                 .resourceEntraId(groupRef)
                 .userEntraId(userRef)
                 .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraStatus.NOT_SENT)
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
                 .build();
 
         service.publish(userEntraMembership, false);
 
-        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.ADD, record.getValue().getOperation());
-        assertEquals(EntraStatus.SENT, userEntraMembership.getEntraStatus());
+        assertEquals(EntraMembershipSyncStatus.SENT, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
     }
 
@@ -130,14 +131,14 @@ public class AssigmentEntityProducerServiceTest {
                 .resourceEntraId(groupRef)
                 .userEntraId(userRef)
                 .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraStatus.NOT_SENT)
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
                 .build();
 
         TransactionSynchronizationManager.initSynchronization();
         try {
             service.publish(userEntraMembership, false);
 
-            assertEquals(EntraStatus.SENT, userEntraMembership.getEntraStatus());
+            assertEquals(EntraMembershipSyncStatus.SENT, userEntraMembership.getEntraStatus());
             verify(userEntraMembershipRepository).save(userEntraMembership);
             verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
 
@@ -147,7 +148,7 @@ public class AssigmentEntityProducerServiceTest {
 
             synchronizations.forEach(TransactionSynchronization::afterCommit);
 
-            ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+            ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
             assertEquals(OperationType.ADD, record.getValue().getOperation());
             assertEquals(groupRef, record.getValue().getEntraGroupRef());
             assertEquals(userRef, record.getValue().getEntraUserRef());
@@ -164,19 +165,19 @@ public class AssigmentEntityProducerServiceTest {
                 .resourceEntraId(groupRef)
                 .userEntraId(userRef)
                 .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraStatus.MEMBERSHIP_CONFIRMED)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
                 .build();
 
         service.publish(userEntraMembership, false);
 
-        ParameterizedProducerRecord<ResourceGroupMembership> record = captureSentRecord();
+        ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.REMOVE, record.getValue().getOperation());
-        assertEquals(EntraStatus.DELETION_SENT, userEntraMembership.getEntraStatus());
+        assertEquals(EntraMembershipSyncStatus.DELETION_SENT, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private ParameterizedProducerRecord<ResourceGroupMembership> captureSentRecord() {
+    private ParameterizedProducerRecord<UserResourceGroupMembershipCommand> captureSentRecord() {
         ArgumentCaptor<ParameterizedProducerRecord> captor = ArgumentCaptor.forClass(ParameterizedProducerRecord.class);
         verify(entityProducer, times(1)).send(captor.capture());
         return captor.getValue();

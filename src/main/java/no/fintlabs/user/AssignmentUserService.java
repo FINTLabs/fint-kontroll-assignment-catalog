@@ -3,8 +3,8 @@ package no.fintlabs.user;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.opa.OpaUtils;
 import no.fintlabs.resource.Resource;
@@ -143,4 +143,3 @@ public class AssignmentUserService {
     }
 
 }
-

@@ -2,14 +2,14 @@ package no.fintlabs.role;
 
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
-import no.fintlabs.assignment.AssigmentEntityProducerService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentRoleService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentRoleService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -48,7 +48,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
     private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @Autowired
     private UserRepository userRepository;

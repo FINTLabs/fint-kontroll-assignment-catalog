@@ -4,9 +4,10 @@ import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @Import({AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -60,7 +61,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;

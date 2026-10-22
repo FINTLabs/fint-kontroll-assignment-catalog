@@ -1,7 +1,7 @@
 package no.fintlabs.resource;
 
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

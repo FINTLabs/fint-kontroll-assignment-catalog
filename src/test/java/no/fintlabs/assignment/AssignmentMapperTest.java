@@ -1,7 +1,7 @@
 package no.fintlabs.assignment;
 
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.device.assignment.FlattenedDeviceAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignment;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;

@@ -9,9 +9,10 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ConflictException;
@@ -43,7 +44,7 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
     private final FlattenedAssignmentService flattenedAssignmentService;
-    private final AssigmentEntityProducerService assigmentEntityProducerService;
+    private final UserEntraMembershipPublisher assigmentEntityProducerService;
     private final MembershipService membershipService;
     private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;

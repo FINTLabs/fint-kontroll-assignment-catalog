@@ -3,7 +3,7 @@ package no.fintlabs.resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

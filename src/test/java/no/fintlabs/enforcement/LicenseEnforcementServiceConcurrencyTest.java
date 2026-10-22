@@ -4,10 +4,10 @@ import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationRepository;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.entra.UserEntraMembership;
-import no.fintlabs.assignment.entra.UserEntraMembershipRepository;
-import no.fintlabs.entra.EntraStatus;
-import no.fintlabs.entra.MembershipStatus;
+import no.fintlabs.assignment.user.entra.UserEntraMembership;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
+import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
@@ -197,7 +197,7 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
                 .userEntraId(userEntraId)
                 .resourceEntraId(RESOURCE_ENTRA_ID)
                 .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraStatus.MEMBERSHIP_CONFIRMED)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
                 .build());
     }
 }

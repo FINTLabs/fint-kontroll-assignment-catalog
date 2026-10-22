@@ -1,7 +1,7 @@
 //package no.fintlabs.assignment;
 //
-//import no.fintlabs.assignment.flattened.FlattenedAssignment;
-//import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+//import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+//import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 //import org.junit.jupiter.api.Disabled;
 //import org.junit.jupiter.api.Test;
 //import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +21,7 @@
 //    @Mock
 //    private FlattenedAssignmentService flattenedAssignmentService;
 //    @Mock
-//    private AssigmentEntityProducerService assigmentEntityProducerService;
+//    private UserEntraMembershipPublisher assigmentEntityProducerService;
 //
 //    @InjectMocks
 //    private AssignmentPublishingComponent assignmentPublishingComponent;

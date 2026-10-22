@@ -2,7 +2,7 @@ package no.fintlabs.resource;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.device.assignment.DeviceAssignmentService;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;

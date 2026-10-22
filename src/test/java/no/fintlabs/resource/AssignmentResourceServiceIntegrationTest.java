@@ -3,16 +3,16 @@ package no.fintlabs.resource;
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
-import no.fintlabs.assignment.AssigmentEntityProducerService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kodeverk.Handhevingstype;
@@ -41,7 +41,7 @@ import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentResourceService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentResourceService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -65,7 +65,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
