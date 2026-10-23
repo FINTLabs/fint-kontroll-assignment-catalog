@@ -115,35 +115,35 @@ class LicenseEnforcementServiceTest {
     }
 
     @Test
-    void updateAssignedLicenseReturnsFalseWhenResourceLimitWouldBeExceededByActiveMembershipCount() {
+    void updateAssignedLicensePersistsObservedCountsWhenResourceLimitIsExceeded() {
         resource.setResourceLimit(4L);
         givenLockedResourceAndLocation();
         givenActiveMembershipCounts(2L, 3L, 1L, 2L);
 
         boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
 
-        assertThat(updated).isFalse();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
+        assertThat(updated).isTrue();
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(5L);
+        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(3L);
+        verify(resourceRepository).save(resource);
+        verify(applicationResourceLocationRepository).save(applicationResourceLocation);
+        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(applicationResourceLocation, resource);
     }
 
     @Test
-    void updateAssignedLicenseReturnsFalseWhenLocationLimitWouldBeExceededByActiveMembershipCount() {
+    void updateAssignedLicensePersistsObservedCountsWhenLocationLimitIsExceeded() {
         applicationResourceLocation.setResourceLimit(2L);
         givenLockedResourceAndLocation();
         givenActiveMembershipCounts(2L, 3L, 1L, 2L);
 
         boolean updated = licenseEnforcementService.recalculateAssignedResources(assignment);
 
-        assertThat(updated).isFalse();
-        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(100L);
-        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(30L);
-        verify(resourceRepository, never()).save(resource);
-        verify(applicationResourceLocationRepository, never()).save(applicationResourceLocation);
-        verify(resourceAvailabilityPublishingComponent, never()).updateResourceAvailability(applicationResourceLocation, resource);
+        assertThat(updated).isTrue();
+        assertThat(resource.getNumberOfResourcesAssigned()).isEqualTo(5L);
+        assertThat(applicationResourceLocation.getNumberOfResourcesAssigned()).isEqualTo(3L);
+        verify(resourceRepository).save(resource);
+        verify(applicationResourceLocationRepository).save(applicationResourceLocation);
+        verify(resourceAvailabilityPublishingComponent).updateResourceAvailability(applicationResourceLocation, resource);
     }
 
     @Test

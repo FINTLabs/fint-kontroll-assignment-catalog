@@ -5,14 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
-import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
 import no.fintlabs.opa.OpaService;
-import no.fintlabs.exception.ResourceNotFoundException;
-import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
@@ -33,12 +32,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AssignmentService {
 
-    private static final String ACTIVE_STATUS = "ACTIVE";
-
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
-    private final ResourceRepository resourceRepository;
+    private final ResourceAssignmentValidator resourceAssignmentValidator;
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final AssignmentResourceEnricher assignmentResourceEnricher;
@@ -57,6 +54,8 @@ public class AssignmentService {
                 .roleRef(roleRef)
                 .build();
 
+        Resource resource = resourceAssignmentValidator.getActiveResourceOrThrow(resourceRef);
+
         if (userRef != null) {
             handleDirectUserAssignment(assignment, userRef, resourceRef);
         }
@@ -65,7 +64,7 @@ public class AssignmentService {
             handleGroupAssignment(assignment, roleRef, resourceRef);
         }
 
-        enrichByResource(assignment, resourceRef);
+        enrichByResource(assignment, resource);
 
         boolean availableCapacity = licenseEnforcementService.validateAssignmentCapacity(assignment);
         log.info("Validated license capacity for resource {} : {}",
@@ -162,11 +161,14 @@ public class AssignmentService {
 
     private void handleDirectUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
         if (existingDirectUserAssignmentNotTerminated(assignment)) {
-            log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
-            throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
+            log.warn("Active assignment already exists for user {} and resource {}", userRef, resourceRef);
+            throw new ConflictException("Active assignment already exists for user " + userRef + " and resource " + resourceRef);
         }
 
         userRepository.findById(userRef).ifPresentOrElse(user -> {
+            if (user.getIdentityProviderUserObjectId() == null) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "User " + userRef + " does not have entra user id set");
+            }
             assignment.setEntraUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
@@ -178,7 +180,8 @@ public class AssignmentService {
 
     private void handleGroupAssignment(Assignment assignment, Long roleRef, Long resourceRef) {
         if (existingRoleAssignment(assignment)) {
-            throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
+            log.warn("Active assignment already exists for role {} and resource {}", roleRef, resourceRef);
+            throw new ConflictException("Active assignment already exists for role " + roleRef + " and resource " + resourceRef);
         }
 
         roleRepository.findById(roleRef).ifPresentOrElse(role -> {
@@ -189,25 +192,17 @@ public class AssignmentService {
         });
     }
 
-    private void enrichByResource(Assignment assignment, Long resourceRef) {
-        resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
-            if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
-                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + resourceRef + " is not active");
-            }
+    private void enrichByResource(Assignment assignment, Resource resource) {
+        assignment.setResourceName(resource.getResourceName());
+        assignment.setAssignmentId(resource.getId() + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
+        assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
 
-            assignment.setResourceName(resource.getResourceName());
-            assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
+        Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
+                resource.getId(), assignment.getOrganizationUnitId());
 
-            Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
-                    resourceRef, assignment.getOrganizationUnitId());
-
-            nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
-                assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
-                assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
-            });
-        }, () -> {
-            throw new ResourceNotFoundException("Resource not found for ref: " + resourceRef);
+        nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
+            assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
+            assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
         });
     }
 
@@ -246,15 +241,8 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByRole(Role role) {
-        //TODO check if we should update the count of licenses assigned
         getAssignmentsByRole(role.getId())
-                .forEach(assignment -> {
-                    if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
-                        log.info("Deactivating assignment with id: {}", assignment.getId());
-                        assignment.setAssignmentRemovedDate(new Date());
-                        assignmentRepository.saveAndFlush(assignment);
-                    }
-                });
+                .forEach(assignment -> deactivateAssignment(assignment, "Role is no longer active"));
     }
 
     public void deactivateAssignmentsByUserId(Long userId) {

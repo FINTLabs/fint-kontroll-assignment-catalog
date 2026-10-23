@@ -77,8 +77,8 @@ public class RoleConsumer {
         if (!existingRole.equals(incomingRole) && isIncomingRoleNewer(incomingRole, existingRole)) {
             log.info("Role id: {} already exists but has changes, updating role. Existing: {}, Incoming: {}", incomingRole.getId(), existingRole, incomingRole);
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus()) && incomingRole.getRoleStatus().equalsIgnoreCase("inactive")) {
-                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.recalculateAssignmentsForRole(incomingRole) ? "Success" : "Failure");
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
+                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.recalculateAssignmentsForRole(incomingRole) ? "Success" : "Failure");
             } else {
                 log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.recalculateAssignmentsForRole(incomingRole) ? "Success" : "Failure");
             }

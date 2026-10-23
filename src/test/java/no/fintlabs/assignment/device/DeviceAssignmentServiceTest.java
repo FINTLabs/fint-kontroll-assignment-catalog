@@ -16,6 +16,7 @@ import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.AssignmentResource;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class DeviceAssignmentServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private ResourceRepository resourceRepository;
+    @Mock private ResourceAssignmentValidator resourceAssignmentValidator;
     @Mock private LicenseEnforcementService licenseEnforcementService;
     @Mock private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
     @Mock private ApplicationResourceLocationService applicationResourceLocationService;
@@ -82,7 +84,8 @@ class DeviceAssignmentServiceTest {
     @Test
     void createNewAssignment_shouldThrowNotFound_whenResourceMissing() {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
-        when(resourceRepository.findById(1L)).thenReturn(Optional.empty());
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L))
+                .thenThrow(new ResourceNotFoundException("Resource not found: 1"));
 
         assertThrows(ResourceNotFoundException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
@@ -97,7 +100,8 @@ class DeviceAssignmentServiceTest {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
         Resource r = resource(1L, "R", null);
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L))
+                .thenThrow(new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource 1 does not have entra group id set"));
 
         AssignmentException ex = assertThrows(AssignmentException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
@@ -114,7 +118,8 @@ class DeviceAssignmentServiceTest {
 
         Resource r = resource(1L, "R", UUID.randomUUID());
         r.setStatus("INACTIVE");
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L))
+                .thenThrow(new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource 1 is not active"));
 
         AssignmentException ex = assertThrows(AssignmentException.class, () ->
                 deviceAssignmentService.createNewAssignment(1L, "ou-1", 100L)
@@ -131,7 +136,7 @@ class DeviceAssignmentServiceTest {
         when(deviceGroupRepository.findById(100L)).thenReturn(Optional.of(group(100L)));
 
         Resource r = resource(1L, "R", UUID.randomUUID());
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L)).thenReturn(r);
 
         when(assignmentRepository.findAssignmentsByDeviceGroupRefAndResourceRefAndAssignmentRemovedDateIsNull(100L, 1L))
                 .thenReturn(Optional.of(new Assignment()));
@@ -151,7 +156,7 @@ class DeviceAssignmentServiceTest {
 
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L)).thenReturn(r);
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());
@@ -174,7 +179,7 @@ class DeviceAssignmentServiceTest {
 
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L)).thenReturn(r);
 
         NearestResourceLocationDto nearest = mock(NearestResourceLocationDto.class);
         when(nearest.orgUnitId()).thenReturn("nearest-ou");
@@ -213,7 +218,7 @@ class DeviceAssignmentServiceTest {
 
         UUID azureGroupId = UUID.randomUUID();
         Resource r = resource(1L, "Resource A", azureGroupId);
-        when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resourceAssignmentValidator.getActiveResourceOrThrow(1L)).thenReturn(r);
 
         when(applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(eq(1L), eq("ou-1")))
                 .thenReturn(Optional.empty());

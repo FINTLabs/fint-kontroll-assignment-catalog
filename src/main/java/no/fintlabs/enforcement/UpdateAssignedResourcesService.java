@@ -15,14 +15,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UpdateAssignedResourcesService {
     private final ResourceRepository resourceRepository;
-    private final ResourceCountService resourceCountService;
+    private final LicenseEnforcementService licenseEnforcementService;
 
     @Transactional
     public int updateAssignedResources() {
         log.info("Start updating assignedResources initiated by api call");
         List<Resource> resources = resourceRepository.findAll();
         log.info("Resources to update: {}", resources.size());
-        resources.forEach(resourceCountService::updateNumberOfLicenses);
+        resources.forEach(resource -> licenseEnforcementService.recalculateAssignedResourcesForResource(resource.getId()));
         resourceRepository.flush();
         return resources.size();
     }

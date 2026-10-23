@@ -17,6 +17,15 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
 
     List<ApplicationResourceLocation> findByApplicationResourceId(Long applicationResourceId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select arl
+            from ApplicationResourceLocation arl
+            where arl.applicationResourceId = :resourceId
+            """)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
+    List<ApplicationResourceLocation> lockByApplicationResourceId(@Param("resourceId") Long resourceId);
+
 
     @Query("SELECT new no.fintlabs.applicationresourcelocation.NearestResourceLocationDto(arl.orgUnitId, arl.orgUnitName) " +
             "FROM ApplicationResourceLocation arl " +
@@ -37,4 +46,3 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
                                                                @Param("orgUnitId") String orgUnitId);
 
 }
-

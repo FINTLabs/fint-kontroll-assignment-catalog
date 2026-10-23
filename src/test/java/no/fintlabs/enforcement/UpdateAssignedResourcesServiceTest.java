@@ -21,7 +21,7 @@ class UpdateAssignedResourcesServiceTest {
     private ResourceRepository resourceRepository;
 
     @Mock
-    private ResourceCountService resourceCountService;
+    private LicenseEnforcementService licenseEnforcementService;
 
     @InjectMocks
     private UpdateAssignedResourcesService updateAssignedResourcesService;
@@ -36,8 +36,8 @@ class UpdateAssignedResourcesServiceTest {
         int updatedResources = updateAssignedResourcesService.updateAssignedResources();
 
         assertThat(updatedResources).isEqualTo(2);
-        verify(resourceCountService).updateNumberOfLicenses(activeResource);
-        verify(resourceCountService).updateNumberOfLicenses(inactiveResource);
+        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(activeResource.getId());
+        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(inactiveResource.getId());
         verify(resourceRepository).flush();
     }
 }

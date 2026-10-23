@@ -158,9 +158,9 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
 
         boolean ok = service.recalculateAssignedResources(assignmentToUserHardstop);
 
-        assertThat(ok).isFalse();
-        var unchanged = resourceRepository.findById(RESOURCE_ID).orElseThrow();
-        assertThat(unchanged.getNumberOfResourcesAssigned()).isZero();
+        assertThat(ok).isTrue();
+        var updated = resourceRepository.findById(RESOURCE_ID).orElseThrow();
+        assertThat(updated.getNumberOfResourcesAssigned()).isEqualTo(2L);
     }
 
     @Test

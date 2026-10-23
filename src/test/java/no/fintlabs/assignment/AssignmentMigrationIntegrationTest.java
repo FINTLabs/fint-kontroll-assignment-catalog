@@ -48,9 +48,9 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
                 .dataSource(deployed.getConfiguration().getDataSource())
                 .locations("classpath:db/migration")
                 .load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(2);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(4);
         upgraded.validate();
-        assertThat(upgraded.info().current().getVersion().toString()).isEqualTo("40");
+        assertThat(upgraded.info().current().getVersion().toString()).isEqualTo("42");
 
         assertThat(jdbc.queryForObject("SELECT entra_group_id FROM assignments WHERE id = 1", UUID.class)).isEqualTo(groupId);
         assertThat(jdbc.queryForObject("SELECT entra_user_id FROM assignments WHERE id = 1", UUID.class)).isEqualTo(userId);

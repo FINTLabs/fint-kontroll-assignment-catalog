@@ -104,7 +104,7 @@ public class LicenseEnforcementService {
         AssignedResourceCounts counts = countAssignedResources(resource, locations);
 
         if (isHardStop(resource) && exceedsLimits(resource, counts)) {
-            return false;
+            log.warn("Resource {} exceeds its configured assignment capacity; persisting observed counts during reconciliation", resourceId);
         }
 
         persistCounts(resource, counts);

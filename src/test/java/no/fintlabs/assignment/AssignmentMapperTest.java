@@ -27,28 +27,15 @@ class AssignmentMapperTest {
     }
 
     @Test
-    void toFlattenedAssignmentIdentityProviderGroupMembershipConfirmed() {
-        Assignment assignment = AssignmentMother.createDefaultAssignment().build();
-        FlattenedAssignment flattenedAssignment = AssignmentMapper.toFlattenedAssignment(assignment, true);
-
-        assertCommonFields(flattenedAssignment);
-
-        assertNull(flattenedAssignment.getUserEntraMembership());
-        assertNull(flattenedAssignment.getAssignmentTerminationReason());
-    }
-
-    @Test
-    void toFlattenedAssignmentIdentityProviderGroupMembershipDeletionConfirmed() {
+    void toFlattenedAssignmentTerminatesRemovedAssignment() {
         Assignment assignment = AssignmentMother.createDefaultAssignment()
                 .assignmentRemovedDate(new Date())
                 .build();
 
-        FlattenedAssignment flattenedAssignment = AssignmentMapper.toFlattenedAssignment(assignment, true, true);
+        FlattenedAssignment flattenedAssignment = AssignmentMapper.toFlattenedAssignment(assignment);
 
         assertCommonFields(flattenedAssignment);
 
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipConfirmed());
-        assertTrue(flattenedAssignment.isIdentityProviderGroupMembershipDeletionConfirmed());
         assertNotNull(flattenedAssignment.getAssignmentTerminationDate());
         assertEquals("Assignment has been terminated", flattenedAssignment.getAssignmentTerminationReason());
     }

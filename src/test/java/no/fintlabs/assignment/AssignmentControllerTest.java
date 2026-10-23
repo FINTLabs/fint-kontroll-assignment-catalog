@@ -16,8 +16,6 @@ import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
-import no.fintlabs.resource.Resource;
-import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.slack.SlackMessenger;
 import no.fintlabs.user.UserNotFoundException;
@@ -79,9 +77,6 @@ public class AssignmentControllerTest {
     private FlattenedDeviceAssignmentService flattenedDeviceAssignmentServiceMock;
 
     @MockBean
-    private ResourceRepository resourceRepositoryMock;
-
-    @MockBean
     private DeviceGroupRepository deviceGroupRepositoryMock;
 
     @MockBean
@@ -136,7 +131,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).republishAllActiveFlattenedAssignments();
+        verify(flattenedAssignmentServiceMock).getAllFlattenedAssignments();
     }
 
     @Test
@@ -187,11 +182,6 @@ public class AssignmentControllerTest {
         expectedReturnAssignment.setOrganizationUnitId("99999999");
         expectedReturnAssignment.setUserRef(1L);
 
-        Resource value = new Resource();
-        value.setId(1L);
-        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
-
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", 1L, null)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -217,11 +207,6 @@ public class AssignmentControllerTest {
         expectedReturnAssignment.setOrganizationUnitId("99999999");
         expectedReturnAssignment.setRoleRef(1L);
 
-        Resource value = new Resource();
-        value.setId(1L);
-        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
-
-        when(resourceRepositoryMock.findById(1L)).thenReturn(Optional.of(value));
         when(assignmentServiceMock.createNewAssignment(1L, "99999999", null, 1L)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -249,11 +234,6 @@ public class AssignmentControllerTest {
         expectedReturnAssignment.setOrganizationUnitId("198");
         expectedReturnAssignment.setDeviceGroupRef(2L);
 
-        Resource value = new Resource();
-        value.setId(6L);
-        value.setIdentityProviderGroupObjectId(UUID.randomUUID());
-
-        when(resourceRepositoryMock.findById(6L)).thenReturn(Optional.of(value));
         when(deviceAssignmentServiceMock.createNewAssignment(6L, "198", 2L)).thenReturn(expectedReturnAssignment);
 
         mockMvc.perform(post("/api/assignments")
@@ -411,18 +391,15 @@ public class AssignmentControllerTest {
         newAssignmentRequest.organizationUnitId = "99999999";
         newAssignmentRequest.roleRef = 1L;
 
-        Resource value = new Resource();
-        value.setId(1L);
-        value.setIdentityProviderGroupObjectId(null);
-
-        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.of(value));
+        doThrow(new no.fintlabs.assignment.exception.AssignmentException(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "Resource 123 does not have entra group id set"))
+                .when(assignmentServiceMock).createNewAssignment(123L, "99999999", null, 1L);
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
                 .andExpect(status().isUnprocessableEntity());
 
-        verify(assignmentServiceMock, never()).createNewAssignment(123L, "99999999", null, 1L);
+        verify(assignmentServiceMock).createNewAssignment(123L, "99999999", null, 1L);
     }
 
     @Test
@@ -432,13 +409,13 @@ public class AssignmentControllerTest {
         newAssignmentRequest.organizationUnitId = "99999999";
         newAssignmentRequest.roleRef = 1L;
 
-        when(resourceRepositoryMock.findById(123L)).thenReturn(Optional.empty());
+        doThrow(new no.fintlabs.exception.ResourceNotFoundException("Resource not found: 123"))
+                .when(assignmentServiceMock).createNewAssignment(123L, "99999999", null, 1L);
 
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Resource 123 not found"));
+                .andExpect(status().isNotFound());
     }
 
     @Test

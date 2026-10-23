@@ -7,7 +7,6 @@ import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
 import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
-import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
@@ -19,11 +18,11 @@ import no.fintlabs.resource.AssignmentResource;
 import no.fintlabs.resource.DeviceGroupResourceSpecificationBuilder;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.exception.ResourceNotFoundException;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -40,12 +39,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DeviceAssignmentService {
 
-    private static final String ACTIVE_STATUS = "ACTIVE";
-
     private final DeviceGroupRepository deviceGroupRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
     private final ResourceRepository resourceRepository;
+    private final ResourceAssignmentValidator resourceAssignmentValidator;
     private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
@@ -56,7 +54,7 @@ public class DeviceAssignmentService {
         log.info("Trying to create new assignment for resource {} and device group {}", resourceRef, deviceGroupRef);
 
         DeviceGroup deviceGroup = getDeviceGroupOrThrow(deviceGroupRef);
-        Resource resource = getResourceOrThrow(resourceRef);
+        Resource resource = resourceAssignmentValidator.getActiveResourceOrThrow(resourceRef);
 
         // Ensure no duplicate assignment
         assertNoExistingActiveAssignment(resourceRef, deviceGroupRef);
@@ -101,24 +99,6 @@ public class DeviceAssignmentService {
     private DeviceGroup getDeviceGroupOrThrow(Long id) {
         return deviceGroupRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Device group not found: " + id));
-    }
-
-    private Resource getResourceOrThrow(Long id) {
-        Resource resource = resourceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Resource not found: " + id));
-
-        if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
-            throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + id + " is not active");
-        }
-
-        if (resource.getIdentityProviderGroupObjectId() == null) {
-            throw new AssignmentException(
-                    HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Resource " + id + " does not have azure group id set"
-            );
-        }
-
-        return resource;
     }
 
     private void assertNoExistingActiveAssignment(Long resourceRef, Long deviceGroupRef) {

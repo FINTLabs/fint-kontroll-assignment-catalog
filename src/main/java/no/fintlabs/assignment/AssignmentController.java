@@ -7,18 +7,14 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
-import no.fintlabs.assignment.exception.AssignmentException;
 import no.fintlabs.assignment.user.projection.FlattenedAssignment;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
-import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
@@ -46,24 +42,16 @@ public class AssignmentController {
     private final FlattenedAssignmentService flattenedAssignmentService;
     private final UserEntraMembershipPublisher assigmentEntityProducerService;
     private final MembershipService membershipService;
-    private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final ResourceService resourceService;
     private final DeviceAssignmentService deviceAssignmentService;
 
     @PostMapping()
-    public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public SimpleAssignment createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
         log.info("Creating assignment. Request - userRef: {}, roleRef: {}, deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}",
                 request.userRef, request.roleRef, request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
-        validateAssignmentTarget(request);
-        validateResource(request);
-        validateOrganizationUnitId(request);
-        try {
-            Assignment newAssignment = createNewAssignment(request);
-            return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
-        } catch (AssignmentAlreadyExistsException exception) {
-            throw new ConflictException("Assignment already exists");
-        }
+        return createNewAssignment(request).toSimpleAssignment();
     }
 
     private Assignment createNewAssignment(NewAssignmentRequest request) {
@@ -150,7 +138,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveAssignmentsByResource(resourceId)
+        assignmentService.getActiveUserAssignmentsByResource(resourceId)
                 .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
@@ -228,7 +216,7 @@ public class AssignmentController {
     public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to publish flattened assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveAssignmentsByResource(resourceId)
+        assignmentService.getActiveUserAssignmentsByResource(resourceId)
                 .forEach(flattenedAssignmentService::publishAllActive);
 
         log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
@@ -249,7 +237,7 @@ public class AssignmentController {
         resourceService.findAll().forEach(resource -> {
             log.info("Starting to publish flattened assignments for resource: {}", resource);
 
-            assignmentService.getActiveAssignmentsByResource(resource.getId())
+            assignmentService.getActiveUserAssignmentsByResource(resource.getId())
                     .forEach(assignment -> {
                         flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
                         flattenedAssignmentService.publishAllActive(assignment);
@@ -440,50 +428,6 @@ public class AssignmentController {
 
 
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    private void validateResource(NewAssignmentRequest request) {
-        if (request.resourceRef == null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
-        }
-
-        resourceRepository.findById(request.resourceRef)
-                .ifPresentOrElse(
-                        resource -> {
-                            if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have azure group id set");
-                            }
-                        },
-                        () -> {
-                            log.error("Resource: {} not found", request.resourceRef);
-                            throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
-                        }
-                );
-    }
-
-    private void validateOrganizationUnitId(NewAssignmentRequest request) {
-        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
-        }
-    }
-
-    private void validateAssignmentTarget(NewAssignmentRequest request) {
-        int assignmentTargetCount = 0;
-        assignmentTargetCount += request.userRef == null ? 0 : 1;
-        assignmentTargetCount += request.roleRef == null ? 0 : 1;
-        assignmentTargetCount += request.deviceGroupRef == null ? 0 : 1;
-
-        if (assignmentTargetCount == 0) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef, roleRef or deviceGroupRef must be set");
-        }
-
-        if (request.userRef != null && request.roleRef != null && request.deviceGroupRef == null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Cannot assign both role and user");
-        }
-
-        if (assignmentTargetCount > 1) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Only one of userRef, roleRef or deviceGroupRef can be set");
-        }
     }
 
     @Getter
