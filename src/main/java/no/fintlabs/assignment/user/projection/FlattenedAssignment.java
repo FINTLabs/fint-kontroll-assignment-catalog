@@ -44,10 +44,12 @@ public class FlattenedAssignment extends AuditEntity {
     private Long assignmentId;
     private Long assignerRef;
     private Long userRef;
+    @Column(nullable = false)
     private UUID identityProviderUserObjectId;
     private Long resourceRef;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
+    @Column(nullable = false)
     private UUID identityProviderGroupObjectId;
     private Long assignmentViaRoleRef;
     private Date assignmentCreationDate;
@@ -55,6 +57,6 @@ public class FlattenedAssignment extends AuditEntity {
     private String assignmentTerminationReason;
 
     @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "user_entra_membership_id")
+    @JoinColumn(name = "user_entra_membership_id", nullable = false)
     private UserEntraMembership userEntraMembership;
 }

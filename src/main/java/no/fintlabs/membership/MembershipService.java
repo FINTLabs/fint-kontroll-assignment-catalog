@@ -4,13 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.user.User;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -39,7 +40,23 @@ public class MembershipService {
     }
 
     public void syncAssignmentsForMemberships(List<String> membershipIds) {
-        membershipRepository.findAllById(membershipIds).forEach(this::syncAssignmentsForMembership);
+        List<String> distinctMembershipIds = new ArrayList<>(new LinkedHashSet<>(membershipIds));
+        List<Membership> memberships = membershipRepository.findAllById(distinctMembershipIds);
+        Set<String> foundMembershipIds = memberships.stream().map(Membership::getId).collect(Collectors.toSet());
+        Set<String> missingMembershipIds = new LinkedHashSet<>(distinctMembershipIds);
+        missingMembershipIds.removeAll(foundMembershipIds);
+        if (!missingMembershipIds.isEmpty()) {
+            throw new ResourceNotFoundException("Memberships not found: " + missingMembershipIds);
+        }
+
+        Map<Long, List<Assignment>> assignmentsByRoleId = assignmentService.getAssignmentsByRoles(
+                        memberships.stream().map(Membership::getRoleId).distinct().toList())
+                .stream()
+                .collect(Collectors.groupingBy(Assignment::getRoleRef));
+
+        memberships.forEach(membership -> syncAssignmentsForMembership(
+                membership,
+                assignmentsByRoleId.getOrDefault(membership.getRoleId(), List.of())));
     }
 
    @Async
@@ -63,8 +80,11 @@ public class MembershipService {
         flattenedAssignmentService.deactivateFlattenedAssignments(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
-    @Async
     public void syncAssignmentsForMembership(Membership savedMembership) {
+        syncAssignmentsForMembership(savedMembership, assignmentService.getAssignmentsByRole(savedMembership.getRoleId()));
+    }
+
+    private void syncAssignmentsForMembership(Membership savedMembership, List<Assignment> assignmentsByRole) {
         if (savedMembership.getIdentityProviderUserObjectId() == null) {
             log.info("Membership does not have identityProviderUserObjectId, skipping assignment processing, roleId {}, memberId {}, id {}",
                     savedMembership.getRoleId(),
@@ -74,20 +94,12 @@ public class MembershipService {
             return;
         }
 
-        List<Assignment> assignmentsByRole = assignmentService.getAssignmentsByRole(savedMembership.getRoleId());
-
         if (!assignmentsByRole.isEmpty()) {
             log.info("Processing assignments for membership, roleId {}, memberId {}, assignments {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignmentsByRole.size());
         }
 
-        assignmentsByRole
-                .forEach(assignment -> {
-                    try {
-                        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership);
-                    } catch (Exception e) {
-                        log.error("Error processing assignments for membership, roledId {}, memberId {}, assignment {}, error: {}", savedMembership.getRoleId(), savedMembership.getMemberId(), assignment.getId(), e.getMessage());
-                    }
-                });
+        assignmentsByRole.forEach(assignment ->
+                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership));
     }
 
     public void updateUserMemberships(User savedUser) {

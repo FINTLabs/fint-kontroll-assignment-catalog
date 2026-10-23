@@ -66,6 +66,13 @@ public class UserEntraMembershipPublisher {
         }
     }
 
+    public void rePublish(UserEntraMembership userEntraMembership) {
+        if (isValidMembership(userEntraMembership)) {
+            log.info("Republishing user Entra membership with id: {}", userEntraMembership.getId());
+            rePublish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId());
+        }
+    }
+
     public void publishDeletion(FlattenedAssignment flattenedAssignment) {
         if (flattenedAssignment.getUserEntraMembership() != null) {
             UserEntraMembership userEntraMembership = flattenedAssignment.getUserEntraMembership();

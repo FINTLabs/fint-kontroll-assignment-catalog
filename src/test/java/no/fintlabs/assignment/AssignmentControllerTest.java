@@ -27,6 +27,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -45,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -114,6 +116,10 @@ public class AssignmentControllerTest {
 
     private final static String ID_TOKEN = "dummyToken";
 
+    private static PageRequest deviceGroupPageRequest(int page, int size) {
+        return PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id")));
+    }
+
 
     @BeforeEach
     public void setup() throws ServletException {
@@ -131,29 +137,16 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).getAllFlattenedAssignments();
+        verify(flattenedAssignmentServiceMock).republishAllActiveUserMemberships();
     }
 
     @Test
-    public void shouldSyncFlattenedAssignmentsInSyncModeWhenPathVariableIsTrue() throws Exception {
+    public void shouldSyncFlattenedAssignmentsWithoutPublishingPendingMemberships() throws Exception {
         Assignment assignment = new Assignment();
 
         when(assignmentServiceMock.getAllUserAssignments()).thenReturn(List.of(assignment));
 
-        mockMvc.perform(post("/api/assignments/syncflattenedassignments/true")
-                                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
-    }
-
-    @Test
-    public void shouldSyncFlattenedAssignmentsInPublishModeWhenPathVariableIsFalse() throws Exception {
-        Assignment assignment = new Assignment();
-
-        when(assignmentServiceMock.getAllUserAssignments()).thenReturn(List.of(assignment));
-
-        mockMvc.perform(post("/api/assignments/syncflattenedassignments/false")
+        mockMvc.perform(post("/api/assignments/syncflattenedassignments")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -161,12 +154,88 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void shouldRepublishUnconfirmedFlattenedAssignmentsOnCorrectlySpelledPath() throws Exception {
+    public void shouldSyncFlattenedAssignmentsAndPublishPendingMemberships() throws Exception {
+        Assignment assignment = new Assignment();
+
+        when(assignmentServiceMock.getAllUserAssignments()).thenReturn(List.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignments/publish-pending-memberships")
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+    }
+
+    @Test
+    public void shouldSyncFlattenedAssignmentsAndPublishPendingMembershipsByResourceId() throws Exception {
+        Assignment assignment = new Assignment();
+        when(assignmentServiceMock.getActiveUserAssignmentsByResource(1L)).thenReturn(List.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignments/resource/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+    }
+
+    @Test
+    public void shouldSyncFlattenedAssignmentAndPublishPendingMembershipById() throws Exception {
+        Assignment assignment = new Assignment();
+        when(assignmentServiceMock.getAssignmentById(1L)).thenReturn(Optional.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignment/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+    }
+
+    @Test
+    public void shouldSyncDirectUserAssignmentsAndPublishPendingMembershipsByUserId() throws Exception {
+        Assignment assignment = new Assignment();
+        when(assignmentServiceMock.getAssignmentsByUser(1L)).thenReturn(List.of(assignment));
+
+        mockMvc.perform(post("/api/assignments/syncflattenedassignment/user/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+    }
+
+    @Test
+    public void shouldRepublishUnconfirmedUserMembershipsOnCorrectlySpelledPath() throws Exception {
         mockMvc.perform(post("/api/assignments/republishunconfirmedflattenedassignments")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).republishUnconfirmedFlattenedAssignments();
+        verify(flattenedAssignmentServiceMock).republishUnconfirmedUserEntraMemberships();
+    }
+
+    @Test
+    public void shouldRepublishUnconfirmedUserMembershipsByAssignmentId() throws Exception {
+        mockMvc.perform(post("/api/assignments/syncunconfirmedflattenedassignment/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(flattenedAssignmentServiceMock).republishUnconfirmedUserEntraMembershipsByAssignmentId(1L);
+    }
+
+    @Test
+    public void shouldUpdateMissingResourceLocationOrgUnitsForActiveUserAssignments() throws Exception {
+        Assignment assignmentWithoutLocation = new Assignment();
+        assignmentWithoutLocation.setId(1L);
+        Assignment assignmentWithLocation = new Assignment();
+        assignmentWithLocation.setId(2L);
+        assignmentWithLocation.setApplicationResourceLocationOrgUnitId("existing-location");
+        when(assignmentServiceMock.getAllActiveUserAssignments())
+                .thenReturn(List.of(assignmentWithoutLocation, assignmentWithLocation));
+
+        mockMvc.perform(post("/api/assignments/update-assignments-applicationresourcelocationorgunit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"updateAllResourceLocationOrgUnits\":false}"))
+                .andExpect(status().isOk());
+
+        verify(assignmentServiceMock).updateAssignmentsWithApplicationResourceLocationOrgUnit(Set.of(1L));
     }
 
     @Test
@@ -266,8 +335,8 @@ public class AssignmentControllerTest {
                 .assignmentRef(10L)
                 .build();
 
-        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), PageRequest.of(0, 20), 1));
+        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), deviceGroupPageRequest(0, 20), 1));
 
         mockMvc.perform(get("/api/assignments/resource/1/deviceGroups")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -286,7 +355,7 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.size").value("20"));
 
-        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(0, 20));
+        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(0, 20));
     }
 
     @Test
@@ -304,8 +373,8 @@ public class AssignmentControllerTest {
                 .assignmentRef(10L)
                 .build();
 
-        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), PageRequest.of(0, 20), 1));
+        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), deviceGroupPageRequest(0, 20), 1));
 
         mockMvc.perform(get("/api/assignments/resource/1/devicegroups")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -319,7 +388,7 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.size").value("20"));
 
-        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(0, 20));
+        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(0, 20));
     }
 
     @Test
@@ -329,8 +398,8 @@ public class AssignmentControllerTest {
                 .name("Second device group")
                 .build();
 
-        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(1, 1)))
-                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), PageRequest.of(1, 1), 2));
+        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(1, 1)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), deviceGroupPageRequest(1, 1), 2));
 
         mockMvc.perform(get("/api/assignments/resource/1/devicegroups?page=1&size=1")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -342,7 +411,7 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.number").value("1"))
                 .andExpect(jsonPath("$.size").value("1"));
 
-        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, PageRequest.of(1, 1));
+        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, null, deviceGroupPageRequest(1, 1));
     }
 
     @Test
@@ -353,8 +422,8 @@ public class AssignmentControllerTest {
                 .assignmentRef(11L)
                 .build();
 
-        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, "chrome", PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), PageRequest.of(0, 20), 1));
+        when(deviceAssignmentServiceMock.findDeviceGroupAssignmentsForResource(1L, "chrome", deviceGroupPageRequest(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(deviceGroupAssignment), deviceGroupPageRequest(0, 20), 1));
 
         mockMvc.perform(get("/api/assignments/resource/1/devicegroups?search=chrome")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -366,7 +435,7 @@ public class AssignmentControllerTest {
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.size").value("20"));
 
-        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, "chrome", PageRequest.of(0, 20));
+        verify(deviceAssignmentServiceMock).findDeviceGroupAssignmentsForResource(1L, "chrome", deviceGroupPageRequest(0, 20));
     }
 
     @Test

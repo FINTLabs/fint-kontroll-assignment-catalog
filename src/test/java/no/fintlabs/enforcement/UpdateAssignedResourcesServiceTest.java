@@ -1,6 +1,5 @@
 package no.fintlabs.enforcement;
 
-import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,17 +28,14 @@ class UpdateAssignedResourcesServiceTest {
     private UpdateAssignedResourcesService updateAssignedResourcesService;
 
     @Test
-    void updateAssignedResources_recalculatesEveryResourceAndFlushes() {
-        Resource activeResource = Resource.builder().id(1L).status("ACTIVE").build();
-        Resource inactiveResource = Resource.builder().id(2L).status("INACTIVE").build();
-
-        when(resourceRepository.findAll()).thenReturn(List.of(activeResource, inactiveResource));
+    void updateAssignedResources_recalculatesEveryResourceInBatches() {
+        when(resourceRepository.findIdsByIdGreaterThanOrderByIdAsc(eq(0L), any()))
+                .thenReturn(List.of(1L, 2L));
 
         int updatedResources = updateAssignedResourcesService.updateAssignedResources();
 
         assertThat(updatedResources).isEqualTo(2);
-        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(activeResource.getId());
-        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(inactiveResource.getId());
-        verify(resourceRepository).flush();
+        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(1L);
+        verify(licenseEnforcementService).recalculateAssignedResourcesForResource(2L);
     }
 }

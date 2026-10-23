@@ -20,7 +20,6 @@ import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -95,6 +94,10 @@ public class AssignmentService {
         return assignmentRepository.findAllByUserRefIsNotNullOrRoleRefIsNotNull();
     }
 
+    public List<Assignment> getAllActiveUserAssignments() {
+        return assignmentRepository.findAllActiveUserAssignments();
+    }
+
     @Transactional
     public Assignment deleteAssignment(Long id) {
         log.info("Deleting assignment with id {}", id);
@@ -112,8 +115,6 @@ public class AssignmentService {
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
         flattenedAssignmentService.deleteFlattenedAssignments(assignment, "Associated assignment removed by user");
-        log.info("Updated license count after removing assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
 
         return assignmentForDeletion;
     }
@@ -221,6 +222,12 @@ public class AssignmentService {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 
+    public List<Assignment> getAssignmentsByRoles(List<Long> roleIds) {
+        return roleIds.isEmpty()
+                ? List.of()
+                : assignmentRepository.findAssignmentsByRoleRefInAndAssignmentRemovedDateIsNull(roleIds);
+    }
+
     public Optional<Assignment> getAssignmentById(Long id) {
         return assignmentRepository.findById(id);
     }
@@ -264,19 +271,11 @@ public class AssignmentService {
                 assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
     }
 
-    @Async
-    @Transactional
-    public void updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(Set<Long> ids) {
-        updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
-    }
-
     @Transactional
     public void updateAssignmentsWithApplicationResourceLocationOrgUnit(Set<Long> ids) {
-        log.info("Updating {} assignments missing application resource location org unit", ids.size());
+        log.info("Updating application resource location org unit for {} assignments", ids.size());
 
-        List<Assignment> updatedAssignments = ids.stream()
-                .map(assignmentRepository::findById)
-                .flatMap(Optional::stream)
+        List<Assignment> updatedAssignments = assignmentRepository.findAllById(ids).stream()
                 .map(this::updateAssignmentWithNearestResource)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toList());
@@ -292,22 +291,29 @@ public class AssignmentService {
         }
 
         assignmentRepository.flush();
+        updatedAssignments.forEach(assignment ->
+                flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false));
 
-        log.info("Done updating. Updated {} of {} assignments missing application resource location org unit",
+        log.info("Done updating application resource location org unit. Updated {} of {} assignments",
                 updatedAssignments.size(), ids.size());
     }
 
     private Optional<Assignment> updateAssignmentWithNearestResource(Assignment assignment) {
-        return applicationResourceLocationService
+        Optional<NearestResourceLocationDto> nearestLocation = applicationResourceLocationService
                 .getNearestApplicationResourceLocationForOrgUnit(
                         assignment.getResourceRef(),
-                        assignment.getOrganizationUnitId())
-                .map(nearest -> {
-                    assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
-                    assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
-                    assignment.setIsInvalid(false);
-                    return assignment;
-                });
+                        assignment.getOrganizationUnitId());
+
+        nearestLocation.ifPresentOrElse(nearest -> {
+            assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
+            assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
+            assignment.setIsInvalid(false);
+        }, () -> {
+            assignment.setApplicationResourceLocationOrgUnitId(null);
+            assignment.setApplicationResourceLocationOrgUnitName(null);
+            assignment.setIsInvalid(true);
+        });
+        return Optional.of(assignment);
     }
 
     public void updateAllAssignmentsOnUserChange(User user) {

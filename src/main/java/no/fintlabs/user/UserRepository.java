@@ -22,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     List<User> getUsersByResourceId(Long id);
 
     Optional<User> getUserByUserName(String userName);
+
+    List<User> findByUserNameIn(List<String> userNames);
 }

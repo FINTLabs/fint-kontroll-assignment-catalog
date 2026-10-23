@@ -48,6 +48,7 @@ public class FlattenedAssignmentMapper {
                Objects.equals(originalAssignment.getUserRef(), existingAssignment.getUserRef()) &&
                Objects.equals(originalAssignment.getAssignmentViaRoleRef(), existingAssignment.getAssignmentViaRoleRef()) &&
                Objects.equals(originalAssignment.getResourceRef(), existingAssignment.getResourceRef()) &&
+               Objects.equals(originalAssignment.getApplicationResourceLocationOrgUnitId(), existingAssignment.getApplicationResourceLocationOrgUnitId()) &&
                Objects.equals(originalAssignment.getAssignmentTerminationDate(), existingAssignment.getAssignmentTerminationDate()) &&
                Objects.equals(originalAssignment.getAssignmentTerminationReason(), existingAssignment.getAssignmentTerminationReason()) &&
                Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
@@ -55,6 +56,7 @@ public class FlattenedAssignmentMapper {
     }
 
     private void mapWithOrigin(FlattenedAssignment origin, FlattenedAssignment existing) {
+        existing.setApplicationResourceLocationOrgUnitId(origin.getApplicationResourceLocationOrgUnitId());
         if (existing.getAssignmentTerminationDate() == null && origin.getAssignmentTerminationDate() != null) {
             existing.setAssignmentTerminationDate(origin.getAssignmentTerminationDate());
             existing.setAssignmentTerminationReason(origin.getAssignmentTerminationReason());

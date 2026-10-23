@@ -187,5 +187,6 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
 
         assertNull(updatedAssignment.getApplicationResourceLocationOrgUnitId());
+        assertTrue(updatedAssignment.getIsInvalid());
     }
 }

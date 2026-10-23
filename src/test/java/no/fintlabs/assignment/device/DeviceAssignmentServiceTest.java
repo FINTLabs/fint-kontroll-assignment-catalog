@@ -285,16 +285,18 @@ class DeviceAssignmentServiceTest {
                 .build();
 
         User assigner = User.builder()
+                .userName("assigner")
                 .firstName("Assigner")
                 .lastName("Name")
                 .build();
 
         PageRequest pageRequest = PageRequest.of(0, 20);
 
-        when(assignmentRepository.findActiveDeviceAssignmentsByResourceRef(1L)).thenReturn(List.of(assignment));
-        when(deviceGroupRepository.findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest)))
+        when(deviceGroupRepository.findAssignedToResource(1L, "device", pageRequest))
                 .thenReturn(new PageImpl<>(List.of(deviceGroup), pageRequest, 1));
-        when(userRepository.getUserByUserName("assigner")).thenReturn(Optional.of(assigner));
+        when(assignmentRepository.findByResourceRefAndDeviceGroupRefInAndAssignmentRemovedDateIsNull(1L, List.of(100L)))
+                .thenReturn(List.of(assignment));
+        when(userRepository.findByUserNameIn(List.of("assigner"))).thenReturn(List.of(assigner));
 
         Page<DeviceGroupAssignment> result = deviceAssignmentService.findDeviceGroupAssignmentsForResource(1L, "device", pageRequest);
 
@@ -315,8 +317,8 @@ class DeviceAssignmentServiceTest {
         assertEquals("Assigner Name", mapped.getAssignerDisplayname());
         assertEquals(assignment.getAssignmentDate(), mapped.getAssignmentDate());
 
-        verify(assignmentRepository).findActiveDeviceAssignmentsByResourceRef(1L);
-        verify(deviceGroupRepository).findAll(ArgumentMatchers.<Specification<DeviceGroup>>any(), eq(pageRequest));
+        verify(deviceGroupRepository).findAssignedToResource(1L, "device", pageRequest);
+        verify(assignmentRepository).findByResourceRefAndDeviceGroupRefInAndAssignmentRemovedDateIsNull(1L, List.of(100L));
     }
 
     @Test
@@ -431,7 +433,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertEquals(123L, saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(saved);
+        verifyNoInteractions(licenseEnforcementService);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
@@ -453,7 +455,7 @@ class DeviceAssignmentServiceTest {
 
         verify(userRepository, never()).getUserByUserName(anyString());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(assignment);
+        verifyNoInteractions(licenseEnforcementService);
 
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(assignment), eq("Associated assignment terminated by user"));
@@ -480,7 +482,7 @@ class DeviceAssignmentServiceTest {
         assertNotNull(saved.getAssignmentRemovedDate());
         assertNull(saved.getAssignerRemoveRef());
 
-        verify(licenseEnforcementService).recalculateAssignedResources(saved);
+        verifyNoInteractions(licenseEnforcementService);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(eq(saved), eq("Associated assignment terminated by user"));
     }
@@ -513,7 +515,7 @@ class DeviceAssignmentServiceTest {
 
         assertNotNull(assignment.getAssignmentRemovedDate());
         verify(assignmentRepository).saveAndFlush(assignment);
-        verify(licenseEnforcementService).recalculateAssignedResources(assignment);
+        verifyNoInteractions(licenseEnforcementService);
         verify(flattenedDeviceAssignmentService)
                 .deleteFlattenedDeviceAssignments(assignment, "Resource is no longer active");
     }

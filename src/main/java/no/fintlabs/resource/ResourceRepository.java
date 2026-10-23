@@ -2,6 +2,7 @@ package no.fintlabs.resource;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,5 +19,8 @@ public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSp
 
     @Query("select r from Resource r where r.status = 'ACTIVE'")
     List<Resource> findByStatusACTIVE();
+
+    @Query("SELECT resource.id FROM Resource resource WHERE resource.id > :lastProcessedId ORDER BY resource.id ASC")
+    List<Long> findIdsByIdGreaterThanOrderByIdAsc(@Param("lastProcessedId") Long lastProcessedId, Pageable pageable);
 
 }

@@ -3,6 +3,8 @@ package no.fintlabs.assignment.device.entra;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,5 +19,14 @@ public interface DeviceEntraMembershipRepository extends JpaRepository<DeviceEnt
 
     List<DeviceEntraMembership> findAllByEntraStatusAndDeviceEntraId(EntraMembershipSyncStatus entraStatus, UUID deviceEntraId);
 
-    long countByResourceEntraIdAndMembershipStatus(UUID resourceEntraId, MembershipStatus membershipStatus);
+    @Query("""
+            SELECT COUNT(DISTINCT membership.id)
+            FROM DeviceEntraMembership membership
+            JOIN membership.flattenedDeviceAssignments assignment
+            WHERE membership.resourceEntraId = :resourceEntraId
+            AND membership.membershipStatus = :membershipStatus
+            """)
+    long countByResourceEntraIdAndMembershipStatus(
+            @Param("resourceEntraId") UUID resourceEntraId,
+            @Param("membershipStatus") MembershipStatus membershipStatus);
 }

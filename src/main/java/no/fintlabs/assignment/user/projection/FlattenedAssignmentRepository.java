@@ -52,7 +52,6 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     List<FlattenedAssignment> findByUserEntraMembership(UserEntraMembership userEntraMembership);
 
     List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndIdIn(List<EntraMembershipSyncStatus> entraStatuses, List<Long> ids);
-    List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdIn(List<Long> ids);
     List<FlattenedAssignment> findByAssignmentTerminationDateIsNullAndIdGreaterThanOrderByIdAsc(Long id, Pageable pageable);
 
     List<FlattenedAssignment> findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(Long assignmentId, Long userRef, Long resourceRef);
@@ -143,11 +142,6 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
     List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 
     List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndAssignmentId(List<EntraMembershipSyncStatus> entraStatuses, Long assignmentId);
-
-    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNullAndAssignmentId(List<EntraMembershipSyncStatus> entraStatuses, Long assignmentId);
-
-    @Query("SELECT fa.id FROM FlattenedAssignment fa WHERE fa.identityProviderUserObjectId IS NULL AND fa.assignmentTerminationDate IS NULL")
-    List<Long> findIdsWhereIdentityProviderUserObjectIdIsNull();
 
     @Query("""
             SELECT COUNT(DISTINCT membership.id)
