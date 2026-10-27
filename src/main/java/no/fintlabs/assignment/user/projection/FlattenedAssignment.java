@@ -46,6 +46,7 @@ public class FlattenedAssignment extends AuditEntity {
     private Long userRef;
     @Column(nullable = false)
     private UUID identityProviderUserObjectId;
+    @Column(nullable = false)
     private Long resourceRef;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;

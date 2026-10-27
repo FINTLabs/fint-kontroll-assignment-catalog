@@ -85,8 +85,8 @@ public class LicenseEnforcementService {
     }
 
     public boolean recalculateAssignedResources(Assignment assignment) {
-        if (assignment == null || assignment.getResourceRef() == null) {
-            log.warn("Cannot recalculate assigned resources without resourceRef");
+        if (assignment == null) {
+            log.warn("Cannot recalculate assigned resources without an assignment");
             return false;
         }
 
@@ -112,8 +112,8 @@ public class LicenseEnforcementService {
     }
 
     public boolean validateAssignmentCapacity(Assignment assignment) {
-        if (assignment == null || assignment.getResourceRef() == null) {
-            log.warn("Cannot validate assigned resources without resourceRef");
+        if (assignment == null) {
+            log.warn("Cannot validate assigned resources without an assignment");
             return false;
         }
 

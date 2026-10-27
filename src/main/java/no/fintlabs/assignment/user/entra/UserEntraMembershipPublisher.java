@@ -109,10 +109,6 @@ public class UserEntraMembershipPublisher {
     }
 
     private void logAssignment(FlattenedAssignment assignment, String message) {
-        if (assignment.getResourceRef() == null) {
-            log.warn("Publishing flattened assignment {}. ResourceRef is null", assignment.getId());
-        }
-
         log.info("{} with id {}, assignmentid {}, entraId-groupId {}, entraId-userId {}, resourceRef {}",
                  message,
                  assignment.getId(),
@@ -123,8 +119,7 @@ public class UserEntraMembershipPublisher {
     }
 
     private boolean isValidAssignment(FlattenedAssignment assignment) {
-        if (assignment.getIdentityProviderGroupObjectId() == null || assignment.getIdentityProviderUserObjectId() == null ||
-            assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
+        if (assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
             assignment.getIdentityProviderUserObjectId().toString().startsWith("00000000")) {
 
             log.warn("Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing entraId group id ({}) or user " +

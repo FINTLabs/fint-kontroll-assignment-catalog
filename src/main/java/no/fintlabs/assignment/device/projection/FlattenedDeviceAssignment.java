@@ -21,9 +21,11 @@ public class FlattenedDeviceAssignment  {
     private Long id;
     @NonNull
     private Long assignmentId;
+    @Column(nullable = false)
     private Long resourceRef;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
+    @Column(nullable = false)
     private UUID identityProviderGroupObjectId;
     private Date assignmentCreationDate;
     private Date terminationDate;

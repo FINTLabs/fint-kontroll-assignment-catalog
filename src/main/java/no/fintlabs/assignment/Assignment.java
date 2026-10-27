@@ -56,10 +56,11 @@ public class Assignment extends AuditEntity {
     private String userFirstName;
     private String userLastName;
     private String userUserType;
-    @Column(name = "resource_ref")
+    @Column(name = "resource_ref", nullable = false)
     private Long resourceRef;
     private Long deviceGroupRef;
     private String resourceName;
+    @Column(nullable = false)
     private UUID entraGroupId;
     private String organizationUnitId;
     @Column(name = "resource_consumer_org_unit_id")
@@ -97,7 +98,8 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "resource_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false,
+            nullable = false)
     @JsonBackReference(value = "resource-assignment")
     private Resource resource;
 
