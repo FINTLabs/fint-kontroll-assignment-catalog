@@ -15,7 +15,6 @@ import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -87,12 +86,7 @@ public class AssignmentController {
     @ResponseStatus(HttpStatus.GONE)
     public void deleteAssignment(@PathVariable("id") Long id) {
         log.info("Deleting assignment with id {}", id);
-        try {
-            deleteAssignmentByType(id);
-        } catch (UserNotFoundException userNotFoundException) {
-            log.error("Logged in user not found in the users table", userNotFoundException);
-            throw new ResourceNotFoundException("Logged in user not found in the users table");
-        }
+        deleteAssignmentByType(id);
     }
 
     @OnlyDevelopers

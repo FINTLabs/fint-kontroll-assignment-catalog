@@ -64,7 +64,7 @@ public class UserConsumer {
         userCache.remove(user.getId());
     }
     private void handleCachedUser(User cachedUser, User convertedUser) {
-        if (!cachedUser.convertedUserEquals(convertedUser)) {
+        if (!cachedUser.hasSamePersistedStateAs(convertedUser)) {
             updateUserInCache(convertedUser, "User found in cache, but not equal, updating user: {}");
         } else {
             log.info("User in cache is up-to-date: {}", cachedUser.getId());

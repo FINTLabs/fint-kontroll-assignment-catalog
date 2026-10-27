@@ -1,11 +1,9 @@
 package no.fintlabs.applicationresourcelocation;
 
 import jakarta.persistence.LockModeType;
-import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -15,15 +13,12 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
     @Query("select a from ApplicationResourceLocation a where a.applicationResourceId = ?1 and a.orgUnitId = ?2")
     List<ApplicationResourceLocation> findByApplicationResourceIdAndOrgUnitId(Long applicationResourceId, String orgUnitId);
 
-    List<ApplicationResourceLocation> findByApplicationResourceId(Long applicationResourceId);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select arl
             from ApplicationResourceLocation arl
             where arl.applicationResourceId = :resourceId
             """)
-    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
     List<ApplicationResourceLocation> lockByApplicationResourceId(@Param("resourceId") Long resourceId);
 
 
@@ -34,15 +29,5 @@ public interface ApplicationResourceLocationRepository extends JpaRepository<App
             "ORDER BY od.distance ASC")
     List<NearestResourceLocationDto> findNearestApplicationResourceLocationForOrgUnit(@Param("resourceRef") Long resourceRef,
                                                                                       @Param("orgUnitId") String orgUnitId);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("""
-                select arl
-                from ApplicationResourceLocation arl
-                where arl.applicationResourceId = :resourceId and arl.orgUnitId = :orgUnitId
-            """)
-    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
-    List<ApplicationResourceLocation> lockByResourceAndOrgUnit(@Param("resourceId") Long resourceId,
-                                                               @Param("orgUnitId") String orgUnitId);
 
 }

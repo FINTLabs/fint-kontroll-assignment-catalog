@@ -75,6 +75,12 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         flattenedAssignment2.setAssignmentViaRoleRef(2L);
         flattenedAssignment2.setIdentityProviderUserObjectId(UUID.fromString("10000000-0000-0000-0000-000000000002"));
         flattenedAssignment2.setIdentityProviderGroupObjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+        flattenedAssignment2.setUserEntraMembership(UserEntraMembership.builder()
+                .userEntraId(flattenedAssignment2.getIdentityProviderUserObjectId())
+                .resourceEntraId(flattenedAssignment2.getIdentityProviderGroupObjectId())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build());
 
         flattenedAssignment3 = new FlattenedAssignment();
         flattenedAssignment3.setUserRef(10L);
@@ -97,6 +103,8 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         flattenedAssignment4.setUserRef(10L);
         flattenedAssignment4.setAssignmentId(3L);
         flattenedAssignment4.setResourceRef(10L);
+        flattenedAssignment4.setIdentityProviderUserObjectId(flattenedAssignment1.getIdentityProviderUserObjectId());
+        flattenedAssignment4.setIdentityProviderGroupObjectId(flattenedAssignment1.getIdentityProviderGroupObjectId());
 
         savedFlattenedAssignment1 = flattenedAssignmentRepository.save(flattenedAssignment1);
         savedFlattenedAssignment2 = flattenedAssignmentRepository.save(flattenedAssignment2);

@@ -50,7 +50,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {"testorg.testdomain.entity.flattened-assignment-reporting"})
-@TestPropertySource(properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@TestPropertySource(properties = {
+        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
+        "spring.flyway.locations=classpath:db/migration/,classpath:db/reporting-testdata/"
+})
 @ActiveProfiles("test")
 public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIntegrationTest {
 

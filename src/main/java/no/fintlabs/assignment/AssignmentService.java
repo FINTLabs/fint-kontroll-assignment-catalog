@@ -6,9 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.exception.AssignmentException;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.exception.ConflictException;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAssignmentValidator;
@@ -16,7 +18,6 @@ import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
-import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -36,8 +37,8 @@ public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final ResourceAssignmentValidator resourceAssignmentValidator;
     private final FlattenedAssignmentService flattenedAssignmentService;
+    private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
-    private final AssignmentResourceEnricher assignmentResourceEnricher;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
@@ -175,7 +176,7 @@ public class AssignmentService {
             assignment.setUserLastName(user.getLastName());
             assignment.setUserUserType(user.getUserType());
         }, () -> {
-            throw new UserNotFoundException(userRef);
+            throw new ResourceNotFoundException("User not found: " + userRef);
         });
     }
 
@@ -327,7 +328,7 @@ public class AssignmentService {
 
     @Transactional
     public void reassignLinkedAssignments(Long resourceRef, String orgUnitId) {
-        List<Assignment> existingAssignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(resourceRef, orgUnitId);
+        List<Assignment> existingAssignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitIdAndAssignmentRemovedDateIsNull(resourceRef, orgUnitId);
         log.info("Found {} assignments for resource {} and orgUnitId {}", existingAssignments.size(), resourceRef, orgUnitId);
         List<Assignment> updatedAssignments = new ArrayList<>();
         existingAssignments.forEach(assignment -> {
@@ -339,6 +340,15 @@ public class AssignmentService {
         });
         assignmentRepository.saveAll(updatedAssignments);
         assignmentRepository.flush();
+        updatedAssignments.forEach(this::syncFlattenedAssignmentLocation);
         log.info("Done reassigning {} assignments for resource {} and orgUnitId {}", updatedAssignments.size(), resourceRef, orgUnitId);
+    }
+
+    private void syncFlattenedAssignmentLocation(Assignment assignment) {
+        if (assignment.getDeviceGroupRef() != null) {
+            flattenedDeviceAssignmentService.updateApplicationResourceLocation(assignment);
+            return;
+        }
+        flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false);
     }
 }

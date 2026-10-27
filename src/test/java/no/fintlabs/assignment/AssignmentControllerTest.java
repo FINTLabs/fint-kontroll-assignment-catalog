@@ -5,20 +5,18 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
-import no.fintlabs.assignment.user.projection.FlattenedAssignment;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
-import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.resource.ResourceService;
 import no.fintlabs.slack.SlackMessenger;
-import no.fintlabs.user.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,9 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -521,13 +517,13 @@ public class AssignmentControllerTest {
     }
 
     @Test
-    public void shouldDeleteAssignment_invalidId_throwsUserNotFoundException() throws Exception {
+    public void shouldDeleteAssignment_invalidId_throwsResourceNotFoundException() throws Exception {
         Long invalidId = 2L;
         Assignment assignment = new Assignment();
         assignment.setId(invalidId);
 
         when(assignmentServiceMock.getAssignmentById(invalidId)).thenReturn(Optional.of(assignment));
-        doThrow(UserNotFoundException.class).when(assignmentServiceMock).deleteAssignment(invalidId);
+        doThrow(new ResourceNotFoundException("User not found: 2")).when(assignmentServiceMock).deleteAssignment(invalidId);
 
         mockMvc.perform(delete("/api/assignments/" + invalidId)
                                 .contentType(MediaType.APPLICATION_JSON))

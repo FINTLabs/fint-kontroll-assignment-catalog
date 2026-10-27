@@ -10,9 +10,11 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -45,6 +47,9 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @MockBean
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+
+    @MockBean
     private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
@@ -68,6 +73,9 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
     @MockBean
     private LicenseEnforcementService licenseEnforcementService;
 
+    @MockBean
+    private ResourceAssignmentValidator resourceAssignmentValidator;
+
     @Test
     public void shouldFindRoleResourcesNotDeleted() {
         Resource resource = Resource.builder()
@@ -86,6 +94,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
                 .userName("test")
                 .organisationUnitId("555")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);
@@ -134,6 +143,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
                 .userName("test")
                 .organisationUnitId("555")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);
@@ -208,6 +218,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
                 .userName("test")
                 .organisationUnitId("555")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);

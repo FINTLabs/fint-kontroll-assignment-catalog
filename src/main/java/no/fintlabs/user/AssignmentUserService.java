@@ -2,7 +2,6 @@ package no.fintlabs.user;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
-import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignment;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
@@ -14,36 +13,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
 public class AssignmentUserService {
 
-    private final UserRepository userRepository;
-    private final AssignmentService assignmentService;
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
 
-    public AssignmentUserService(UserRepository userRepository, AssignmentService assignmentService, FlattenedAssignmentRepository flattenedAssignmentRepository) {
-        this.userRepository = userRepository;
-        this.assignmentService = assignmentService;
+    public AssignmentUserService(FlattenedAssignmentRepository flattenedAssignmentRepository) {
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-    }
-
-    public Page<AssignmentUser> findBySearchCriteria(Long resourceId, Specification<User> spec, Pageable page) {
-        return userRepository.findAll(spec, page)
-                .map(User::toAssignmentUser)
-                .map(user -> {
-                    assignmentService.getAssignmentRefForUserAssignment(user.getId(), resourceId).ifPresent(user::setAssignmentRef);
-                    assignmentService.getAssignerUsernameForUserAssignment(user.getId(), resourceId).ifPresent(user::setAssignerUsername);
-                    assignmentService.getAssignerDisplaynameForUserAssignment(user.getId(), resourceId)
-                            .ifPresent(user::setAssignerDisplayname);
-                    return user;
-                });
     }
 
     public Page<ResourceAssignmentUser> findResourceAssignmentUsersForResourceId(
@@ -75,16 +56,12 @@ public class AssignmentUserService {
             lastName = fullName.contains("%") ? StringUtils.substringAfterLast(fullName, "%") : fullName;
         }
 
-        Optional< Page<Object[]>> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
+        Page<Object[]> results = flattenedAssignmentRepository.findAssignmentsByResourceAndUserTypeAndNamesSearch(
                 resourceId, userType, orgUnitsToFilter, firstName, lastName, fullName, userIds, pageable);
 
-        if (results.isEmpty()) {
-            log.warn("Fetching flattened assignments for resource with Id: {} returned no results",  resourceId);
-            return null;
-        }
-        log.info("Fetching flattened assignments for resource with Id: {} returned {} objects",  resourceId, results.get().getSize());
+        log.info("Fetching flattened assignments for resource with Id: {} returned {} objects", resourceId, results.getNumberOfElements());
 
-        return results.get().map(result -> {
+        return results.map(result -> {
             FlattenedAssignment flattenedAssignment = (FlattenedAssignment) result[0];
             Resource resource = (Resource) result[1];
             User user = (User) result[2];

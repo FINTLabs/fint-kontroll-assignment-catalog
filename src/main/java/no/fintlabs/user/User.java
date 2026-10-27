@@ -42,6 +42,7 @@ public class User {
     private String userType;
     private String organisationUnitId;
     private String organisationUnitName;
+    @Column(nullable = false)
     private String status;
     private Date statusChanged;
     @CreationTimestamp
@@ -59,18 +60,6 @@ public class User {
     @Builder.Default
     private Set<Assignment> assignments = new HashSet<>();
 
-    public AssignmentUser toAssignmentUser() {
-        return AssignmentUser
-                .builder()
-                .id(id)
-                .firstName(firstName)
-                .lastName(lastName)
-                .userType(userType)
-                .organisationUnitId(organisationUnitId)
-                .organisationUnitName(organisationUnitName)
-                .build();
-    }
-
     public String getDisplayname() {
         if (!stringIsNullOrEmpty(firstName) && !stringIsNullOrEmpty(lastName)) {
             return firstName + " " + lastName;
@@ -82,52 +71,23 @@ public class User {
         return string == null || string.isEmpty();
     }
 
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean hasSamePersistedStateAs(User other) {
+        if (this == other) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (other == null) {
             return false;
         }
-        final User user = (User) o;
-        return Objects.equals(id, user.id) &&
-               Objects.equals(userName, user.userName) &&
-               Objects.equals(identityProviderUserObjectId, user.identityProviderUserObjectId) &&
-               Objects.equals(firstName, user.firstName) &&
-               Objects.equals(lastName, user.lastName) &&
-               Objects.equals(userType, user.userType) &&
-               Objects.equals(organisationUnitId, user.organisationUnitId) &&
-               Objects.equals(organisationUnitName, user.organisationUnitName) &
-               Objects.equals(status, user.status) &&
-               Objects.equals(statusChanged, user.statusChanged);
-    }
-
-    public boolean convertedUserEquals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final User user = (User) o;
-        return Objects.equals(id, user.id) &&
-               Objects.equals(userName, user.userName) &&
-               Objects.equals(identityProviderUserObjectId, user.identityProviderUserObjectId) &&
-               Objects.equals(firstName, user.firstName) &&
-               Objects.equals(lastName, user.lastName) &&
-               Objects.equals(userType, user.userType) &&
-               Objects.equals(organisationUnitId, user.organisationUnitId) &&
-               Objects.equals(organisationUnitName, user.organisationUnitName) &&
-               Objects.equals(status, user.status) &&
-               Objects.equals(statusChanged, user.statusChanged);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, userName, identityProviderUserObjectId, firstName, lastName, userType, organisationUnitId, organisationUnitName, status, statusChanged);
+        return Objects.equals(id, other.id) &&
+               Objects.equals(userName, other.userName) &&
+               Objects.equals(identityProviderUserObjectId, other.identityProviderUserObjectId) &&
+               Objects.equals(firstName, other.firstName) &&
+               Objects.equals(lastName, other.lastName) &&
+               Objects.equals(userType, other.userType) &&
+               Objects.equals(organisationUnitId, other.organisationUnitId) &&
+               Objects.equals(organisationUnitName, other.organisationUnitName) &&
+               Objects.equals(status, other.status) &&
+               Objects.equals(statusChanged, other.statusChanged);
     }
 }
 

@@ -7,6 +7,7 @@ import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.AuthorizationClient;
@@ -15,6 +16,7 @@ import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -61,6 +63,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @MockBean
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+
+    @MockBean
     private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
@@ -83,6 +88,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @MockBean
     private LicenseEnforcementService licenseEnforcementService;
+
+    @MockBean
+    private ResourceAssignmentValidator resourceAssignmentValidator;
 
 
     @Autowired

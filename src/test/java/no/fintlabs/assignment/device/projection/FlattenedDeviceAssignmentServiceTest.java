@@ -186,6 +186,26 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
+    void saveAndPublishFlattenedAssignmentsBatch_shouldNotPublish_whenPublishingIsDisabled() {
+        DeviceEntraMembership info = DeviceEntraMembership.builder()
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
+                .build();
+        FlattenedDeviceAssignment fda = FlattenedDeviceAssignment.builder()
+                .id(1L)
+                .assignmentId(10L)
+                .deviceEntraMembership(info)
+                .build();
+
+        List<FlattenedDeviceAssignment> assignments = List.of(fda);
+        when(flattenedDeviceAssignmentRepository.saveAll(assignments)).thenReturn(assignments);
+
+        flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(assignments, false);
+
+        verify(flattenedDeviceAssignmentRepository).saveAll(assignments);
+        verify(deviceAssigmentEntityProducerService, never()).publish(any(), anyBoolean());
+    }
+
+    @Test
     void saveAndPublishFlattenedAssignmentsBatch_shouldHandleNullAndEmptyList() {
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(null);
         flattenedDeviceAssignmentService.saveAndPublishFlattenedAssignmentsBatch(Collections.emptyList());
@@ -300,7 +320,7 @@ class FlattenedDeviceAssignmentServiceTest {
         ))).thenAnswer(inv -> inv.getArgument(0));
 
         when(deviceRepository.findById(any())).thenReturn(Optional.of(device20));
-        flattenedDeviceAssignmentService.syncFlattenedAssignments(assignment);
+        flattenedDeviceAssignmentService.syncFlattenedAssignments(assignment, true);
 
         // Verify Termination of old (device 10)
         assertNotNull(existingFda.getTerminationDate());

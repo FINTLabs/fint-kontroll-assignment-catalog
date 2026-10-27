@@ -51,6 +51,18 @@ public class FlattenedDeviceAssignmentService {
         saveAndPublishFlattenedAssignmentsBatch(new ArrayList<>(newAssignments));
     }
 
+    public void updateApplicationResourceLocation(Assignment assignment) {
+        List<FlattenedDeviceAssignment> flattenedAssignments =
+                flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(assignment.getId());
+
+        flattenedAssignments.forEach(flattenedAssignment ->
+                flattenedAssignment.setApplicationResourceLocationOrgUnitId(
+                        assignment.getApplicationResourceLocationOrgUnitId()
+                )
+        );
+        saveAndPublishFlattenedAssignmentsBatch(flattenedAssignments, false);
+    }
+
     public Set<FlattenedDeviceAssignment> createFlattenedAssignments(Assignment assignment) {
         log.info("Creating flattened assignments for new device group assignment with id: {}", assignment.getId());
 
@@ -135,6 +147,13 @@ public class FlattenedDeviceAssignmentService {
 
 
     public void saveAndPublishFlattenedAssignmentsBatch(List<FlattenedDeviceAssignment> flattenedAssignmentsForUpdate) {
+        saveAndPublishFlattenedAssignmentsBatch(flattenedAssignmentsForUpdate, true);
+    }
+
+    public void saveAndPublishFlattenedAssignmentsBatch(
+            List<FlattenedDeviceAssignment> flattenedAssignmentsForUpdate,
+            boolean publishPendingMemberships
+    ) {
         if (flattenedAssignmentsForUpdate == null || flattenedAssignmentsForUpdate.isEmpty()) {
             log.info("saveAndPublish - 0 flattened assignments, nothing to do");
             return;
@@ -157,8 +176,13 @@ public class FlattenedDeviceAssignmentService {
                             flattenedAssignment.getId(), flattenedAssignment.getAssignmentId())
             );
 
-            savedFlattened.stream().map(FlattenedDeviceAssignment::getDeviceEntraMembership).filter(deviceEntraMembership -> deviceEntraMembership.getEntraStatus().equals(EntraMembershipSyncStatus.NOT_SENT))
-                    .distinct().forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
+            if (publishPendingMemberships) {
+                savedFlattened.stream()
+                        .map(FlattenedDeviceAssignment::getDeviceEntraMembership)
+                        .filter(deviceEntraMembership -> deviceEntraMembership.getEntraStatus().equals(EntraMembershipSyncStatus.NOT_SENT))
+                        .distinct()
+                        .forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
+            }
 
             flattenedDeviceAssignmentRepository.flush();
             entityManager.clear();
@@ -213,6 +237,11 @@ public class FlattenedDeviceAssignmentService {
 
     @Async
     public void syncFlattenedAssignments(Assignment assignment) {
+        syncFlattenedAssignments(assignment, true);
+    }
+
+    @Async
+    public void syncFlattenedAssignments(Assignment assignment, boolean publishPendingMemberships) {
         Long assignmentId = assignment.getId();
         log.info("Updating flattened assignments for assignment with id {}", assignmentId);
 
@@ -255,7 +284,7 @@ public class FlattenedDeviceAssignmentService {
         }
 
         if (!toCreate.isEmpty()) {
-            saveAndPublishFlattenedAssignmentsBatch(new ArrayList<>(toCreate));
+            saveAndPublishFlattenedAssignmentsBatch(new ArrayList<>(toCreate), publishPendingMemberships);
         }
 
         if (!toTerminate.isEmpty()) {

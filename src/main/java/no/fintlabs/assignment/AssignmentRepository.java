@@ -39,7 +39,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
 
     List<Assignment> findByResourceRefAndDeviceGroupRefInAndAssignmentRemovedDateIsNull(Long resourceId, List<Long> deviceGroupIds);
 
-    List<Assignment> findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(Long resourceRef, String orgUnitId);
+    List<Assignment> findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitIdAndAssignmentRemovedDateIsNull(Long resourceRef, String orgUnitId);
 
     List<Assignment> findAllByDeviceGroupRefIsNotNullAndAssignmentRemovedDateIsNull();
 
@@ -52,12 +52,5 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long>, J
             AND (assignment.userRef IS NOT NULL OR assignment.roleRef IS NOT NULL)
             """)
     List<Assignment> findAllActiveUserAssignments();
-
-    @Query("SELECT a.id FROM Assignment a WHERE a.role.id = :roleId AND a.user.id = :userId AND a.assignmentRemovedDate IS NULL")
-    List<Long> findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(
-            @Param("roleId") Long roleId,
-            @Param("userId") Long userId
-    );
-    List<Assignment> findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(Long resourceId);
 
 }

@@ -27,6 +27,8 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
         UUID groupId = UUID.fromString("20000000-0000-0000-0000-000000000001");
         UUID userId = UUID.fromString("10000000-0000-0000-0000-000000000001");
         jdbc.update("INSERT INTO assignment_resources (id, status) VALUES (999, 'ACTIVE')");
+        jdbc.update("INSERT INTO users (id, identity_provider_user_object_id, status) VALUES (999, ?, NULL)",
+                UUID.fromString("10000000-0000-0000-0000-000000000999"));
         jdbc.update("INSERT INTO assignments (id, azure_ad_group_id, azure_ad_user_id) VALUES (1, ?, ?)", groupId, userId);
         jdbc.update("""
                 INSERT INTO flattened_assignments
@@ -48,14 +50,15 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
                 .dataSource(deployed.getConfiguration().getDataSource())
                 .locations("classpath:db/migration")
                 .load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(4);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(5);
         upgraded.validate();
-        assertThat(upgraded.info().current().getVersion().toString()).isEqualTo("42");
+        assertThat(upgraded.info().current().getVersion().toString()).isEqualTo("43");
 
         assertThat(jdbc.queryForObject("SELECT entra_group_id FROM assignments WHERE id = 1", UUID.class)).isEqualTo(groupId);
         assertThat(jdbc.queryForObject("SELECT entra_user_id FROM assignments WHERE id = 1", UUID.class)).isEqualTo(userId);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_entra_memberships", Long.class)).isEqualTo(2L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM assignment_resources WHERE id = 999", Long.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM users WHERE id = 999", String.class)).isEqualTo("ACTIVE");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_entra_memberships WHERE membership_status = 'ACTIVE'", Long.class))
                 .isEqualTo(1L);
         assertThat(jdbc.queryForObject("SELECT entra_status FROM user_entra_memberships WHERE user_entra_id = ?", String.class, userId))

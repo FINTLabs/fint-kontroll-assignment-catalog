@@ -48,13 +48,13 @@ public class DeviceEntraMembershipPublisher {
 
     public void publish(DeviceEntraMembership deviceEntraMembership, boolean force) {
         if (EntraMembershipSyncStatus.ERROR.equals(deviceEntraMembership.getEntraStatus()) && !force) {
-            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
+            log.warn("DeviceEntraMembership with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
             return;
         }
         if (EntraMembershipSyncStatus.ERROR.equals(deviceEntraMembership.getEntraStatus())) {
-            log.warn("DeviceAzureInfo with id {} has AzureStatus ERROR. Force publishing to Azure.", deviceEntraMembership.getId());
+            log.warn("DeviceEntraMembership with id {} has AzureStatus ERROR. Force publishing to Azure.", deviceEntraMembership.getId());
         }
-        log.info("Publishing to Azure - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
+        log.info("Publishing to Entra - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
         if (MembershipStatus.ACTIVE.equals(deviceEntraMembership.getMembershipStatus())) {
             publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
             deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.SENT);
@@ -67,31 +67,31 @@ public class DeviceEntraMembershipPublisher {
         deviceEntraMembershipRepository.save(deviceEntraMembership);
     }
 
-    private void publish(UUID azureAdGroupId, UUID azureDeviceId, OperationType action) {
-        DeviceResourceGroupMembershipCommand azureAdGroupMembership = new DeviceResourceGroupMembershipCommand(action, azureAdGroupId, azureDeviceId);
+    private void publish(UUID entraGroupId, UUID entraDeviceId, OperationType action) {
+        DeviceResourceGroupMembershipCommand entraGroupMembership = new DeviceResourceGroupMembershipCommand(action, entraGroupId, entraDeviceId);
 
-        log.info("Publishing to Azure - groupId: {}, deviceId: {}, action: {}", azureAdGroupId, azureDeviceId, action);
+        log.info("Publishing to entra - groupId: {}, deviceId: {}, action: {}", entraGroupId, entraDeviceId, action);
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    send(azureAdGroupMembership);
+                    send(entraGroupMembership);
                 }
             });
             return;
         }
 
-        send(azureAdGroupMembership);
+        send(entraGroupMembership);
     }
 
-    private void send(DeviceResourceGroupMembershipCommand azureAdGroupMembership) {
+    private void send(DeviceResourceGroupMembershipCommand entraGroupMembership) {
         String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
         eventProducer.send(
                 ParameterizedProducerRecord.<DeviceResourceGroupMembershipCommand>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
-                        .value(azureAdGroupMembership)
+                        .value(entraGroupMembership)
                         .build()
         );
     }

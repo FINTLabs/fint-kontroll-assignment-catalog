@@ -90,7 +90,7 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             "AND (:userIds IS NULL OR fa.userRef IN :userIds) " +
             "ORDER BY u.firstName, u.lastName"
     )
-    Optional<Page<Object[]>> findAssignmentsByResourceAndUserTypeAndNamesSearch(
+    Page<Object[]> findAssignmentsByResourceAndUserTypeAndNamesSearch(
             @Param("resourceId") Long resourceId,
             @Param("userType") String userType,
             @Param("orgUnits") List<String> orgUnits,

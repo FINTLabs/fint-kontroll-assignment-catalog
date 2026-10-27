@@ -6,6 +6,8 @@ import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationReposi
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.user.entra.UserEntraMembership;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
@@ -34,7 +36,6 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @DataJpaTest
@@ -55,6 +56,8 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
     private ApplicationResourceLocationRepository arlRepository;
     @Autowired
     private UserEntraMembershipRepository userEntraMembershipRepository;
+    @Autowired
+    private FlattenedAssignmentRepository flattenedAssignmentRepository;
     @MockBean
     private ResourceAvailabilityPublishingComponent resourceAvailabilityPublishingComponent;
 
@@ -66,9 +69,10 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
         ReflectionUtils.makeAccessible(field);
         ReflectionUtils.setField(field, service, true);
 
-        userEntraMembershipRepository.deleteAll();
-        arlRepository.deleteAll();
-        resourceRepository.deleteAll();
+        flattenedAssignmentRepository.deleteAllInBatch();
+        userEntraMembershipRepository.deleteAllInBatch();
+        arlRepository.deleteAllInBatch();
+        resourceRepository.deleteAllInBatch();
 
         Resource resource = Resource.builder()
                 .id(RESOURCE_ID)
@@ -193,11 +197,19 @@ class LicenseEnforcementServiceConcurrencyTest extends DatabaseIntegrationTest {
     }
 
     private void saveActiveUserMembership(UUID userEntraId) {
-        userEntraMembershipRepository.saveAndFlush(UserEntraMembership.builder()
+        UserEntraMembership membership = UserEntraMembership.builder()
                 .userEntraId(userEntraId)
                 .resourceEntraId(RESOURCE_ENTRA_ID)
                 .membershipStatus(MembershipStatus.ACTIVE)
                 .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build();
+
+        flattenedAssignmentRepository.saveAndFlush(FlattenedAssignment.builder()
+                .assignmentId(userEntraId.getLeastSignificantBits())
+                .resourceRef(RESOURCE_ID)
+                .identityProviderUserObjectId(userEntraId)
+                .identityProviderGroupObjectId(RESOURCE_ENTRA_ID)
+                .userEntraMembership(membership)
                 .build());
     }
 }

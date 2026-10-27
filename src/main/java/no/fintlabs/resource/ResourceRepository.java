@@ -14,11 +14,7 @@ public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSp
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Resource r where r.id = :id")
-    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-1"))
     Resource lockByResourceId(@Param("id") Long id);
-
-    @Query("select r from Resource r where r.status = 'ACTIVE'")
-    List<Resource> findByStatusACTIVE();
 
     @Query("SELECT resource.id FROM Resource resource WHERE resource.id > :lastProcessedId ORDER BY resource.id ASC")
     List<Long> findIdsByIdGreaterThanOrderByIdAsc(@Param("lastProcessedId") Long lastProcessedId, Pageable pageable);
