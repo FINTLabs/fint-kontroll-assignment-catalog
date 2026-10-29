@@ -230,8 +230,7 @@ public class FlattenedDeviceAssignmentService {
             boolean hasActiveAssignments
     ) {
         return !hasActiveAssignments
-                && (EntraMembershipSyncStatus.activeStatuses().contains(deviceEntraMembership.getEntraStatus())
-                || EntraMembershipSyncStatus.ERROR.equals(deviceEntraMembership.getEntraStatus()));
+                && !MembershipStatus.INACTIVE.equals(deviceEntraMembership.getMembershipStatus());
     }
 
 

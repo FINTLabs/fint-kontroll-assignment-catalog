@@ -2,44 +2,36 @@ package no.fintlabs.assignment;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
-import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
-// TODO check if we need this class
 @Slf4j
 @Component
 public class AssignmentPublishingComponent {
     private final FlattenedAssignmentService flattenedAssignmentService;
-    private final UserEntraMembershipPublisher assigmentEntityProducerService;
+    private final long responseTimeoutHours;
 
-    public AssignmentPublishingComponent(FlattenedAssignmentService flattenedAssignmentService, UserEntraMembershipPublisher assigmentEntityProducerService) {
+    public AssignmentPublishingComponent(
+            FlattenedAssignmentService flattenedAssignmentService,
+            @Value("${fint.kontroll.assignment-catalog.reconciliation.response-timeout:72}") long responseTimeoutHours
+    ) {
         this.flattenedAssignmentService = flattenedAssignmentService;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
+        this.responseTimeoutHours = responseTimeoutHours;
     }
 
     @Scheduled(
-            initialDelayString = "${fint.kontroll.assignment-catalog.publishing.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.publishing.fixed-delay}",
+            initialDelayString = "${fint.kontroll.assignment-catalog.reconciliation.initial-delay}",
+            fixedDelayString = "${fint.kontroll.assignment-catalog.reconciliation.fixed-delay}",
             timeUnit = TimeUnit.HOURS
     )
-    public void publishFlattenedAssignmentsUnConfirmed() {
-        log.info("Publishing unconfirmed flattened assignments");
+    public void republishStaleUserMemberships() {
+        Date cutoff = Date.from(java.time.Instant.now().minus(Duration.ofHours(responseTimeoutHours)));
+        log.info("Republishing user Entra memberships without a response since {}", cutoff);
 
-        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed()
-                .forEach(assigmentEntityProducerService::publish);
-    }
-
-    @Scheduled(
-            initialDelayString = "${fint.kontroll.assignment-catalog.deletion.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.deletion.fixed-delay}",
-            timeUnit = TimeUnit.HOURS
-    )
-    public void publishDeletedFlattenedAssignments() {
-        log.info("Publishing deleted flattened assignments");
-
-        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmed()
-                .forEach(assigmentEntityProducerService::publishDeletion);
+        flattenedAssignmentService.republishStaleUserEntraMemberships(cutoff);
     }
 }

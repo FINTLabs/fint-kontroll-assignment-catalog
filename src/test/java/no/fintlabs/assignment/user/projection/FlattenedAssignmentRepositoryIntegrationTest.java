@@ -78,7 +78,7 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
     }
 
     @Test
-    public void countOtherActiveAssignmentsByUserRefAndResourceRef_shouldFindRoleAssignmentWhenCurrentAssignmentIsDirect() {
+    public void existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot_shouldFindRoleAssignmentWhenCurrentAssignmentIsDirect() {
         FlattenedAssignment directAssignment = new FlattenedAssignment();
         directAssignment.setUserRef(20L);
         directAssignment.setAssignmentId(3L);
@@ -90,24 +90,24 @@ public class FlattenedAssignmentRepositoryIntegrationTest extends DatabaseIntegr
         directAssignment.setUserEntraMembership(savedFlattenedAssignment3.getUserEntraMembership());
         FlattenedAssignment savedDirectAssignment = flattenedAssignmentRepository.saveAndFlush(directAssignment);
 
-        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
-                savedDirectAssignment.getId(),
-                20L,
-                10L
-        );
+        boolean otherActiveAssignments = flattenedAssignmentRepository
+                .existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot(
+                        savedDirectAssignment.getUserEntraMembership(),
+                        savedDirectAssignment.getId()
+                );
 
-        assertThat(otherActiveAssignments).isEqualTo(1L);
+        assertThat(otherActiveAssignments).isTrue();
     }
 
     @Test
-    public void countOtherActiveAssignmentsByUserRefAndResourceRef_shouldExcludeCurrentAssignment() {
-        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
-                savedFlattenedAssignment1.getId(),
-                10L,
-                10L
-        );
+    public void existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot_shouldExcludeCurrentAssignment() {
+        boolean otherActiveAssignments = flattenedAssignmentRepository
+                .existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot(
+                        savedFlattenedAssignment1.getUserEntraMembership(),
+                        savedFlattenedAssignment1.getId()
+                );
 
-        assertThat(otherActiveAssignments).isZero();
+        assertThat(otherActiveAssignments).isFalse();
     }
 
     private UserEntraMembership membership(UUID userEntraId, UUID resourceEntraId) {

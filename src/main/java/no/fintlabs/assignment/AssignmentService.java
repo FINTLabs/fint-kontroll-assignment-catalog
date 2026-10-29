@@ -168,6 +168,9 @@ public class AssignmentService {
         }
 
         userRepository.findById(userRef).ifPresentOrElse(user -> {
+            if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "User " + userRef + " is not active");
+            }
             if (user.getIdentityProviderUserObjectId() == null) {
                 throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "User " + userRef + " does not have entra user id set");
             }
@@ -187,6 +190,9 @@ public class AssignmentService {
         }
 
         roleRepository.findById(roleRef).ifPresentOrElse(role -> {
+            if (!"ACTIVE".equalsIgnoreCase(role.getRoleStatus())) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Role " + roleRef + " is not active");
+            }
             assignment.setRoleName(role.getRoleName());
             assignment.setRoleType(role.getRoleType());
         }, () -> {

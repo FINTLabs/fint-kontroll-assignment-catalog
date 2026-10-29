@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Date;
 import java.util.UUID;
 
 public interface UserEntraMembershipRepository extends JpaRepository<UserEntraMembership, Long> {
@@ -42,6 +43,33 @@ public interface UserEntraMembershipRepository extends JpaRepository<UserEntraMe
             """)
     List<UserEntraMembership> findByEntraStatusInAndIdGreaterThanOrderByIdAsc(
             @Param("entraStatuses") List<EntraMembershipSyncStatus> entraStatuses,
+            @Param("lastProcessedId") Long lastProcessedId,
+            Pageable pageable);
+
+    @Query("""
+            SELECT membership
+            FROM UserEntraMembership membership
+            WHERE membership.id > :lastProcessedId
+            AND (
+                membership.entraStatus IN :unpublishedStatuses
+                OR
+                (membership.membershipStatus = :activeStatus
+                    AND membership.entraStatus IN :addStatuses
+                    AND (membership.sentToEntraAt IS NULL OR membership.sentToEntraAt < :cutoff))
+                OR
+                (membership.membershipStatus = :inactiveStatus
+                    AND membership.entraStatus IN :removeStatuses
+                    AND (membership.deletionSentToEntraAt IS NULL OR membership.deletionSentToEntraAt < :cutoff))
+            )
+            ORDER BY membership.id ASC
+            """)
+    List<UserEntraMembership> findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+            @Param("unpublishedStatuses") List<EntraMembershipSyncStatus> unpublishedStatuses,
+            @Param("activeStatus") MembershipStatus activeStatus,
+            @Param("addStatuses") List<EntraMembershipSyncStatus> addStatuses,
+            @Param("inactiveStatus") MembershipStatus inactiveStatus,
+            @Param("removeStatuses") List<EntraMembershipSyncStatus> removeStatuses,
+            @Param("cutoff") Date cutoff,
             @Param("lastProcessedId") Long lastProcessedId,
             Pageable pageable);
 

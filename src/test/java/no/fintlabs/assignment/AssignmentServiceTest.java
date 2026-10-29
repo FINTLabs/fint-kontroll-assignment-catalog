@@ -77,6 +77,7 @@ class AssignmentServiceTest {
     private User userWithEntraId() {
         User user = new User();
         user.setIdentityProviderUserObjectId(UUID.randomUUID());
+        user.setStatus("ACTIVE");
         return user;
     }
 
@@ -322,6 +323,32 @@ class AssignmentServiceTest {
     }
 
     @Test
+    void shouldRejectAssignmentToInactiveUser() {
+        User user = userWithEntraId();
+        user.setStatus("INACTIVE");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(resourceAssignmentValidator.getActiveResourceOrThrow(1L))
+                .willReturn(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build());
+
+        assertThrows(AssignmentException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, null));
+
+        verify(assignmentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void shouldRejectAssignmentToInactiveRole() {
+        Role role = new Role();
+        role.setRoleStatus("INACTIVE");
+        given(roleRepository.findById(1L)).willReturn(Optional.of(role));
+        given(resourceAssignmentValidator.getActiveResourceOrThrow(1L))
+                .willReturn(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build());
+
+        assertThrows(AssignmentException.class, () -> assignmentService.createNewAssignment(1L, "orgid", null, 1L));
+
+        verify(assignmentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void shouldDeleteAssignment_ValidId_DeletesAssignment() {
         Long validId = 1L;
         String userName = "testUser";
@@ -486,7 +513,9 @@ class AssignmentServiceTest {
                 .resourceRef(1L)
                 .build();
 
-        given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
+        Role activeRole = new Role();
+        activeRole.setRoleStatus("ACTIVE");
+        given(roleRepository.findById(1L)).willReturn(Optional.of(activeRole));
         given(resourceAssignmentValidator.getActiveResourceOrThrow(1L)).willReturn(Resource.builder().id(1L).resourceName("Resource 1").status("ACTIVE").build());
         given(assignmentRepository.saveAndFlush(any())).willReturn(assignment);
         given(licenseEnforcementService.validateAssignmentCapacity(any(Assignment.class))).willReturn(true);

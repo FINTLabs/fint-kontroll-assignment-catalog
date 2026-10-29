@@ -17,7 +17,7 @@ public class UserResourceGroupMembershipCommand {
     @JsonCreator
     public UserResourceGroupMembershipCommand(@JsonProperty("operation") OperationType operation,
                                    @JsonProperty("entraGroupRef") UUID entraGroupRef,
-                                   @JsonProperty("userGroupRef") UUID entraUserRef) {
+                                   @JsonProperty("entraUserRef") UUID entraUserRef) {
         this.operation = operation;
         this.entraGroupRef = entraGroupRef;
         this.entraUserRef = entraUserRef;
@@ -28,7 +28,7 @@ public class UserResourceGroupMembershipCommand {
         return entraGroupRef;
     }
 
-    @JsonProperty("userGroupRef")
+    @JsonProperty("entraUserRef")
     public UUID getEntraUserRef() {
         return entraUserRef;
     }

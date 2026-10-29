@@ -119,7 +119,9 @@ public class UserEntraMembershipPublisher {
     }
 
     private boolean isValidAssignment(FlattenedAssignment assignment) {
-        if (assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
+        if (assignment.getIdentityProviderGroupObjectId() == null ||
+            assignment.getIdentityProviderUserObjectId() == null ||
+            assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
             assignment.getIdentityProviderUserObjectId().toString().startsWith("00000000")) {
 
             log.warn("Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing entraId group id ({}) or user " +

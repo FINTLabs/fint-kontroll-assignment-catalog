@@ -1,6 +1,7 @@
 package no.fintlabs.assignment.device.entra;
 
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
+import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.device.Device;
 import no.fintlabs.assignment.device.entra.DeviceEntraMembershipPublisher;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,5 +48,28 @@ class DeviceMembershipRepublisherTest {
 
         verify(deviceEntraMembershipRepository).findAllByEntraStatusAndDeviceEntraId(EntraMembershipSyncStatus.ERROR, dataObjectId);
         verify(deviceAssigmentEntityProducerService).publish(membership, true);
+    }
+
+    @Test
+    void republishStaleMemberships_shouldPublishOnlyMembershipsReturnedByTheStaleQuery() {
+        DeviceEntraMembership membership = DeviceEntraMembership.builder()
+                .id(1L)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.SENT)
+                .build();
+        when(deviceEntraMembershipRepository.findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+                anyList(), eq(MembershipStatus.ACTIVE), anyList(), eq(MembershipStatus.INACTIVE), anyList(), any(), eq(0L), any()))
+                .thenReturn(List.of(membership));
+
+        deviceMembershipRepublisher.republishStaleMemberships();
+
+        verify(deviceEntraMembershipRepository).findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+                eq(List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.TO_BE_DELETED)),
+                eq(MembershipStatus.ACTIVE),
+                eq(List.of(EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
+                eq(MembershipStatus.INACTIVE),
+                eq(List.of(EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
+                any(), eq(0L), any());
+        verify(deviceAssigmentEntityProducerService).publish(membership, false);
     }
 }

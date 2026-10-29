@@ -298,14 +298,19 @@ public class FlattenedAssignmentService {
         Set<Long> publishedMembershipIds = new HashSet<>();
 
         flattenedAssignments.forEach(flattenedAssignment -> {
-            if (notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(flattenedAssignment)) {
+            UserEntraMembership membership = flattenedAssignment.getUserEntraMembership();
+            if (membership == null) {
+                log.warn("Skipping removal for flattened assignment {} because it has no user Entra membership", flattenedAssignment.getId());
+                return;
+            }
+
+            if (!hasOtherActiveFlattenedAssignmentsForMembership(flattenedAssignment, membership)) {
                 log.info("User {} and resource {} in deactivated flattened assignment {} has no other active assignment and will be published for deletion",
                         flattenedAssignment.getUserRef(),
                         flattenedAssignment.getResourceRef(),
                         flattenedAssignment.getId()
                 );
-                UserEntraMembership membership = flattenedAssignment.getUserEntraMembership();
-                if (membership == null || publishedMembershipIds.add(membership.getId())) {
+                if (publishedMembershipIds.add(membership.getId())) {
                     assigmentEntityProducerService.publishDeletion(flattenedAssignment);
                 }
             }
@@ -341,10 +346,6 @@ public class FlattenedAssignmentService {
         } while (memberships.size() == REPUBLISH_BATCH_SIZE);
     }
 
-    public List<FlattenedAssignment> getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmed() {
-        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNull(unconfirmedActiveStatuses());
-    }
-
     public void republishUnconfirmedUserEntraMembershipsByAssignmentId(Long assignmentId) {
         long lastProcessedId = 0L;
         List<UserEntraMembership> memberships;
@@ -362,10 +363,6 @@ public class FlattenedAssignmentService {
                 lastProcessedId = memberships.getLast().getId();
             }
         } while (memberships.size() == REPUBLISH_BATCH_SIZE);
-    }
-
-    public List<FlattenedAssignment> getFlattenedAssignmentsDeletedNotConfirmed() {
-        return flattenedAssignmentRepository.findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNull(unconfirmedInactiveStatuses());
     }
 
     public Optional<FlattenedAssignment> getFlattenedAssignmentByUserAndResourceNotTerminated(Long userRef, Long resourceRef) {
@@ -410,31 +407,16 @@ public class FlattenedAssignmentService {
         licenseEnforcementService.recalculateAssignedResourcesForResource(resourceRef);
     }
 
-    private boolean notExistOtherActiveFlattenedAssignmentsWithSameUserRefAndResourceRef(FlattenedAssignment flattenedAssignment) {
+    private boolean hasOtherActiveFlattenedAssignmentsForMembership(
+            FlattenedAssignment flattenedAssignment,
+            UserEntraMembership membership
+    ) {
+        boolean hasOtherActiveAssignments = flattenedAssignmentRepository
+                .existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot(membership, flattenedAssignment.getId());
 
-        log.info("Checking if other active flattened assignment exists for user {} and resource {}",
-                flattenedAssignment.getUserRef(),
-                flattenedAssignment.getResourceRef()
-        );
-        long otherActiveAssignments = flattenedAssignmentRepository.countOtherActiveAssignmentsByUserRefAndResourceRef(
-                flattenedAssignment.getId(),
-                flattenedAssignment.getUserRef(),
-                flattenedAssignment.getResourceRef()
-        );
-
-        if (otherActiveAssignments == 0) {
-            log.info("No other active flattened assignment found for user {} and resource {}, proceeding with deletion",
-                    flattenedAssignment.getUserRef(),
-                    flattenedAssignment.getResourceRef()
-            );
-            return true;
-        }
-        log.info("Found {} other active flattened assignments for user {} and resource {}",
-                otherActiveAssignments,
-                flattenedAssignment.getUserRef(),
-                flattenedAssignment.getResourceRef()
-        );
-        return false;
+        log.info("{} other active flattened assignments for user Entra membership {}",
+                hasOtherActiveAssignments ? "Found" : "No", membership.getId());
+        return hasOtherActiveAssignments;
     }
 
     public void publishAllActive(Assignment assignment) {
@@ -459,6 +441,7 @@ public class FlattenedAssignmentService {
         }
 
         flattenedAssignmentRepository.saveAllAndFlush(flattenedAssignments);
+        recalculateAssignedResources(flattenedAssignments);
         log.info("Updated {} flattened assignments for user with id {}", flattenedAssignments.size(), user.getId());
         flattenedAssignments.forEach(flattenedAssignment -> assigmentEntityProducerService.publish(flattenedAssignment, true));
     }
@@ -470,6 +453,29 @@ public class FlattenedAssignmentService {
         do {
             memberships = userEntraMembershipRepository.findByEntraStatusInAndIdGreaterThanOrderByIdAsc(
                     republishableUnconfirmedMembershipStatuses(),
+                    lastProcessedId,
+                    PageRequest.of(0, REPUBLISH_BATCH_SIZE));
+
+            memberships.forEach(membership -> assigmentEntityProducerService.publish(membership, false));
+
+            if (!memberships.isEmpty()) {
+                lastProcessedId = memberships.getLast().getId();
+            }
+        } while (memberships.size() == REPUBLISH_BATCH_SIZE);
+    }
+
+    public void republishStaleUserEntraMemberships(Date cutoff) {
+        long lastProcessedId = 0L;
+        List<UserEntraMembership> memberships;
+
+        do {
+            memberships = userEntraMembershipRepository.findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+                    List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.TO_BE_DELETED),
+                    MembershipStatus.ACTIVE,
+                    List.of(EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH),
+                    MembershipStatus.INACTIVE,
+                    List.of(EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH),
+                    cutoff,
                     lastProcessedId,
                     PageRequest.of(0, REPUBLISH_BATCH_SIZE));
 
@@ -553,13 +559,10 @@ public class FlattenedAssignmentService {
             return;
         }
 
-        UUID previousUserEntraId = membership.getUserEntraId();
         UserEntraMembership targetMembership = userEntraMembershipRepository
                 .findByUserEntraIdAndResourceEntraId(updatedUserEntraId, membership.getResourceEntraId())
                 .filter(existingMembership -> !Objects.equals(existingMembership.getId(), membership.getId()))
                 .orElse(membership);
-
-        assigmentEntityProducerService.publishDeletion(membership.getResourceEntraId(), previousUserEntraId);
 
         if (targetMembership != membership) {
             List<FlattenedAssignment> linkedAssignments = flattenedAssignmentRepository.findByUserEntraMembership(membership);
@@ -613,14 +616,6 @@ public class FlattenedAssignmentService {
         REUSED_EXISTING,
         RESET_EXISTING,
         SKIPPED_MISSING_IDS
-    }
-
-    private List<EntraMembershipSyncStatus> unconfirmedActiveStatuses() {
-        return List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.ERROR, EntraMembershipSyncStatus.NEEDS_REPUBLISH);
-    }
-
-    private List<EntraMembershipSyncStatus> unconfirmedInactiveStatuses() {
-        return List.of(EntraMembershipSyncStatus.TO_BE_DELETED, EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.ERROR, EntraMembershipSyncStatus.NEEDS_REPUBLISH);
     }
 
     private List<EntraMembershipSyncStatus> republishableUnconfirmedMembershipStatuses() {

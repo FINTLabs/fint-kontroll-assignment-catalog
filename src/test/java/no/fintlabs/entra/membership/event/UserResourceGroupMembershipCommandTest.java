@@ -20,6 +20,6 @@ class ResourceGroupMembershipTest {
 
         assertEquals("ADD", json.get("operation").asText());
         assertEquals(groupRef.toString(), json.get("entraGroupRef").asText());
-        assertEquals(userRef.toString(), json.get("userGroupRef").asText());
+        assertEquals(userRef.toString(), json.get("entraUserRef").asText());
     }
 }

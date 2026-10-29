@@ -22,10 +22,6 @@ import java.util.stream.Stream;
 
 @Repository
 public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAssignment, Long>, JpaSpecificationExecutor<FlattenedAssignment> {
-    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNull(List<EntraMembershipSyncStatus> entraStatuses);
-
-    List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNotNull(List<EntraMembershipSyncStatus> entraStatuses);
-
     List<FlattenedAssignment> findByAssignmentId(Long assignmentId);
 
     List<FlattenedAssignment> findByAssignmentIdAndAssignmentTerminationDateIsNull(Long assignmentId);
@@ -34,18 +30,10 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
 
     Optional<FlattenedAssignment> findByAssignmentViaRoleRefIsNullAndUserRefAndResourceRefAndAssignmentTerminationDateIsNull(Long userRef, Long resourceRef);
 
-    @Query("""
-            SELECT COUNT(fa)
-            FROM FlattenedAssignment fa
-            WHERE fa.userRef = :userRef
-            AND fa.resourceRef = :resourceRef
-            AND fa.assignmentTerminationDate IS NULL
-            AND (:flattenedAssignmentId IS NULL OR fa.id <> :flattenedAssignmentId)
-            """)
-    long countOtherActiveAssignmentsByUserRefAndResourceRef(
-            @Param("flattenedAssignmentId") Long flattenedAssignmentId,
-            @Param("userRef") Long userRef,
-            @Param("resourceRef") Long resourceRef);
+    boolean existsByUserEntraMembershipAndAssignmentTerminationDateIsNullAndIdNot(
+            UserEntraMembership userEntraMembership,
+            Long id
+    );
 
     List<FlattenedAssignment> findByUserRefAndAssignmentTerminationDateIsNull(Long userRef);
 

@@ -243,8 +243,7 @@ class FlattenedDeviceAssignmentServiceTest {
         DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
 
         when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        // Important: this condition triggers the publish logic
-        when(azureInfo.getEntraStatus()).thenReturn(EntraMembershipSyncStatus.SENT);
+        when(azureInfo.getMembershipStatus()).thenReturn(MembershipStatus.ACTIVE);
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(fda));
@@ -283,6 +282,25 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
+    void deleteFlattenedDeviceAssignments_shouldDeactivateNeedsRepublishMembership() {
+        Assignment assignment = new Assignment();
+        assignment.setId(1L);
+        assignment.setAssignmentRemovedDate(new Date());
+
+        FlattenedDeviceAssignment fda = mock(FlattenedDeviceAssignment.class);
+        DeviceEntraMembership membership = mock(DeviceEntraMembership.class);
+        when(fda.getDeviceEntraMembership()).thenReturn(membership);
+        when(membership.getMembershipStatus()).thenReturn(MembershipStatus.ACTIVE);
+        when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
+                .thenReturn(List.of(fda));
+
+        flattenedDeviceAssignmentService.deleteFlattenedDeviceAssignments(assignment, "reason");
+
+        verify(membership).setMembershipStatus(MembershipStatus.INACTIVE);
+        verify(deviceAssigmentEntityProducerService).publish(membership, true);
+    }
+
+    @Test
     void syncFlattenedAssignments_shouldCreateNewAndTerminateOld() {
         Assignment assignment = new Assignment();
         assignment.setId(1L);
@@ -296,7 +314,6 @@ class FlattenedDeviceAssignmentServiceTest {
                 .deviceEntraMembership(mock(DeviceEntraMembership.class))
                 .assignmentId(assignment.getId())
                 .build();
-        when(existingFda.getDeviceEntraMembership().getEntraStatus()).thenReturn(EntraMembershipSyncStatus.SENT);
 
         when(flattenedDeviceAssignmentRepository.findByAssignmentIdAndTerminationDateIsNull(1L))
                 .thenReturn(List.of(existingFda));
@@ -339,7 +356,6 @@ class FlattenedDeviceAssignmentServiceTest {
         DeviceEntraMembership azureInfo = mock(DeviceEntraMembership.class);
 
         when(fda.getDeviceEntraMembership()).thenReturn(azureInfo);
-        when(azureInfo.getEntraStatus()).thenReturn(EntraMembershipSyncStatus.SENT);
 
         when(flattenedDeviceAssignmentRepository.findByDeviceRefAndAssignmentViaGroupRefAndTerminationDateIsNull(1L, 100L))
                 .thenReturn(List.of(fda));
