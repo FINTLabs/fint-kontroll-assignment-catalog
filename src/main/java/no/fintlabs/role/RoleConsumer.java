@@ -5,7 +5,7 @@ import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.enforcement.LicenseEnforcementService;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -40,9 +40,9 @@ public class RoleConsumer {
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Role.class,
                         this::process,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("role-catalog-role"));
+                .createContainer(KafkaTopics.topicNameParameters("role-catalog-role"));
     }
 
     void process(ConsumerRecord<String, Role> consumerRecord) {
@@ -76,14 +76,11 @@ public class RoleConsumer {
     private void updateRole(Role incomingRole, Role existingRole) {
         if (!existingRole.equals(incomingRole) && isIncomingRoleNewer(incomingRole, existingRole)) {
             log.info("Role id: {} already exists but has changes, updating role. Existing: {}, Incoming: {}", incomingRole.getId(), existingRole, incomingRole);
-            long numberOfMembers = existingRole.getNoOfMembers() != null ? existingRole.getNoOfMembers() : 0;
             if (incomingRole.getRoleStatus() != null && !incomingRole.getRoleStatus().equalsIgnoreCase(existingRole.getRoleStatus()) && incomingRole.getRoleStatus().equalsIgnoreCase("inactive")) {
-                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.removeAllAssignedResourcesForRole(incomingRole,
-                        numberOfMembers) ? "Success" : "Failure");
                 assignmentService.deactivateAssignmentsByRole(incomingRole);
+                log.info("Removed assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.recalculateAssignmentsForRole(incomingRole) ? "Success" : "Failure");
             } else {
-                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.updateAssignedResourcesWhenChangesInRole(incomingRole,
-                        numberOfMembers) ? "Success" : "Failure");
+                log.info("Assigned resources for Role id: {} updated : {}", incomingRole.getId(), licenseEnforcementService.recalculateAssignmentsForRole(incomingRole) ? "Success" : "Failure");
             }
 
             roleRepository.saveAndFlush(incomingRole);

@@ -3,16 +3,22 @@ package no.fintlabs.resource;
 import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
-import no.fintlabs.assignment.AssigmentEntityProducerService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentRepository;
+import no.fintlabs.assignment.AssignmentResourceEnricher;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembership;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.authorization.AuthorizationUtil;
+import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
+import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.kodeverk.Handhevingstype;
 import no.fintlabs.opa.OpaService;
@@ -28,6 +34,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
@@ -39,7 +46,7 @@ import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Testcontainers
-@Import({AssignmentResourceService.class, AssignmentService.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentResourceService.class, AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Autowired
@@ -50,6 +57,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
     @Autowired
     private FlattenedAssignmentService flattenedAssignmentService;
+
+    @MockBean
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
 
     @Autowired
     private UserRepository userRepository;
@@ -63,7 +73,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private ApplicationResourceLocationService applicationResourceLocationService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
@@ -83,10 +93,16 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private FlattenedAssignmentRepository flattenedAssignmentRepository;
 
     @Autowired
+    private UserEntraMembershipRepository userEntraMembershipRepository;
+
+    @Autowired
     private TestEntityManager testEntityManager;
 
     @MockBean
     private LicenseEnforcementService licenseEnforcementService;
+
+    @MockBean
+    private ResourceAssignmentValidator resourceAssignmentValidator;
 
     private final String varfk = "varfk";
     private final String kompavd = "kompavd";
@@ -97,7 +113,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     private final String adobek12 = "adobek12";
     private final String student = "Student";
     private final String allTypes = "ALLTYPES";
-    private final UUID azureUserId = UUID.randomUUID();
+    private final UUID entraIdUserId = UUID.randomUUID();
 
     private final List<String>listOfAllOrgUnits = List.of("ALLORGUNITS");
 
@@ -135,7 +151,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 //                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+        saveFlattenedAssignment(flattenedAssignment);
 
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(listOfAllOrgUnits);
 
@@ -146,7 +162,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndApplicationResourceLocationOrgUnitIdIsInScope() {
+    void findUserAssignmentResourcesByUser_shouldAllowDeletionForRestrictedResourceInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -163,6 +179,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId(kompavd)
                 .userType(student)
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -170,7 +187,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -182,10 +199,9 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userRef(savedUser.getId())
                 .assignmentViaRoleRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
-//                .licenseConsumerOrgUnitRef(kompavd)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+        saveFlattenedAssignment(flattenedAssignmentAdobek12);
 
 
 
@@ -198,7 +214,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueForRestrictedResourceWhenCalledByUserAndUnitIdIsInScopeContainALLORGUNITS() {
+    void findUserAssignmentResourcesByUser_shouldAllowDeletionWhenAllOrgUnitsAreInScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -215,6 +231,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId(kompavd)
                 .userType(student)
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -222,7 +239,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(kompavd)
                 .build();
@@ -237,7 +254,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 //                .licenseConsumerOrgUnitRef(kompavd)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+        saveFlattenedAssignment(flattenedAssignmentAdobek12);
 
 
 
@@ -251,7 +268,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
     }
 
     @Test
-    public void shouldSetIsDeletableAssignmentToFalseWhenCalledByUserAndRestrictedResourceNotInScope() {
+    void findUserAssignmentResourcesByUser_shouldDenyDeletionForRestrictedResourceOutOfScope() {
         Resource resourceAdobek12 = Resource.builder()
                 .id(1L)
                 .resourceId(adobek12)
@@ -268,6 +285,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId(kompavd)
                 .userType(student)
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -275,7 +293,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignmentAdobek12 = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceAdobek12.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -290,7 +308,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 //                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentAdobek12);
+        saveFlattenedAssignment(flattenedAssignmentAdobek12);
 
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
@@ -301,7 +319,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isFalse();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToTrueWhenCalledByUserAndUnrestrictedResourceNotInScope() {
+    void findUserAssignmentResourcesByUser_shouldAllowDeletionForUnrestrictedResourceOutOfScope() {
         Resource resource = Resource.builder()
                 .id(2L)
                 .resourceId(zip)
@@ -318,6 +336,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId(kompavd)
                 .userType(student)
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -325,7 +344,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment assignment = Assignment.builder()
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
@@ -340,7 +359,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 //                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+        saveFlattenedAssignment(flattenedAssignment);
 
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
@@ -351,7 +370,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(resourceAssignmentUsers.getContent().getFirst().isDeletableAssignment()).isTrue();
     }
     @Test
-    public void shouldSetIsDeletableAssignmentToFalseForUnrestrictedResourceNotInScopeAndIndirectlyAssigned() {
+    void findUserAssignmentResourcesByUser_shouldDenyDeletionForIndirectAssignment() {
         Resource resource = Resource.builder()
                 .id(2L)
                 .resourceId(zip)
@@ -368,6 +387,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId(kompavd)
                 .userType(student)
+                .status("ACTIVE")
                 .build();
         User savedUser = userRepository.saveAndFlush(user);
 
@@ -396,7 +416,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 //                .licenseConsumerOrgUnitRef(varfk)
                 .build();
 
-        flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+        saveFlattenedAssignment(flattenedAssignment);
 
         given(authorizationUtil.getAllAuthorizedOrgUnitIDs()).willReturn(kompavdList);
 
@@ -424,6 +444,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId("555")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);
@@ -560,6 +581,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .userName("test")
                 .organisationUnitId("555")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);
@@ -601,6 +623,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .organisationUnitId("555")
                 .userName("test@test.no")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -610,7 +633,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResource.getId())
                 .build();
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
@@ -622,7 +645,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceRef(savedResource.getId())
                 .applicationResourceLocationOrgUnitId(varfk)
                 .build();
-        FlattenedAssignment savedFlattenedAssignment = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
+        FlattenedAssignment savedFlattenedAssignment = saveFlattenedAssignment(flattenedAssignment);
 
         testEntityManager.flush();
         testEntityManager.clear();
@@ -677,6 +700,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .organisationUnitId("555")
                 .userName("test@test.no")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -706,14 +730,14 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
-        FlattenedAssignment savedFlattenedAssignmentInDirect = flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentIndirect);
+        FlattenedAssignment savedFlattenedAssignmentInDirect = saveFlattenedAssignment(flattenedAssignmentIndirect);
 
         Assignment userAssignment = Assignment.builder()
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(null)
                 .userRef(savedUser.getId())
-                .azureAdUserId(azureUserId)
+                .entraUserId(entraIdUserId)
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
         Assignment savedUserAssignment = assignmentRepository.saveAndFlush(userAssignment);
@@ -724,7 +748,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .resourceRef(savedResourceIndirect.getId())
                 .build();
 
-        FlattenedAssignment savedFlattenedAssignmentDirect = flattenedAssignmentRepository.saveAndFlush(flattenedAssignmentDirect);
+        FlattenedAssignment savedFlattenedAssignmentDirect = saveFlattenedAssignment(flattenedAssignmentDirect);
 
         testEntityManager.flush();
         testEntityManager.clear();
@@ -798,6 +822,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .organisationUnitId("555")
                 .userName("test@test.no")
                 .userType("ALLTYPES")
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.saveAndFlush(user);
@@ -836,7 +861,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResource.getId())
                 .build();
-        FlattenedAssignment savedFlattenedAssignment1 = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment1);
+        FlattenedAssignment savedFlattenedAssignment1 = saveFlattenedAssignment(flattenedAssignment1);
 
         FlattenedAssignment flattenedAssignment2 = FlattenedAssignment.builder()
                 .assignmentId(savedAssignment2.getId())
@@ -844,7 +869,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
                 .assignmentViaRoleRef(savedRole.getId())
                 .resourceRef(savedResource2.getId())
                 .build();
-        FlattenedAssignment savedFlattenedAssignment2 = flattenedAssignmentRepository.saveAndFlush(flattenedAssignment2);
+        FlattenedAssignment savedFlattenedAssignment2 = saveFlattenedAssignment(flattenedAssignment2);
 
         testEntityManager.flush();
         testEntityManager.clear();
@@ -886,5 +911,18 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assertThat(foundResource2.getResourceName()).isEqualTo("Test resource 222");
         assertThat(foundResource2.getResourceType()).isEqualTo("ALLTYPES");
 
+    }
+    private FlattenedAssignment saveFlattenedAssignment(FlattenedAssignment flattenedAssignment) {
+        UserEntraMembership membership = userEntraMembershipRepository.saveAndFlush(UserEntraMembership.builder()
+                .userEntraId(UUID.randomUUID())
+                .resourceEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build());
+
+        flattenedAssignment.setIdentityProviderUserObjectId(membership.getUserEntraId());
+        flattenedAssignment.setIdentityProviderGroupObjectId(membership.getResourceEntraId());
+        flattenedAssignment.setUserEntraMembership(membership);
+        return flattenedAssignmentRepository.saveAndFlush(flattenedAssignment);
     }
 }

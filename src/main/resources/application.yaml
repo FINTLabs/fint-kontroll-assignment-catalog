@@ -9,12 +9,10 @@ fint:
   kontroll:
     assignment-catalog:
       pagesize: 50
-      publishing:
-          initial-delay: 2
-          fixed-delay: 48
-      deletion:
-          initial-delay: 2
-          fixed-delay: 48
+      reconciliation:
+        initial-delay: 2
+        fixed-delay: 24
+        response-timeout: 72
       license-enforcement:
         hardstop-enable: true
     slack:

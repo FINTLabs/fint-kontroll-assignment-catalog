@@ -2,61 +2,72 @@ package no.fintlabs.assignment;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignment;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AssignmentMapper {
+    private static final String ASSIGNMENT_TERMINATED_REASON = "Assignment has been terminated";
+
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
-                .identityProviderUserObjectId(assignment.getAzureAdUserId())
+                .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
                 .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
-                .identityProviderGroupObjectId(assignment.getAzureAdGroupId())
-                .identityProviderGroupMembershipConfirmed(false)
-                .identityProviderGroupMembershipDeletionConfirmed(false)
+                .identityProviderGroupObjectId(assignment.getEntraGroupId())
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
+                .build();
+    }
+
+    public static FlattenedDeviceAssignment toFlattenedDeviceAssignment(Assignment assignment) {
+        return FlattenedDeviceAssignment.builder()
+                .assignmentId(assignment.getId())
+                .resourceRef(assignment.getResourceRef())
+                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
+                .identityProviderGroupObjectId(assignment.getEntraGroupId())
+                .assignmentCreationDate(assignment.getAssignmentDate())
+                .terminationDate(assignment.getAssignmentRemovedDate())
+                .terminationReason(getTerminationReason(assignment))
+                .assignmentViaGroupRef(assignment.getDeviceGroupRef())
                 .build();
     }
 
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
-                .identityProviderUserObjectId(assignment.getAzureAdUserId())
+                .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
                 .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
-                .identityProviderGroupObjectId(assignment.getAzureAdGroupId())
-                .identityProviderGroupMembershipConfirmed(identityProviderGroupMembershipConfirmed)
-                .identityProviderGroupMembershipDeletionConfirmed(false)
+                .identityProviderGroupObjectId(assignment.getEntraGroupId())
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
     }
 
     public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed, boolean identityProviderGroupMembershipDeletionConfirmed) {
         return FlattenedAssignment.builder()
                 .assignmentId(assignment.getId())
-                .assignerRef(assignment.getAssignerRef())
                 .userRef(assignment.getUserRef())
-                .identityProviderUserObjectId(assignment.getAzureAdUserId())
+                .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
                 .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
-                .identityProviderGroupObjectId(assignment.getAzureAdGroupId())
-                .identityProviderGroupMembershipConfirmed(identityProviderGroupMembershipConfirmed)
-                .identityProviderGroupMembershipDeletionConfirmed(identityProviderGroupMembershipDeletionConfirmed)
+                .identityProviderGroupObjectId(assignment.getEntraGroupId())
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(null)
+                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
+    }
+
+    private static String getTerminationReason(Assignment assignment) {
+        return assignment.getAssignmentRemovedDate() == null ? null : ASSIGNMENT_TERMINATED_REASON;
     }
 }

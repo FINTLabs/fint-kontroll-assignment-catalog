@@ -3,9 +3,9 @@ package no.fintlabs.reporting;
 import io.micrometer.tracing.Tracer;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.ProblemDetailFactory;
-import no.fintlabs.assignment.AssigmentEntityProducerService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.AssignmentPublishingComponent;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.common.AsyncConfig;
 import no.fintlabs.common.GlobalAsyncExceptionHandler;
@@ -50,7 +50,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {"testorg.testdomain.entity.flattened-assignment-reporting"})
-@TestPropertySource(properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@TestPropertySource(properties = {
+        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
+        "spring.flyway.locations=classpath:db/migration/,classpath:db/reporting-testdata/"
+})
 @ActiveProfiles("test")
 public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIntegrationTest {
 
@@ -64,7 +67,7 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
     private FlattenedAssignmentReportService flattenedAssignmentReportService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;

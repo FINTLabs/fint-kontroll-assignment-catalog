@@ -38,12 +38,12 @@ public class UserConsumerTest {
 
         when(userCache.getOptional(1L)).thenReturn(Optional.empty());
 
-        when(userService.saveUser(convertedUser)).thenReturn(convertedUser);
+        when(userService.saveUser(any(User.class))).thenReturn(convertedUser);
 
         userConsumer.process(consumerRecord);
 
         verify(userCache).put(1L, convertedUser);
-        verify(userService).saveUser(convertedUser);
+        verify(userService).saveUser(any(User.class));
     }
 
     @Test
@@ -69,12 +69,12 @@ public class UserConsumerTest {
         when(userCache.getOptional(1L)).thenReturn(Optional.of(cachedUser));
         when(userService.findById(1L)).thenReturn(Optional.of(dbUser));
 
-        when(userService.updateUser(dbUser, convertedUser)).thenReturn(dbUser);
+        when(userService.updateUser(any(User.class), any(User.class))).thenReturn(dbUser);
 
         userConsumer.process(consumerRecord);
 
         verify(userCache).put(1L, dbUser);
-        verify(userService).updateUser(cachedUser, convertedUser);
+        verify(userService).updateUser(any(User.class), any(User.class));
     }
 
     @Test

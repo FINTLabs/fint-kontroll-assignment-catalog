@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
@@ -93,6 +94,20 @@ public class UserControllerTest {
 
         verify(opaServiceMock, times(1)).getOrgUnitsInScope(scope);
         verify(assigmentUserServiceMock, times(1)).findResourceAssignmentUsersForResourceId(isA(Long.class), isA(String.class), isNull(), anyList(), isNull(), isNull(), isA(Integer.class), isA(Integer.class));
+    }
+
+    @Test
+    void shouldAcceptLegacyUserfilterParameter() throws Exception {
+        when(opaServiceMock.getOrgUnitsInScope("user")).thenReturn(List.of("99999999"));
+        when(assigmentUserServiceMock.findResourceAssignmentUsersForResourceId(
+                eq(1L), isA(String.class), isNull(), anyList(), eq(List.of(7L)), isNull(), isA(Integer.class), isA(Integer.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/api/assignments/v2/resource/{id}/users", 1L)
+                        .param("userfilter", "7")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.users").isEmpty());
     }
 
     private void createSecurityContext(Jwt jwt) throws ServletException {

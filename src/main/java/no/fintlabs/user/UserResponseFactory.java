@@ -10,19 +10,6 @@ import java.util.Map;
 
 @Slf4j
 public class UserResponseFactory {
-    public static ResponseEntity<Map<String, Object>> assignmentUsersToResponseEntity(Page<AssignmentUser> assignmentUserPage) {
-
-        return new ResponseEntity<>(
-                Map.of("users", assignmentUserPage.getContent(),
-                        "currentPage", assignmentUserPage.getNumber(),
-                        "totalPages", assignmentUserPage.getTotalPages(),
-                        "size", assignmentUserPage.getSize(),
-                        "totalItems", assignmentUserPage.getTotalElements()
-                ),
-                HttpStatus.OK
-        );
-    }
-
     public static ResponseEntity<Map<String, Object>> resourceAssignmentUsersToResponseEntity(Page<ResourceAssignmentUser> resourceAssignmentUsersPagable) {
 
         return new ResponseEntity<>(

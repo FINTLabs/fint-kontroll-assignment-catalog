@@ -1,25 +1,26 @@
 package no.fintlabs.assignment;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
-import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
 import no.fintlabs.assignment.exception.AssignmentException;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.enforcement.LicenseEnforcementService;
+import no.fintlabs.exception.ConflictException;
+import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.opa.OpaService;
-import no.fintlabs.resource.ResourceNotFoundException;
-import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.role.Role;
 import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
-import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.user.UserRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,39 +29,20 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AssignmentService {
-
-    private static final String ACTIVE_STATUS = "ACTIVE";
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
-    private final ResourceRepository resourceRepository;
+    private final ResourceAssignmentValidator resourceAssignmentValidator;
     private final FlattenedAssignmentService flattenedAssignmentService;
+    private final FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
     private final ApplicationResourceLocationService applicationResourceLocationService;
     private final OpaService opaService;
     private final LicenseEnforcementService licenseEnforcementService;
 
-    public AssignmentService(
-            AssignmentRepository assignmentRepository,
-            ResourceRepository resourceRepository,
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            FlattenedAssignmentService flattenedAssignmentService,
-            ApplicationResourceLocationService applicationResourceLocationService,
-            OpaService opaService,
-            LicenseEnforcementService licenseEnforcementService
-    ) {
-        this.assignmentRepository = assignmentRepository;
-        this.resourceRepository = resourceRepository;
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.applicationResourceLocationService = applicationResourceLocationService;
-        this.opaService = opaService;
-        this.licenseEnforcementService = licenseEnforcementService;
-    }
-
+    @Transactional
     public Assignment createNewAssignment(Long resourceRef, String organizationUnitId, Long userRef, Long roleRef) {
         log.info("Trying to create new assignment for resource {} and {}", resourceRef, userRef != null ? "user " + userRef : "role " + roleRef);
 
@@ -72,6 +54,8 @@ public class AssignmentService {
                 .roleRef(roleRef)
                 .build();
 
+        Resource resource = resourceAssignmentValidator.getActiveResourceOrThrow(resourceRef);
+
         if (userRef != null) {
             handleDirectUserAssignment(assignment, userRef, resourceRef);
         }
@@ -80,19 +64,20 @@ public class AssignmentService {
             handleGroupAssignment(assignment, roleRef, resourceRef);
         }
 
-        enrichByResource(assignment, resourceRef);
+        enrichByResource(assignment, resource);
 
-        log.info("Incremented license for assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.incrementAssignedLicensesWhenNewAssignment(assignment) ? "Success" : "Failure");
-
+        boolean availableCapacity = licenseEnforcementService.validateAssignmentCapacity(assignment);
+        log.info("Validated license capacity for resource {} : {}",
+                assignment.getResourceRef(), availableCapacity ? "Success" : "Failure");
+        if (!availableCapacity) {
+            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef());
+        }
 
         log.info("Saving assignment {}", assignment);
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignments(newAssignment);
-        log.info("Created flattened assignments for assignment id {}", newAssignment.getId());
-
+        flattenedAssignmentService.createFlattenedAssignmentsSync(newAssignment);
         return newAssignment;
     }
 
@@ -106,10 +91,15 @@ public class AssignmentService {
                 .toList();
     }
 
-    public List<Assignment> getAssignments() {
-        return assignmentRepository.findAll();
+    public List<Assignment> getAllUserAssignments() {
+        return assignmentRepository.findAllByUserRefIsNotNullOrRoleRefIsNotNull();
     }
 
+    public List<Assignment> getAllActiveUserAssignments() {
+        return assignmentRepository.findAllActiveUserAssignments();
+    }
+
+    @Transactional
     public Assignment deleteAssignment(Long id) {
         log.info("Deleting assignment with id {}", id);
 
@@ -117,9 +107,6 @@ public class AssignmentService {
 
         Assignment assignment = assignmentRepository.getReferenceById(id);
         assignment.setAssignmentRemovedDate(new Date());
-
-        log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.decreaseAssignedResourcesWhenAssignmentRemoved(assignment) ? "Success" : "Failure");
 
         if (!userName.isEmpty()) {
             userRepository.getUserByUserName(userName).ifPresent(user -> assignment.setAssignerRemoveRef(user.getId()));
@@ -146,7 +133,7 @@ public class AssignmentService {
     public Optional<String> getAssignerDisplaynameForUserAssignment(Long userId, Long resourceId) {
         Optional<String> username = getAssignerUsernameForUserAssignment(userId, resourceId);
         if (username.isPresent()) {
-            return getDisplaynameFromUsername(username.get());
+            return getDisplayNameFromUsername(username.get());
         }
         return Optional.empty();
     }
@@ -164,38 +151,48 @@ public class AssignmentService {
     public Optional<String> getAssignerDisplaynameForRoleAssignment(Long roleId, Long resourceId) {
         Optional<String> username = getAssignerUsernameForRoleAssignment(roleId, resourceId);
         if (username.isPresent()) {
-            return getDisplaynameFromUsername(username.get());
+            return getDisplayNameFromUsername(username.get());
         }
         return Optional.empty();
     }
 
-    private Optional<String> getDisplaynameFromUsername(String username) {
+    private Optional<String> getDisplayNameFromUsername(String username) {
         Optional<User> user = userRepository.getUserByUserName(username);
         return user.map(User::getDisplayname);
     }
 
     private void handleDirectUserAssignment(Assignment assignment, Long userRef, Long resourceRef) {
-        if (existingUserFlattenedAssignmentNotTerminated(assignment)) {
-            log.info("Assignment already exists for user {} and resource {}", userRef, resourceRef);
-            throw new AssignmentAlreadyExistsException(userRef.toString(), resourceRef.toString());
+        if (existingDirectUserAssignmentNotTerminated(assignment)) {
+            log.warn("Active assignment already exists for user {} and resource {}", userRef, resourceRef);
+            throw new ConflictException("Active assignment already exists for user " + userRef + " and resource " + resourceRef);
         }
 
         userRepository.findById(userRef).ifPresentOrElse(user -> {
-            assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId());
+            if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "User " + userRef + " is not active");
+            }
+            if (user.getIdentityProviderUserObjectId() == null) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "User " + userRef + " does not have entra user id set");
+            }
+            assignment.setEntraUserId(user.getIdentityProviderUserObjectId());
             assignment.setUserFirstName(user.getFirstName());
             assignment.setUserLastName(user.getLastName());
             assignment.setUserUserType(user.getUserType());
         }, () -> {
-            throw new UserNotFoundException(userRef);
+            throw new ResourceNotFoundException("User not found: " + userRef);
         });
     }
 
     private void handleGroupAssignment(Assignment assignment, Long roleRef, Long resourceRef) {
         if (existingRoleAssignment(assignment)) {
-            throw new AssignmentAlreadyExistsException(roleRef.toString(), resourceRef.toString());
+            log.warn("Active assignment already exists for role {} and resource {}", roleRef, resourceRef);
+            throw new ConflictException("Active assignment already exists for role " + roleRef + " and resource " + resourceRef);
         }
 
         roleRepository.findById(roleRef).ifPresentOrElse(role -> {
+            if (!"ACTIVE".equalsIgnoreCase(role.getRoleStatus())) {
+                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Role " + roleRef + " is not active");
+            }
             assignment.setRoleName(role.getRoleName());
             assignment.setRoleType(role.getRoleType());
         }, () -> {
@@ -203,46 +200,39 @@ public class AssignmentService {
         });
     }
 
-    private void enrichByResource(Assignment assignment, Long resourceRef) {
-        resourceRepository.findById(resourceRef).ifPresentOrElse(resource -> {
-            if (!ACTIVE_STATUS.equalsIgnoreCase(resource.getStatus())) {
-                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + resourceRef + " is not active");
-            }
+    private void enrichByResource(Assignment assignment, Resource resource) {
+        assignment.setResourceName(resource.getResourceName());
+        assignment.setAssignmentId(resource.getId() + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
+        assignment.setEntraGroupId(resource.getIdentityProviderGroupObjectId());
 
-            assignment.setResourceName(resource.getResourceName());
-            assignment.setAssignmentId(resourceRef + "_" + assignment.assignmentIdSuffix() + "_" + LocalDateTime.now());
-            assignment.setAzureAdGroupId(resource.getIdentityProviderGroupObjectId());
+        Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
+                resource.getId(), assignment.getOrganizationUnitId());
 
-            Optional<NearestResourceLocationDto> nearestApplicationResourceLocationDto = applicationResourceLocationService.getNearestApplicationResourceLocationForOrgUnit(
-                    resourceRef, assignment.getOrganizationUnitId());
-
-            nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
-                assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
-                assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
-            });
-        }, () -> {
-            throw new ResourceNotFoundException(resourceRef.toString());
+        nearestApplicationResourceLocationDto.ifPresent(nearestApplicationResourceLocation -> {
+            assignment.setApplicationResourceLocationOrgUnitId(nearestApplicationResourceLocation.orgUnitId());
+            assignment.setApplicationResourceLocationOrgUnitName(nearestApplicationResourceLocation.orgUnitName());
         });
     }
 
-    private boolean existingUserFlattenedAssignmentNotTerminated(Assignment assignment) {
-        return flattenedAssignmentService.getFlattenedAssignmentByUserAndResourceNotTerminated(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
+    private boolean existingDirectUserAssignmentNotTerminated(Assignment assignment) {
+        return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(
+                assignment.getUserRef(),
+                assignment.getResourceRef()
+        ).isPresent();
     }
 
     private boolean existingRoleAssignment(Assignment assignment) {
         return assignmentRepository.findAssignmentByRoleRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getRoleRef(), assignment.getResourceRef()).isPresent();
     }
 
-    private boolean existingUserAssignment(Assignment assignment) {
-        return assignmentRepository.findAssignmentByUserRefAndResourceRefAndAssignmentRemovedDateIsNull(assignment.getUserRef(), assignment.getResourceRef()).isPresent();
-    }
-
     public List<Assignment> getAssignmentsByRole(Long roleId) {
         return assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(roleId);
     }
 
-    public List<Long> getAssignmentsByRoleAndUser(Long roleId, Long userId) {
-        return assignmentRepository.findAssignmentIdsByRoleRefAndUserRefAndAssignmentRemovedDateIsNull(roleId, userId);
+    public List<Assignment> getAssignmentsByRoles(List<Long> roleIds) {
+        return roleIds.isEmpty()
+                ? List.of()
+                : assignmentRepository.findAssignmentsByRoleRefInAndAssignmentRemovedDateIsNull(roleIds);
     }
 
     public Optional<Assignment> getAssignmentById(Long id) {
@@ -252,8 +242,8 @@ public class AssignmentService {
     public List<Assignment> getActiveAssignmentsByUser(Long userId) {
         return assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(userId);
     }
-    public List<Assignment> getActiveAssignmentsByResource(Long resourceId) {
-        return assignmentRepository.findAssignmentsByResourceRefAndAssignmentRemovedDateIsNull(resourceId);
+    public List<Assignment> getActiveUserAssignmentsByResource(Long resourceId) {
+        return assignmentRepository.findActiveUserAssignmentsByResourceRef(resourceId);
     }
 
     public List<Assignment> getInactiveAssignmentsByUser(Long userId) {
@@ -265,15 +255,8 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByRole(Role role) {
-        //TODO check if we should update the count of licenses assigned
         getAssignmentsByRole(role.getId())
-                .forEach(assignment -> {
-                    if (role.getRoleStatus().equalsIgnoreCase("inactive")) {
-                        log.info("Deactivating assignment with id: {}", assignment.getId());
-                        assignment.setAssignmentRemovedDate(new Date());
-                        assignmentRepository.saveAndFlush(assignment);
-                    }
-                });
+                .forEach(assignment -> deactivateAssignment(assignment, "Role is no longer active"));
     }
 
     public void deactivateAssignmentsByUserId(Long userId) {
@@ -282,7 +265,7 @@ public class AssignmentService {
     }
 
     public void deactivateAssignmentsByResourceId(Long resourceId) {
-        getActiveAssignmentsByResource(resourceId)
+        getActiveUserAssignmentsByResource(resourceId)
                 .forEach(assignment -> deactivateAssignment(assignment, "Resource is no longer active"));
     }
 
@@ -291,23 +274,15 @@ public class AssignmentService {
         assignment.setAssignmentRemovedDate(new Date());
         assignmentRepository.saveAndFlush(assignment);
         flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
-        log.info("Removed license from assignment {} : {}",
-                assignment.getId(), licenseEnforcementService.updateAssignedLicense(assignment, -1L) ? "Success" : "Failure");
-    }
-
-    @Async
-    @Transactional
-    public void updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(Set<Long> ids) {
-        updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
+        log.info("Updated license count after deactivating assignment {} : {}",
+                assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
     }
 
     @Transactional
     public void updateAssignmentsWithApplicationResourceLocationOrgUnit(Set<Long> ids) {
-        log.info("Updating {} assignments missing application resource location org unit", ids.size());
+        log.info("Updating application resource location org unit for {} assignments", ids.size());
 
-        List<Assignment> updatedAssignments = ids.stream()
-                .map(assignmentRepository::findById)
-                .flatMap(Optional::stream)
+        List<Assignment> updatedAssignments = assignmentRepository.findAllById(ids).stream()
                 .map(this::updateAssignmentWithNearestResource)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toList());
@@ -323,27 +298,34 @@ public class AssignmentService {
         }
 
         assignmentRepository.flush();
+        updatedAssignments.forEach(assignment ->
+                flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false));
 
-        log.info("Done updating. Updated {} of {} assignments missing application resource location org unit",
+        log.info("Done updating application resource location org unit. Updated {} of {} assignments",
                 updatedAssignments.size(), ids.size());
     }
 
     private Optional<Assignment> updateAssignmentWithNearestResource(Assignment assignment) {
-        return applicationResourceLocationService
+        Optional<NearestResourceLocationDto> nearestLocation = applicationResourceLocationService
                 .getNearestApplicationResourceLocationForOrgUnit(
                         assignment.getResourceRef(),
-                        assignment.getOrganizationUnitId())
-                .map(nearest -> {
-                    assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
-                    assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
-                    assignment.setIsInvalid(false);
-                    return assignment;
-                });
+                        assignment.getOrganizationUnitId());
+
+        nearestLocation.ifPresentOrElse(nearest -> {
+            assignment.setApplicationResourceLocationOrgUnitId(nearest.orgUnitId());
+            assignment.setApplicationResourceLocationOrgUnitName(nearest.orgUnitName());
+            assignment.setIsInvalid(false);
+        }, () -> {
+            assignment.setApplicationResourceLocationOrgUnitId(null);
+            assignment.setApplicationResourceLocationOrgUnitName(null);
+            assignment.setIsInvalid(true);
+        });
+        return Optional.of(assignment);
     }
 
     public void updateAllAssignmentsOnUserChange(User user) {
         List<Assignment> assignments = getAssignmentsByUser(user.getId());
-        assignments.forEach(assignment -> assignment.setAzureAdUserId(user.getIdentityProviderUserObjectId()));
+        assignments.forEach(assignment -> assignment.setEntraUserId(user.getIdentityProviderUserObjectId()));
         assignmentRepository.saveAll(assignments);
         assignmentRepository.flush();
         log.info("Updated {} assignments for user {}", assignments.size(), user.getId());
@@ -352,7 +334,7 @@ public class AssignmentService {
 
     @Transactional
     public void reassignLinkedAssignments(Long resourceRef, String orgUnitId) {
-        List<Assignment> existingAssignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitId(resourceRef, orgUnitId);
+        List<Assignment> existingAssignments = assignmentRepository.findAssignmentsByResourceRefAndApplicationResourceLocationOrgUnitIdAndAssignmentRemovedDateIsNull(resourceRef, orgUnitId);
         log.info("Found {} assignments for resource {} and orgUnitId {}", existingAssignments.size(), resourceRef, orgUnitId);
         List<Assignment> updatedAssignments = new ArrayList<>();
         existingAssignments.forEach(assignment -> {
@@ -364,6 +346,15 @@ public class AssignmentService {
         });
         assignmentRepository.saveAll(updatedAssignments);
         assignmentRepository.flush();
+        updatedAssignments.forEach(this::syncFlattenedAssignmentLocation);
         log.info("Done reassigning {} assignments for resource {} and orgUnitId {}", updatedAssignments.size(), resourceRef, orgUnitId);
+    }
+
+    private void syncFlattenedAssignmentLocation(Assignment assignment) {
+        if (assignment.getDeviceGroupRef() != null) {
+            flattenedDeviceAssignmentService.updateApplicationResourceLocation(assignment);
+            return;
+        }
+        flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false);
     }
 }

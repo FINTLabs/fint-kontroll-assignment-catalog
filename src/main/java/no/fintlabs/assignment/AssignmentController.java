@@ -2,378 +2,262 @@ package no.fintlabs.assignment;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.exception.AssignmentAlreadyExistsException;
-import no.fintlabs.assignment.exception.AssignmentException;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.DeviceAssignmentService;
+import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
-import no.fintlabs.exception.ConflictException;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.opa.AuthManager;
-import no.fintlabs.resource.ResourceRepository;
-import no.fintlabs.resource.ResourceService;
-import no.fintlabs.user.UserNotFoundException;
 import no.fintlabs.util.OnlyDevelopers;
-import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/assignments")
+@RequiredArgsConstructor
 public class AssignmentController {
     private static final String DEVELOPER_ENDPOINTS_TAG = "Developer endpoints";
 
     private final AssignmentService assignmentService;
-    private final AuthManager authManager;
-    private final AssignmentResponseFactory assignmentResponseFactory;
     private final FlattenedAssignmentService flattenedAssignmentService;
-    private final AssigmentEntityProducerService assigmentEntityProducerService;
     private final MembershipService membershipService;
-    private final ResourceRepository resourceRepository;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
-    private final ResourceService resourceService;
-
-
-    public AssignmentController(AssignmentService assignmentService,
-                                AssignmentResponseFactory assignmentResponseFactory,
-                                FlattenedAssignmentService flattenedAssignmentService,
-                                AssigmentEntityProducerService assigmentEntityProducerService,
-                                AuthManager authManager,
-                                MembershipService membershipService,
-                                ResourceRepository resourceRepository,
-                                UpdateAssignedResourcesService updateAssignedResourcesService, ResourceService resourceService) {
-
-        this.assignmentService = assignmentService;
-        this.assignmentResponseFactory = assignmentResponseFactory;
-        this.flattenedAssignmentService = flattenedAssignmentService;
-        this.assigmentEntityProducerService = assigmentEntityProducerService;
-        this.authManager = authManager;
-        this.membershipService = membershipService;
-        this.resourceRepository = resourceRepository;
-        this.updateAssignedResourcesService = updateAssignedResourcesService;
-        this.resourceService = resourceService;
-    }
-
-    @GetMapping()
-    public ResponseEntity<Map<String, Object>> getSimpleAssignments(@AuthenticationPrincipal Jwt jwt,
-                                                                    @RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog" +
-                                                                            ".pagesize:20}")
-                                                                    int size,
-                                                                    @RequestParam(defaultValue = "ALLTYPES", required = false)
-                                                                    String userType
-    ) {
-
-        return assignmentResponseFactory.toResponseEntity(FintJwtEndUserPrincipal.from(jwt), page, size, userType);
-    }
+    private final DeviceAssignmentService deviceAssignmentService;
 
     @PostMapping()
-    public ResponseEntity<SimpleAssignment> createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
-        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, resourceRef: {}, organizationUnitId: {}", request.userRef, request.roleRef, request.resourceRef, request.organizationUnitId);
-        validateUserRoleRefs(request);
-        validateResource(request); //TODO is this correct validation?
-        validateOrganizationUnitId(request);
+    @ResponseStatus(HttpStatus.CREATED)
+    public SimpleAssignment createAssignment(@Valid @RequestBody NewAssignmentRequest request) {
+        log.info("Creating assignment. Request - userRef: {}, roleRef: {}, deviceGroupRef: {}, resourceRef: {}, organizationUnitId: {}",
+                request.userRef, request.roleRef, request.deviceGroupRef, request.resourceRef, request.organizationUnitId);
+        return createNewAssignment(request).toSimpleAssignment();
+    }
 
-        try {
-            Assignment newAssignment =
-                    assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
-            return new ResponseEntity<>(newAssignment.toSimpleAssignment(), HttpStatus.CREATED);
-        } catch (AssignmentAlreadyExistsException exception) {
-            throw new ConflictException("Assignment already exists");
-        }
+    @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
+    @ResponseStatus(HttpStatus.OK)
+    public Page<DeviceGroupAssignment> getDeviceGroupsByResourceId(
+            @PathVariable("id") Long resourceId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "${fint.kontroll.assignment-catalog.pagesize:20}") int size,
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        log.info("Fetching device groups for resource {} with page {}, size {} and search {}", resourceId, page, size, search);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id")));
+        Page<DeviceGroupAssignment> deviceGroupAssignments = deviceAssignmentService.findDeviceGroupAssignmentsForResource(
+                resourceId,
+                search,
+                pageable
+        );
+
+        log.info(
+                "Returning {} device groups for resource {}. Distinct device groups: {}, page: {}, size: {}, total pages: {}",
+                deviceGroupAssignments.getNumberOfElements(),
+                resourceId,
+                deviceGroupAssignments.getTotalElements(),
+                page,
+                size,
+                deviceGroupAssignments.getTotalPages()
+        );
+
+        return deviceGroupAssignments;
+    }
+
+    @DeleteMapping("{id}")
+    @ResponseStatus(HttpStatus.GONE)
+    public void deleteAssignment(@PathVariable("id") Long id) {
+        log.info("Deleting assignment with id {}", id);
+        deleteAssignmentByType(id);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Republish all assignments",
-            description = "Republishes every flattened assignment to the assignment entity topic."
+            summary = "Republish all active user memberships",
+            description = "Finds active flattened user assignments and republishes each associated user resource-group membership exactly once, regardless of its previous Kafka or Entra send status. Device assignments are not included."
     )
     @PostMapping("/republish")
-    public ResponseEntity<HttpStatus> republishAllAssignments() {
+    @ResponseStatus(HttpStatus.OK)
+    public void republishAllActiveUserMemberships() {
 
-        log.info("Republishing all assignments");
+        log.info("Republishing all active user memberships");
 
-        flattenedAssignmentService.republishAllActiveFlattenedAssignments();
+        flattenedAssignmentService.republishAllActiveUserMemberships();
 
-        log.info("Republishing all assignments done");
+        log.info("Republishing all active user memberships done");
 
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
             summary = "Sync all flattened assignments",
-            description = "Rebuilds flattened assignment data for all assignments. The sync path variable controls sync mode."
+            description = "Rebuilds flattened data for all user assignments without publishing pending user memberships."
     )
-    @PostMapping("/syncflattenedassignments/{sync}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("sync") String sync) {
-        boolean isSync;
-        isSync = sync == null || sync.isEmpty();
-
-        long start = System.currentTimeMillis();
-        log.info("Starting to sync all assignments");
-
-        List<Assignment> allAssignments = assignmentService.getAssignments();
-        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, isSync));
-
-        long end = System.currentTimeMillis();
-        log.info("Time taken to sync all assignments: " + (end - start) + " ms");
-
-        return new ResponseEntity<>(HttpStatus.OK);
+    @PostMapping("/syncflattenedassignments")
+    @ResponseStatus(HttpStatus.OK)
+    public void syncFlattenedAssignments() {
+        syncAllFlattenedAssignments(false);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync flattened assignment by assignment id",
-            description = "Rebuilds flattened assignment data for one assignment id."
+            summary = "Sync all flattened assignments and publish pending memberships",
+            description = "Rebuilds flattened data for all user assignments and publishes each resulting user membership that has not previously been sent."
+    )
+    @PostMapping("/syncflattenedassignments/publish-pending-memberships")
+    @ResponseStatus(HttpStatus.OK)
+    public void syncFlattenedAssignmentsAndPublishPendingMemberships() {
+        syncAllFlattenedAssignments(true);
+    }
+
+    @OnlyDevelopers
+    @Operation(
+            tags = DEVELOPER_ENDPOINTS_TAG,
+            summary = "Sync flattened assignment and publish pending membership by assignment id",
+            description = "Rebuilds flattened data for one user assignment and publishes its resulting user membership if it has not previously been sent."
     )
     @PostMapping("/syncflattenedassignment/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
-        long start = System.currentTimeMillis();
+    @ResponseStatus(HttpStatus.OK)
+    public void syncFlattenedAssignmentAndPublishPendingMembershipById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         log.info("Starting to sync assignment {}", id);
 
         assignmentService.getAssignmentById(id)
-                .ifPresent(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
+                .ifPresent(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
 
-        long end = System.currentTimeMillis();
-        log.info("Time taken to sync assignment {}: " + (end - start) + " ms", id);
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync flattened assignments by resource id",
-            description = "Rebuilds flattened assignment data for active assignments connected to one resource."
+            summary = "Sync flattened assignments and publish pending memberships by resource id",
+            description = "Rebuilds flattened data for active user assignments connected to one resource and publishes resulting user memberships that have not previously been sent."
     )
     @PostMapping("/syncflattenedassignments/resource/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
+    @ResponseStatus(HttpStatus.OK)
+    public void syncFlattenedAssignmentsAndPublishPendingMembershipsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
         log.info("Starting to sync assignments for resource: {}", resourceId);
 
-        assignmentService.getActiveAssignmentsByResource(resourceId)
-                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
+        assignmentService.getActiveUserAssignmentsByResource(resourceId)
+                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
 
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Republish unconfirmed flattened assignments",
-            description = "Republishes flattened assignments that have not been confirmed."
+            summary = "Republish unconfirmed user memberships",
+            description = "Republishes each user resource-group membership that is awaiting Entra confirmation exactly once. Active memberships are sent as ADD commands and inactive memberships as REMOVE commands. Memberships in ERROR are excluded. Device assignments are not included."
     )
-    @PostMapping("/republishuconfirmedflattenedassignments")
-    public ResponseEntity<HttpStatus> republishUnconfirmedFlattenedAssignments() {
-        log.info("Starting to sync all unconfirmed assignments");
+    @PostMapping("/republishunconfirmedflattenedassignments")
+    @ResponseStatus(HttpStatus.OK)
+    public void republishUnconfirmedUserEntraMemberships() {
+        log.info("Republishing all user memberships awaiting Entra confirmation");
 
-        flattenedAssignmentService.republishUnconfirmedFlattenedAssignments();
+        flattenedAssignmentService.republishUnconfirmedUserEntraMemberships();
 
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Republish selected flattened assignments",
-            description = "Republishes the flattened assignments identified by the request body ids."
+            summary = "Republish selected user memberships",
+            description = "Finds the user memberships associated with the provided flattened assignment ids and publishes each membership once, regardless of its Entra status. Active memberships are sent as ADD commands and inactive memberships as REMOVE commands."
     )
     @PostMapping("/republishselectedflattenedassignments")
-    public ResponseEntity<HttpStatus> republishSelectedFlattenedAssignments(@Valid @RequestBody List<Long> ids) {
-        log.info("Selected {} flattened assignment to publish", ids.size());
+    @ResponseStatus(HttpStatus.OK)
+    public void republishSelectedFlattenedAssignments(@Valid @RequestBody List<Long> ids) {
+        log.info("Republishing user memberships for {} selected flattened assignments", ids.size());
 
         flattenedAssignmentService.republishSelectedFlattenedAssignments(ids);
 
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-
-    @OnlyDevelopers
-    @Operation(
-            tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Publish all flattened assignments by resource id",
-            description = "Publishes all active flattened assignments connected to one resource."
-    )
-    @PostMapping("/publishallflattenedassignments/resource/{id}")
-    public ResponseEntity<HttpStatus> publishAllFlattenedAssignmentsByResourceId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long resourceId) {
-        log.info("Starting to publish flattened assignments for resource: {}", resourceId);
-
-        assignmentService.getActiveAssignmentsByResource(resourceId)
-                .forEach(flattenedAssignmentService::publishAllActive);
-
-        log.info("Finished publishing all flattened assignments for resource: {}", resourceId);
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync and publish flattened assignments for all resources",
-            description = "Syncs and publishes active flattened assignments for every resource."
+            summary = "Sync direct user assignments and publish pending memberships by user id",
+            description = "Rebuilds flattened data for all non-removed direct assignments of one user and publishes resulting user memberships that have not previously been sent. Role-based assignments are not included."
     )
-    @PostMapping("/syncandpublishflattenedassignmentsallresources")
-    public ResponseEntity<HttpStatus> syncAndPublishFlattenedassignmentsAllResources(@AuthenticationPrincipal Jwt jwt) {
-        log.info("Starting to sync and publish flattenedAssignments all resources");
-
-        resourceService.findAll().forEach(resource -> {
-            log.info("Starting to publish flattened assignments for resource: {}", resource);
-
-            assignmentService.getActiveAssignmentsByResource(resource.getId())
-                    .forEach(assignment -> {
-                        flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
-                        flattenedAssignmentService.publishAllActive(assignment);
-                    });
-            log.info("Finished publishing all flattened assignments for resource: {}", resource);
-        });
-
-        log.info("Finished publishing flattened assignments all resources");
-
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-
     @PostMapping("/syncflattenedassignment/user/{id}")
-    public ResponseEntity<HttpStatus> syncFlattenedAssignmentByUserId(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
-        long start = System.currentTimeMillis();
-        log.info("Starting to sync assignment by userid {}", id);
+    @ResponseStatus(HttpStatus.OK)
+    public void syncDirectUserAssignmentsAndPublishPendingMembershipsByUserId(@PathVariable("id") Long userId) {
+        log.info("Starting to sync direct assignments for user {}", userId);
 
-        List<Assignment> allAssignments = assignmentService.getAssignmentsByUser(id);
-        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, false));
+        assignmentService.getAssignmentsByUser(userId)
+                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
 
-        long end = System.currentTimeMillis();
-        log.info("Time taken to sync assignments by userid {}: " + (end - start) + " ms", id);
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @DeleteMapping("{id}")
-    public ResponseEntity<HttpStatus> deleteAssignment(@PathVariable("id") Long id) {
-        log.info("Deleting assignment with id {}", id);
-        try {
-            assignmentService.deleteAssignment(id);
-        } catch (UserNotFoundException userNotFoundException) {
-            log.error("Logged in user not found in the users table", userNotFoundException);
-
-            throw new ResourceNotFoundException("Logged in user not found in the users table");
-        }
-        return new ResponseEntity<>(HttpStatus.GONE);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync unconfirmed flattened assignments by assignment id",
-            description = "Publishes unconfirmed flattened assignments for one assignment id."
+            summary = "Republish unconfirmed user memberships by assignment id",
+            description = "Republishes each user membership associated with one Assignment.id that is awaiting Entra confirmation exactly once. Active memberships are sent as ADD commands and inactive memberships as REMOVE commands. ERROR memberships and device assignments are excluded."
     )
     @PostMapping("/syncunconfirmedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncUnconfirmedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
+    @ResponseStatus(HttpStatus.OK)
+    public void republishUnconfirmedUserMembershipsByAssignmentId(@PathVariable("assignmentId") Long assignmentId) {
 
-        log.info("Syncing unconfirmed flattened assignments for assignmentId {}", assignmentId);
+        log.info("Republishing unconfirmed user memberships for assignment {}", assignmentId);
 
-        flattenedAssignmentService.getFlattenedAssignmentsIdentityProviderGroupMembershipNotConfirmedByAssignmentId(assignmentId)
-                .forEach(assigmentEntityProducerService::publish);
+        flattenedAssignmentService.republishUnconfirmedUserEntraMembershipsByAssignmentId(assignmentId);
 
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync deleted flattened assignments by assignment id",
-            description = "Publishes deletion events for deleted flattened assignments that are not confirmed for one assignment id."
-    )
-    @PostMapping("/syncdeletedflattenedassignment/{assignmentId}")
-    public ResponseEntity<HttpStatus> syncDeletedFlattenedAssignmentById(@AuthenticationPrincipal Jwt jwt, @PathVariable("assignmentId") Long assignmentId) {
-
-        log.info("Publishing deleted flattened assignments");
-
-        flattenedAssignmentService.getFlattenedAssignmentsDeletedNotConfirmedByAssignmentId(assignmentId)
-                .forEach(assigmentEntityProducerService::publishDeletion);
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @OnlyDevelopers
-    @Operation(
-            tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync assignments for memberships",
-            description = "Syncs assignments for the membership ids provided in the request body."
+            summary = "Sync role-membership assignments",
+            description = "Rebuilds flattened user assignments for the supplied Membership.id values and publishes resulting memberships that have not previously been sent. Each membership id is processed once; unknown ids fail the request. Role memberships without an Entra user id and device assignments are not included."
     )
     @PostMapping("/syncassignmentsformemberships")
-    public ResponseEntity<HttpStatus> syncAssignmentsForMemberships(@AuthenticationPrincipal Jwt jwt, @RequestBody List<String> membershipIds) {
+    @ResponseStatus(HttpStatus.OK)
+    public void syncAssignmentsForMemberships(@Valid @RequestBody @NotEmpty List<@NotBlank String> membershipIds) {
 
-        log.info("Syncing assignments for memberships");
+        log.info("Syncing assignments for {} requested memberships", membershipIds.size());
 
         membershipService.syncAssignmentsForMemberships(membershipIds);
 
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Sync assignments missing identity provider user object id",
-            description = "Finds flattened assignments missing identityProviderUserObjectId and deactivates them."
-    )
-    @PostMapping("/syncassignmentsmissingidentityprovideruserobjectid")
-    public ResponseEntity<HttpStatus> syncAssignmentsMissingIdentityProviderUserObjectId(@AuthenticationPrincipal Jwt jwt) {
-
-        long start = System.currentTimeMillis();
-        log.info("Syncing assignments missing identityProviderUserObjectId");
-
-        Set<Long> ids = flattenedAssignmentService.getIdsMissingIdentityProviderUserObjectId();
-
-        log.info("Found {} flattened assignments missing identityProviderUserObjectId", ids.size());
-
-        if (!ids.isEmpty()) {
-            log.info("Deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
-
-            flattenedAssignmentService.deactivateFlattenedAssignments(ids);
-
-            log.info("Done deleting {} flattened assignments missing identityProviderUserObjectId", ids.size());
-        }
-
-        long end = System.currentTimeMillis();
-        log.info("Time taken to sync assignments missing identity provider user object id: " + (end - start) + " ms");
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @OnlyDevelopers
-    @Operation(
-            tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Update application resource location org unit on assignments",
-            description = "Updates application resource location org unit values on assignments, either for all assignments or only where the value is missing."
+            summary = "Backfill application resource location org units for active user assignments",
+            description = "Updates all active user and role assignments when updateAllResourceLocationOrgUnits is true; otherwise updates only those without a location org unit. It synchronizes affected flattened user assignments and recalculates their usage. No Entra membership commands are published. Device and removed assignments are excluded."
     )
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
-    public ResponseEntity<HttpStatus> updateApplicationResourceLocationOrgUnitOnAssignments(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
+    @ResponseStatus(HttpStatus.OK)
+    public void updateApplicationResourceLocationOrgUnitOnAssignments(@RequestBody UpdateAllResourceLocationOrgUnits updateAll) {
 
 
-        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits != null && updateAll.updateAllResourceLocationOrgUnits;
-        long start = System.currentTimeMillis();
+        boolean updateAllResourceLocationOrgUnits = updateAll.updateAllResourceLocationOrgUnits;
         log.info("Start updating application resource location org unit for all assignments {}", updateAllResourceLocationOrgUnits ? "" : "where location org unit is missing");
 
-        Set<Long> ids = assignmentService.getAssignments()
+        Set<Long> ids = assignmentService.getAllActiveUserAssignments()
                 .stream()
                 .filter(assignment -> {
                     if (updateAllResourceLocationOrgUnits) {
@@ -387,72 +271,63 @@ public class AssignmentController {
         log.info("Found {} assignments where application resource location org unit wil be updated", ids.size());
 
         if (!ids.isEmpty()) {
-            assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnitAsync(ids);
+            assignmentService.updateAssignmentsWithApplicationResourceLocationOrgUnit(ids);
         }
 
-        long end = System.currentTimeMillis();
-        log.info("Time taken to update {} assignments missing application resource location org unit: {} ms", ids.size(), end - start);
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @OnlyDevelopers
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
-            summary = "Update assigned resources usage",
-            description = "Recalculates assigned resource usage for all resources."
+            summary = "Reconcile assigned resource usage",
+            description = "Recalculates user and device membership usage for every resource and resource location from active flattened assignments. It does not synchronize assignments or publish Entra membership commands; availability updates are published after each resource reconciliation commits."
     )
     @PostMapping("/update-assigned-resources-usage")
-    public ResponseEntity<HttpStatus> updateAssignedResoursesUsage(@AuthenticationPrincipal Jwt jwt) {
+    @ResponseStatus(HttpStatus.OK)
+    public void reconcileAssignedResourcesUsage() {
 
-        long start = System.currentTimeMillis();
-        log.info("Start updating assignedResoursesUsage of assignment");
+        log.info("Starting assigned resource usage reconciliation");
 
         updateAssignedResourcesService.updateAssignedResources();
 
-        long end = System.currentTimeMillis();
-        log.info("Time taken to update all resourceAvailability entities for alle resources : {} ms", end - start);
-
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    private void validateResource(NewAssignmentRequest request) {
-        if (request.resourceRef == null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "ResourceRef must be set");
+    private Assignment createNewAssignment(NewAssignmentRequest request) {
+        if (request.deviceGroupRef != null) {
+            return deviceAssignmentService.createNewAssignment(
+                    request.resourceRef,
+                    request.organizationUnitId,
+                    request.deviceGroupRef
+            );
         }
 
-        resourceRepository.findById(request.resourceRef)
-                .ifPresentOrElse(
-                        resource -> {
-                            if (resource.getIdentityProviderGroupObjectId() == null) {
-                                throw new AssignmentException(HttpStatus.UNPROCESSABLE_ENTITY, "Resource " + request.resourceRef + " does not have azure group id set");
-                            }
-                        },
-                        () -> {
-                            log.error("Resource: {} not found", request.resourceRef);
-                            throw new AssignmentException(HttpStatus.NOT_FOUND, "Resource " + request.resourceRef + " not found");
-                        }
-                );
+        return assignmentService.createNewAssignment(request.resourceRef, request.organizationUnitId, request.userRef, request.roleRef);
     }
 
-    private void validateOrganizationUnitId(NewAssignmentRequest request) {
-        if (request.organizationUnitId == null || request.organizationUnitId.isEmpty()) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "OrganizationUnitId must be set and not empty");
-        }
+    private void syncAllFlattenedAssignments(boolean publishPendingMemberships) {
+        log.info("Starting to sync all assignments. publishPendingMemberships={}", publishPendingMemberships);
+
+        List<Assignment> allAssignments = assignmentService.getAllUserAssignments();
+        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, publishPendingMemberships));
     }
 
-    private void validateUserRoleRefs(NewAssignmentRequest request) {
-        if (request.userRef != null && request.roleRef != null) {
-            throw new AssignmentException(HttpStatus.BAD_REQUEST, "Either userRef or roleRef must be set, not both");
+    private void deleteAssignmentByType(Long id) {
+        Assignment assignment = assignmentService.getAssignmentById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found: " + id));
+
+        if (assignment.getDeviceGroupRef() != null) {
+            deviceAssignmentService.deleteAssignment(id);
+            return;
         }
+
+        assignmentService.deleteAssignment(id);
     }
 
     @Getter
     @Setter
     @NoArgsConstructor
-    private static class UpdateAllResourceLocationOrgUnits {
-        private Boolean updateAllResourceLocationOrgUnits;
+    public static class UpdateAllResourceLocationOrgUnits {
+        private boolean updateAllResourceLocationOrgUnits;
     }
 
 }

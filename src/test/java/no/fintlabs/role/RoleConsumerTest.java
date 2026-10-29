@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Date;
 
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,6 +137,10 @@ public class RoleConsumerTest {
         consumer.processRoleUpdate(updatedRole);
 
         verify(assignmentService, times(1)).deactivateAssignmentsByRole(updatedRole);
+        verify(licenseEnforcementService, times(1)).recalculateAssignmentsForRole(updatedRole);
+        var orderedCalls = inOrder(assignmentService, licenseEnforcementService);
+        orderedCalls.verify(assignmentService).deactivateAssignmentsByRole(updatedRole);
+        orderedCalls.verify(licenseEnforcementService).recalculateAssignmentsForRole(updatedRole);
         verify(roleRepository, times(1)).saveAndFlush(updatedRole);
         verify(roleCache, times(1)).put(updatedRole.getId(), updatedRole);
     }
