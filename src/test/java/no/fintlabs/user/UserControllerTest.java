@@ -3,6 +3,7 @@ package no.fintlabs.user;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ProblemDetailFactory;
+import no.fintlabs.RequestBodyLogging;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.slack.SlackMessenger;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,6 +60,9 @@ public class UserControllerTest {
 
     @MockBean
     private Tracer tracer;
+
+    @MockBean
+    private RequestBodyLogging requestBodyLogging;
 
     @MockBean
     private ProblemDetailFactory problemDetailFactory;

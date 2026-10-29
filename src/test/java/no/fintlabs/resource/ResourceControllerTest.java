@@ -4,6 +4,7 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
+import no.fintlabs.RequestBodyLogging;
 import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.opa.AuthManager;
 import no.fintlabs.opa.OpaService;
@@ -66,6 +67,9 @@ public class ResourceControllerTest {
 
     @MockBean
     private Tracer tracer;
+
+    @MockBean
+    private RequestBodyLogging requestBodyLogging;
 
     @SpyBean
     private ProblemDetailFactory problemDetailFactory;

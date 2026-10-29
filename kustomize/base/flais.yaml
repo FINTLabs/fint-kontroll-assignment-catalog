@@ -35,6 +35,8 @@ spec:
       value: "false"
     - name: novari.kafka.topic.org-id
       value: "fintlabs-no"
+    - name: fint.kontroll.slack.enabled
+      value: "true"
   envFrom:
     - configMapRef:
         name: fint-kontroll-assignment-catalog-config

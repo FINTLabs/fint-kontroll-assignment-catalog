@@ -74,3 +74,11 @@ patches:
     target:
       kind: OnePasswordItem
       name: fint-kontroll-slack-secrets
+
+  - patch: |-
+      - op: add
+        path: "/data/fint.kontroll.slack.grafana-url"
+        value: "https://grafana.flais.io/d/cg2oxl949bpq8d/logs-assignment-catalog?orgId=1&from=now-3h&to=now&timezone=browser"
+    target:
+      kind: ConfigMap
+      name: fint-kontroll-assignment-catalog-config

@@ -46,10 +46,7 @@ public class SlackMessenger {
     }
 
     public boolean sendMessage(SlackMessage slackMessage) {
-        log.info("Sending Slack message {}", slackMessage.text());
-
-        log.debug("Slack url: {}", slackUrl);
-        log.debug("Slack enabled: {}", slackEnabled);
+        log.debug("Sending Slack message; enabled={}", slackEnabled);
 
         if (slackEnabled) {
             try {
