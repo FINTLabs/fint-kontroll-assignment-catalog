@@ -18,6 +18,11 @@ fint:
     slack:
       url: http://localhost/
       enabled: false
+      # All 5xx responses are notified. Add status codes that are operationally
+      # important here; 404 and other expected client errors remain silent.
+      additional-http-statuses: 429,404
+      # Configure this per environment with a Grafana Explore or dashboard URL.
+      grafana-url: ''
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
