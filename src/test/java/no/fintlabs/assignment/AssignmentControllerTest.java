@@ -5,6 +5,7 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
+import no.fintlabs.RequestBodyLogging;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
@@ -104,6 +105,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private Tracer tracer;
+
+    @MockBean
+    private RequestBodyLogging requestBodyLogging;
 
     @SpyBean
     private ProblemDetailFactory problemDetailFactory;
@@ -449,8 +453,7 @@ public class AssignmentControllerTest {
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Exactly one of userRef or roleRef must be set"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
