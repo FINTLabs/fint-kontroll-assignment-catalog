@@ -33,3 +33,11 @@ patches:
     target:
       kind: OnePasswordItem
       name: fint-kontroll-slack-secrets
+
+  - patch: |-
+      - op: add
+        path: "/data/fint.kontroll.slack.channel-id"
+        value: "fint-kontroll-errors-beta"
+    target:
+      kind: ConfigMap
+      name: fint-kontroll-assignment-catalog-config
