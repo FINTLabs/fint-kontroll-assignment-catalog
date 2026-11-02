@@ -58,6 +58,20 @@ class HttpErrorNotificationFilterTest {
     }
 
     @Test
+    void shouldNotifyFor404WhenExplicitlyConfiguredForAnEnvironment() throws Exception {
+        SlackErrorNotifier notifier = new SlackErrorNotifier(
+                slackMessenger, "https://grafana.example/explore", Set.of(404, 429));
+        HttpErrorNotificationFilter filterWithMisconfiguredStatus = new HttpErrorNotificationFilter(notifier);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/assignments/missing");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filterWithMisconfiguredStatus.doFilter(request, response, (ignoredRequest, httpResponse) ->
+                ((HttpServletResponse) httpResponse).setStatus(404));
+
+        verify(slackMessenger).sendErrorMessage(contains("Status:* `404`"));
+    }
+
+    @Test
     void shouldNotifyForConfiguredAdditionalStatus() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/assignments");
         MockHttpServletResponse response = new MockHttpServletResponse();
