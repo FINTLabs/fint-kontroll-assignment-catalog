@@ -10,8 +10,6 @@ import java.time.Duration;
 
 public final class KafkaEventTopics {
 
-    private static final int DEFAULT_PARTITIONS = 1;
-
     private KafkaEventTopics() {
     }
 
@@ -24,15 +22,6 @@ public final class KafkaEventTopics {
                         .domainContextApplicationDefault()
                         .build())
                 .eventName(eventName)
-                .build();
-    }
-
-    public static EventTopicConfiguration topicConfiguration() {
-        return EventTopicConfiguration
-                .stepBuilder()
-                .partitions(DEFAULT_PARTITIONS)
-                .retentionTime(Duration.ofDays(7))
-                .cleanupFrequency(EventCleanupFrequency.NORMAL)
                 .build();
     }
 

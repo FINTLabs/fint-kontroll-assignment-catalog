@@ -60,7 +60,7 @@ public class ResourceController {
         if (roleId == null) {
             return ResponseEntity.badRequest().body("roleId is required");
         }
-
+// ORG UNITS NOt USED IN SEARCH?
         List<String> orgUnitsInScope = opaService.getOrgUnitsInScope("role");
         log.info("Org units returned from scope: {}", orgUnitsInScope);
         log.info("Fetching resources for roleId: {} with this resource filter {}", roleId, resourceIds);

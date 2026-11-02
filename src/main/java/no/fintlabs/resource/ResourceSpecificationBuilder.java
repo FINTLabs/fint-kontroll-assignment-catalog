@@ -2,38 +2,20 @@ package no.fintlabs.resource;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
+import lombok.RequiredArgsConstructor;
 import no.fintlabs.assignment.Assignment;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 public class ResourceSpecificationBuilder {
 
     private final Long userId;
     private final Long roleId;
     private final String resourceType;
-    private final List<String> orgUnits;
-    private final List<String> orgUnitsInScope;
     private final String searchString;
     private final List<Long> resourceIds;
-
-    public ResourceSpecificationBuilder(
-            Long userId,
-            Long roleId,
-            String resourceType,
-            List<String> orgUnits,
-            List<String> orgUnitsInScope,
-            String searchString,
-            List<Long> resourceIds
-    ) {
-        this.userId = userId;
-        this.roleId = roleId;
-        this.resourceType = resourceType;
-        this.orgUnits = orgUnits;
-        this.orgUnitsInScope = orgUnitsInScope;
-        this.searchString = searchString;
-        this.resourceIds = resourceIds;
-    }
 
     public Specification<Resource> build() {
         Specification<Resource> spec = (root, query, criteriaBuilder) -> {
@@ -66,10 +48,6 @@ public class ResourceSpecificationBuilder {
                 criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceName")), "%" + searchString + "%");
     }
 
-    private Specification<Resource> belongsToOrgUnit(List<String> orgUnits) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("organisationUnitId")).value(orgUnits);
-
-    }
     private Specification<Resource> resourceInResourceList(List<Long> resourceIds) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("id")).value(resourceIds);
 

@@ -233,11 +233,6 @@ public class FlattenedDeviceAssignmentService {
 
 
     @Async
-    public void syncFlattenedAssignments(Assignment assignment) {
-        syncFlattenedAssignments(assignment, true);
-    }
-
-    @Async
     public void syncFlattenedAssignments(Assignment assignment, boolean publishPendingMemberships) {
         Long assignmentId = assignment.getId();
         log.info("Updating flattened assignments for assignment with id {}", assignmentId);
@@ -364,9 +359,6 @@ public class FlattenedDeviceAssignmentService {
         deviceEntraMembershipRepository.saveAll(membershipsToPublish);
 
         log.info("Updated device entra id for {} flattened assignments", assignments.size());
-        // DeviceEntraMembershipPublisher owns the after-commit scheduling.
-        // Wrapping this call in another afterCommit callback would register a
-        // callback while Spring is already running afterCommit callbacks.
         publishDeviceMemberships(membershipsToPublish);
     }
 

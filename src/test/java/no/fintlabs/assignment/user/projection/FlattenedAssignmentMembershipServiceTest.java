@@ -117,4 +117,58 @@ public class FlattenedAssignmentMembershipServiceTest {
         assertEquals(1, result.size());
         verify(flattenedAssignmentMapper, times(1)).mapOriginWithExisting(any(), any());//, anyBoolean()
     }
+
+    @Test
+    void createFlattenedAssignmentsForNewRoleAssignment_shouldReturnEmptyListWhenAssignmentHasNoRole() {
+        assignment.setRoleRef(null);
+
+        List<FlattenedAssignment> result =
+                flattenedAssignmentMembershipService.createFlattenedAssignmentsForNewRoleAssignment(assignment);
+
+        assertEquals(0, result.size());
+        verifyNoInteractions(membershipRepository);
+    }
+
+    @Test
+    void createFlattenedAssignmentsForNewRoleAssignment_shouldReturnEmptyListWhenRoleHasNoActiveMemberships() {
+        when(membershipRepository.findAll(any(Specification.class))).thenReturn(List.of());
+
+        List<FlattenedAssignment> result =
+                flattenedAssignmentMembershipService.createFlattenedAssignmentsForNewRoleAssignment(assignment);
+
+        assertEquals(0, result.size());
+        verify(membershipRepository).findAll(any(Specification.class));
+    }
+
+    @Test
+    void createFlattenedAssignmentsForNewRoleAssignment_shouldMapAllActiveMemberships() {
+        UUID firstUserObjectId = UUID.randomUUID();
+        Membership firstMembership = new Membership();
+        firstMembership.setId("123_1");
+        firstMembership.setMemberId(123L);
+        firstMembership.setIdentityProviderUserObjectId(firstUserObjectId);
+        firstMembership.setMemberStatus("ACTIVE");
+
+        UUID secondUserObjectId = UUID.randomUUID();
+        Membership secondMembership = new Membership();
+        secondMembership.setId("123_2");
+        secondMembership.setMemberId(456L);
+        secondMembership.setIdentityProviderUserObjectId(secondUserObjectId);
+        secondMembership.setMemberStatus("ACTIVE");
+
+        when(membershipRepository.findAll(any(Specification.class)))
+                .thenReturn(List.of(firstMembership, secondMembership));
+
+        List<FlattenedAssignment> result =
+                flattenedAssignmentMembershipService.createFlattenedAssignmentsForNewRoleAssignment(assignment);
+
+        assertEquals(2, result.size());
+        assertEquals(123L, result.get(0).getUserRef());
+        assertEquals(firstUserObjectId, result.get(0).getIdentityProviderUserObjectId());
+        assertEquals(456L, result.get(1).getUserRef());
+        assertEquals(secondUserObjectId, result.get(1).getIdentityProviderUserObjectId());
+        assertEquals(assignment.getId(), result.get(0).getAssignmentId());
+        assertEquals(assignment.getRoleRef(), result.get(0).getAssignmentViaRoleRef());
+        assertEquals(assignment.getEntraGroupId(), result.get(0).getIdentityProviderGroupObjectId());
+    }
 }

@@ -14,7 +14,4 @@ public class MembershipSpecificationBuilder {
     public static Specification<Membership> hasIdentityProviderUserObjectId() {
         return (root, query, criteriaBuilder) -> criteriaBuilder.isNotNull(root.get("identityProviderUserObjectId"));
     }
-    public static Specification<Membership> hasIdentityProviderGroupId() {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.isNotNull(root.get("identityProviderGroupId"));
-    }
 }

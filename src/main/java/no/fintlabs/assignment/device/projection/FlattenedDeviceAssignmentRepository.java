@@ -42,16 +42,4 @@ public interface FlattenedDeviceAssignmentRepository extends JpaRepository<Flatt
     boolean existsByDeviceEntraMembershipAndTerminationDateIsNull(DeviceEntraMembership deviceEntraMembership);
 
     void deleteAllByDeviceRef(Long deviceRef);
-
-    @QueryHints({
-            @QueryHint(name = AvailableHints.HINT_FETCH_SIZE, value = "5000"),
-            @QueryHint(name = AvailableHints.HINT_READ_ONLY, value = "true"),
-            @QueryHint(name = AvailableHints.HINT_CACHEABLE, value = "false")
-    })
-    @Query("SELECT new no.fintlabs.reporting.FlattenedAssignmentReport(fa.id, CAST(fa.resourceRef AS string), res.resourceName, u.organisationUnitId, u.organisationUnitName, u.userType, a.applicationResourceLocationOrgUnitId, a.applicationResourceLocationOrgUnitName, fa.assignmentCreationDate, fa.assignmentTerminationDate) " +
-           "FROM FlattenedAssignment fa " +
-           "LEFT JOIN User u ON u.id = fa.userRef " +
-           "LEFT JOIN Assignment a ON a.id = fa.assignmentId " +
-           "LEFT JOIN Resource res ON res.id = fa.resourceRef ")
-    Stream<FlattenedAssignmentReport> streamAllFlattenedAssignmentsForReport();
 }

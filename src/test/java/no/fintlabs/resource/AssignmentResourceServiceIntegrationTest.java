@@ -459,7 +459,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assignmentRepository.save(assignment);
 
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(123L, null, "ALLTYPES", null, null, null, null);
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(123L, null, "ALLTYPES", null, null);
         Page<AssignmentResource> usersPage = assignmentResourceService.getResourcesAssignedToUser(123L, builder.build(), Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(1);
@@ -508,7 +508,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, kompavdList, null, List.of(2L));
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null, 1L, "ALLTYPES", null, List.of(2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(1);
@@ -558,7 +558,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
 
         Assignment savedAssignmentZip = assignmentRepository.saveAndFlush(assignmentZip);
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null, kompavdList, null, List.of(1L,2L));
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(null,1L,  "ALLTYPES", null,  List.of(1L,2L));
         Page<AssignmentResource> rolePage = assignmentResourceService.getResourcesAssignedToRole(1L, builder.build(), Pageable.unpaged());
 
         assertThat(rolePage.getTotalElements()).isEqualTo(2);
@@ -596,7 +596,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         assignmentRepository.save(assignment);
 
 
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(123L, null, "ALLTYPES", null, null, null, null);
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(123L, null, "ALLTYPES", null, null);
         Page<AssignmentResource> usersPage = assignmentResourceService.getResourcesAssignedToUser(123L, builder.build(), Pageable.unpaged());
 
         assertThat(usersPage.getTotalElements()).isEqualTo(0);
