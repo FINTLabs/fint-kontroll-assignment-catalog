@@ -11,7 +11,6 @@ import no.fintlabs.resource.Resource;
 import no.fintlabs.exception.ResourceNotFoundException;
 import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.role.Role;
-import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -297,11 +296,11 @@ class AssignmentServiceTest {
     }
 
     @Test
-    void shouldCreateNewAssignment_InvalidRoleReference_ThrowsRoleNotFoundException() {
+    void shouldCreateNewAssignment_InvalidRoleReference_ThrowsResourceNotFoundException() {
         given(userRepository.findById(1L)).willReturn(Optional.of(userWithEntraId()));
-        given(roleRepository.findById(999L)).willThrow(new RoleNotFoundException("999"));
+        given(roleRepository.findById(999L)).willReturn(Optional.empty());
 
-        assertThrows(RoleNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, 999L));
+        assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, 999L));
     }
 
     @Test
@@ -525,94 +524,4 @@ class AssignmentServiceTest {
         verify(flattenedAssignmentService).createForNewAssignment(assignment);
     }
 
-//    @DisplayName("Create new assignment - invalid user reference")
-//    @Test
-//    void shouldCreateNewAssignment_InvalidUserReference_ThrowsUserNotFoundException() {
-//        given(userRepository.findById(999L)).willThrow(new UserNotFoundException("999"));
-//
-//        assertThrows(UserNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 999L, 1L));
-//    }
-//
-//    @DisplayName("Create new assignment - invalid role reference")
-//    @Test
-//    void shouldCreateNewAssignment_InvalidRoleReference_ThrowsRoleNotFoundException() {
-//        given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-//        given(roleRepository.findById(999L)).willThrow(new RoleNotFoundException("999"));
-//
-//        assertThrows(RoleNotFoundException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, 999L));
-//    }
-//
-//    @DisplayName("Create new assignment - invalid resource reference")
-//    @Test
-//    void shouldCreateNewAssignment_InvalidResourceReference_ThrowsResourceNotFoundException() {
-//        given(userRepository.findById(1L)).willReturn(Optional.of(new User()));
-//        given(roleRepository.findById(1L)).willReturn(Optional.of(new Role()));
-//        given(resourceRepository.getReferenceById(999L)).willThrow(new ResourceNotFoundException("999"));
-//
-//        assertThrows(ResourceNotFoundException.class, () -> assignmentService.createNewAssignment(999L, "orgid", 1L, 1L));
-//    }
-//
-//    @DisplayName("Delete assignment - valid id")
-//    @Test
-//    void shouldDeleteAssignment_ValidId_DeletesAssignment() {
-//        Long validId = 1L;
-//        String userName = "testUser";
-//        User user = new User();
-//        user.setUserName(userName);
-//        Assignment assignment = new Assignment();
-//
-//        given(opaService.getUserNameAuthenticatedUser()).willReturn(userName);
-//        given(userRepository.getUserByUserName(userName)).willReturn(Optional.of(user));
-//        given(assignmentRepository.getReferenceById(validId)).willReturn(assignment);
-//        given(assignmentRepository.saveAndFlush(any())).willAnswer(invocation -> {
-//            Assignment savedAssignment = invocation.getArgument(0);
-//            assertThat(savedAssignment.getAssignmentRemovedDate()).isNotNull();
-//            assertThat(savedAssignment.getAssignerRemoveRef()).isEqualTo(user.getId());
-//            return savedAssignment;
-//        });
-//
-//        Assignment returnedAssignment = assignmentService.deleteAssignment(validId);
-//
-//        assertThat(returnedAssignment).isEqualTo(assignment);
-//        verify(assignmentRepository, times(1)).saveAndFlush(assignment);
-//        verify(flattenedAssignmentService, times(1)).terminateForRemovedAssignment(any());
-//    }
-//
-//    @DisplayName("Delete assignment - invalid user")
-//    @Test
-//    void shouldDeleteAssignment_InvalidUser_shouldNotSetAssignerRemoveRef() {
-//        Long validId = 1L;
-//        String invalidUserName = "invalidUser";
-//
-//        given(opaService.getUserNameAuthenticatedUser()).willReturn(invalidUserName);
-//        given(userRepository.getUserByUserName(invalidUserName)).willReturn(Optional.empty());
-//
-//        Assignment assignment = new Assignment();
-//
-//        given(assignmentRepository.getReferenceById(validId)).willReturn(assignment);
-//
-//        assignmentService.deleteAssignment(validId);
-//
-//        assertThat(assignment.getAssignmentRemovedDate()).isNotNull();
-//        assertThat(assignment.getAssignerRemoveRef()).isNull();
-//    }
-//
-//    @DisplayName("Deactivate assignments if user inactive")
-//    @Test
-//    public void shouldDeactivateAssignmentsIfUserInactive() {
-//        User user = new User();
-//        user.setId(1L);
-//        user.setStatus("disabled");
-//
-//        Assignment assignment = new Assignment();
-//        List<Assignment> assignments = List.of(assignment);
-//        when(assignmentRepository.findAssignmentsByUserRefAndAssignmentRemovedDateIsNull(user.getId())).thenReturn(assignments);
-//
-//        assignmentService.deactivateAssignmentsByUser(user);
-//
-//        verify(assignmentRepository).saveAndFlush(assignment);
-//        verify(flattenedAssignmentService).terminateForRemovedAssignment(assignment);
-//
-//        assertNotNull(assignment.getAssignmentRemovedDate());
-//    }
 }

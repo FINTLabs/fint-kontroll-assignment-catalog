@@ -491,6 +491,22 @@ public class AssignmentControllerTest {
     }
 
     @Test
+    public void createAssignment_missingRole_returnsNotFound() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 123L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 6999999996L;
+
+        doThrow(new ResourceNotFoundException("Role not found: 6999999996"))
+                .when(assignmentServiceMock).createNewAssignment(123L, "99999999", null, 6999999996L);
+
+        mockMvc.perform(post("/api/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     public void shouldDeleteAssignment_validId_deletesAssignment() throws Exception {
         Long validId = 1L;
         Assignment assignment = new Assignment();
