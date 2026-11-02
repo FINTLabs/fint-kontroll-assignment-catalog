@@ -1,8 +1,6 @@
 package no.fintlabs.assignment.user.entra;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.user.entra.UserEntraMembership;
-import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
 import no.fintlabs.assignment.user.projection.FlattenedAssignment;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
@@ -16,7 +14,7 @@ import no.novari.kafka.producing.ParameterizedTemplateFactory;
 import no.novari.kafka.topic.EventTopicService;
 import no.novari.kafka.topic.name.EventTopicNameParameters;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -24,7 +22,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Slf4j
-@Component
+@Service
 public class UserEntraMembershipPublisher {
 
     private final ParameterizedTemplate<UserResourceGroupMembershipCommand> membershipProducer;
@@ -55,33 +53,30 @@ public class UserEntraMembershipPublisher {
             publish(assignment.getUserEntraMembership(), force);
         } else if (isValidAssignment(assignment)) {
             logAssignment(assignment, "Publishing flattened assignment");
-            publish(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
+            publishMembershipCommand(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
         }
     }
 
-    public void rePublish(FlattenedAssignment assignment) {
-        if (isValidAssignment(assignment)) {
-            logAssignment(assignment, "Republishing flattened assignment");
-            rePublish(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
-        }
-    }
-
-    public void rePublish(UserEntraMembership userEntraMembership) {
+    public void republish(UserEntraMembership userEntraMembership) {
         if (isValidMembership(userEntraMembership)) {
             log.info("Republishing user Entra membership with id: {}", userEntraMembership.getId());
-            rePublish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId());
+            republish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId());
         }
     }
 
-    public void publishDeletion(FlattenedAssignment flattenedAssignment) {
+    public void publishRemoval(FlattenedAssignment flattenedAssignment) {
         if (flattenedAssignment.getUserEntraMembership() != null) {
             UserEntraMembership userEntraMembership = flattenedAssignment.getUserEntraMembership();
             userEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
             publish(userEntraMembership, true);
         } else if (isValidAssignment(flattenedAssignment)) {
             logAssignment(flattenedAssignment, "Publishing deletion of flattened assignment");
-            publishDeletion(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
+            publishRemoval(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
         }
+    }
+
+    public void publish(UserEntraMembership userEntraMembership) {
+        publish(userEntraMembership, false);
     }
 
     public void publish(UserEntraMembership userEntraMembership, boolean force) {
@@ -89,22 +84,26 @@ public class UserEntraMembershipPublisher {
             return;
         }
 
-        if (userEntraMembership.getEntraStatus().equals(EntraMembershipSyncStatus.ERROR) && !force) {
+        if (EntraMembershipSyncStatus.ERROR.equals(userEntraMembership.getEntraStatus()) && !force) {
             log.warn("UserEntraMembership with id {} has EntraMembershipSyncStatus ERROR. Skipping publishing to Entra.", userEntraMembership.getId());
             return;
         }
 
+        if (EntraMembershipSyncStatus.ERROR.equals(userEntraMembership.getEntraStatus())) {
+            log.warn("UserEntraMembership with id {} has EntraMembershipSyncStatus ERROR. Force publishing to Entra.", userEntraMembership.getId());
+        }
+
         log.info("Publishing to Entra - userEntraMembership with id: {}", userEntraMembership.getId());
-        if (userEntraMembership.getMembershipStatus().equals(MembershipStatus.ACTIVE)) {
+        if (MembershipStatus.ACTIVE.equals(userEntraMembership.getMembershipStatus())) {
             userEntraMembership.setEntraStatus(EntraMembershipSyncStatus.SENT);
             userEntraMembership.setSentToEntraAt(new Date());
             userEntraMembershipRepository.save(userEntraMembership);
-            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
+            publishMembershipCommand(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
         } else {
             userEntraMembership.setEntraStatus(EntraMembershipSyncStatus.DELETION_SENT);
             userEntraMembership.setDeletionSentToEntraAt(new Date());
             userEntraMembershipRepository.save(userEntraMembership);
-            publish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.REMOVE);
+            publishMembershipCommand(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.REMOVE);
         }
     }
 
@@ -155,54 +154,59 @@ public class UserEntraMembershipPublisher {
         return true;
     }
 
-    public void publishDeletion(UUID entraIdGroupId, UUID entraIdUserId) {
-        UserResourceGroupMembershipCommand resourceGroupMembership = new UserResourceGroupMembershipCommand(OperationType.REMOVE, entraIdGroupId, entraIdUserId);
-
-        log.info("Publishing removal to Entra - groupid: {}, userid: {}", entraIdGroupId, entraIdUserId);
-
-        send(resourceGroupMembership);
+    public void publishRemoval(UUID entraGroupId, UUID entraUserId) {
+        publishMembershipCommand(entraGroupId, entraUserId, OperationType.REMOVE);
     }
 
-    private void publish(UUID entraIdGroupId, UUID entraIdUserId) {
-        publish(entraIdGroupId, entraIdUserId, OperationType.ADD);
+    private void publishMembershipCommand(UUID entraGroupId, UUID entraUserId) {
+        publishMembershipCommand(entraGroupId, entraUserId, OperationType.ADD);
     }
 
-    private void publish(UUID entraIdGroupId, UUID entraIdUserId, OperationType operationType) {
-        UserResourceGroupMembershipCommand resourceGroupMembership = new UserResourceGroupMembershipCommand(operationType, entraIdGroupId, entraIdUserId);
+    private void publishMembershipCommand(UUID entraGroupId, UUID entraUserId, OperationType operationType) {
+        if (!hasValidEntraIds(entraGroupId, entraUserId)) {
+            log.warn("Publishing user Entra membership skipped. Missing Entra group id ({}) or user id ({})",
+                    entraGroupId, entraUserId);
+            return;
+        }
 
-        log.info("Publishing {} to Entra - groupid: {}, userid: {}", operationType, entraIdGroupId, entraIdUserId);
-        send(resourceGroupMembership);
+        UserResourceGroupMembershipCommand membershipCommand = new UserResourceGroupMembershipCommand(operationType, entraGroupId, entraUserId);
+
+        log.info("Publishing {} to Entra - groupId: {}, userId: {}", operationType, entraGroupId, entraUserId);
+        send(membershipCommand);
     }
 
-    private void rePublish(UUID entraIdGroupId, UUID entraIdUserId) {
-        UserResourceGroupMembershipCommand resourceGroupMembership = new UserResourceGroupMembershipCommand(OperationType.ADD, entraIdGroupId, entraIdUserId);
-
-        log.info("Republishing resource {} assigned to user {}", entraIdGroupId, entraIdUserId);
-
-        send(resourceGroupMembership);
+    private void republish(UUID entraGroupId, UUID entraUserId) {
+        log.info("Republishing resource {} assigned to user {}", entraGroupId, entraUserId);
+        publishMembershipCommand(entraGroupId, entraUserId, OperationType.ADD);
     }
 
-    private void send(UserResourceGroupMembershipCommand resourceGroupMembership) {
+    private boolean hasValidEntraIds(UUID entraGroupId, UUID entraUserId) {
+        return entraGroupId != null && entraUserId != null &&
+                !entraGroupId.toString().startsWith("00000000") &&
+                !entraUserId.toString().startsWith("00000000");
+    }
+
+    private void send(UserResourceGroupMembershipCommand membershipCommand) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    sendNow(resourceGroupMembership);
+                    sendNow(membershipCommand);
                 }
             });
             return;
         }
 
-        sendNow(resourceGroupMembership);
+        sendNow(membershipCommand);
     }
 
-    private void sendNow(UserResourceGroupMembershipCommand resourceGroupMembership) {
+    private void sendNow(UserResourceGroupMembershipCommand membershipCommand) {
         String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
         membershipProducer.send(
                 ParameterizedProducerRecord.<UserResourceGroupMembershipCommand>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
-                        .value(resourceGroupMembership)
+                        .value(membershipCommand)
                         .build()
         );
     }

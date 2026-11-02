@@ -101,7 +101,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.republishAllActiveUserMemberships();
 
-        verify(assigmentEntityProducerService, times(501)).rePublish(any(UserEntraMembership.class));
+        verify(assigmentEntityProducerService, times(501)).republish(any(UserEntraMembership.class));
         verifyNoMoreInteractions(assigmentEntityProducerService);
         verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(0L), any());
         verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(500L), any());
@@ -328,7 +328,7 @@ public class FlattenedAssignmentServiceTest {
 
         assertEquals(updatedUserEntraId, flattenedAssignment.getIdentityProviderUserObjectId());
         assertEquals(updatedUserEntraId, membership.getUserEntraId());
-        verify(assigmentEntityProducerService, never()).publishDeletion(resourceEntraId, previousUserEntraId);
+        verify(assigmentEntityProducerService, never()).publishRemoval(resourceEntraId, previousUserEntraId);
         verify(assigmentEntityProducerService).publish(flattenedAssignment, true);
         verify(licenseEnforcementService).recalculateAssignedResourcesForResource(42L);
     }
@@ -384,7 +384,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
-        verify(assigmentEntityProducerService, times(1)).publishDeletion(flattenedAssignment);
+        verify(assigmentEntityProducerService, times(1)).publishRemoval(flattenedAssignment);
     }
 
     @Test
@@ -398,7 +398,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
-        verify(assigmentEntityProducerService, times(0)).publishDeletion(flattenedAssignment);
+        verify(assigmentEntityProducerService, times(0)).publishRemoval(flattenedAssignment);
     }
 
     @Test
@@ -428,7 +428,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(first, second));
 
-        verify(assigmentEntityProducerService).publishDeletion(first);
+        verify(assigmentEntityProducerService).publishRemoval(first);
         verifyNoMoreInteractions(assigmentEntityProducerService);
     }
 
@@ -445,7 +445,7 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment));
 
-        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment);
+        verify(assigmentEntityProducerService, never()).publishRemoval(flattenedAssignment);
     }
 
     private UserEntraMembership userEntraMembership(Long id) {

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
@@ -455,7 +454,7 @@ class FlattenedDeviceAssignmentServiceTest {
     }
 
     @Test
-    void updateDeviceEntraId_shouldPublishSharedMembershipOnceAfterCommit() {
+    void updateDeviceEntraId_shouldDelegateSharedMembershipOnceToPublisher() {
         UUID newEntraId = UUID.randomUUID();
         Device device = Device.builder().id(1L).dataObjectId(newEntraId).build();
         DeviceEntraMembership membership = DeviceEntraMembership.builder()
@@ -486,14 +485,9 @@ class FlattenedDeviceAssignmentServiceTest {
             assertEquals(newEntraId, firstAssignment.getIdentityProviderDeviceObjectId());
             assertEquals(newEntraId, secondAssignment.getIdentityProviderDeviceObjectId());
             assertEquals(newEntraId, membership.getDeviceEntraId());
-            verifyNoInteractions(deviceAssigmentEntityProducerService);
-            assertEquals(1, TransactionSynchronizationManager.getSynchronizations().size());
-
-            TransactionSynchronizationManager.getSynchronizations()
-                    .forEach(TransactionSynchronization::afterCommit);
-
             verify(deviceAssigmentEntityProducerService).publish(membership, false);
             verifyNoMoreInteractions(deviceAssigmentEntityProducerService);
+            assertTrue(TransactionSynchronizationManager.getSynchronizations().isEmpty());
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }

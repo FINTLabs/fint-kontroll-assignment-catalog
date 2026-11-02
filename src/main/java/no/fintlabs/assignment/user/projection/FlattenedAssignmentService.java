@@ -311,7 +311,7 @@ public class FlattenedAssignmentService {
                         flattenedAssignment.getId()
                 );
                 if (publishedMembershipIds.add(membership.getId())) {
-                    assigmentEntityProducerService.publishDeletion(flattenedAssignment);
+                    assigmentEntityProducerService.publishRemoval(flattenedAssignment);
                 }
             }
             else {
@@ -338,7 +338,7 @@ public class FlattenedAssignmentService {
                             lastProcessedId,
                             PageRequest.of(0, REPUBLISH_BATCH_SIZE));
 
-            memberships.forEach(assigmentEntityProducerService::rePublish);
+            memberships.forEach(assigmentEntityProducerService::republish);
 
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();

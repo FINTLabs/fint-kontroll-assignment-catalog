@@ -13,9 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,6 +79,38 @@ class DeviceAssigmentEntityProducerServiceTest {
 
         verify(eventProducer).send(any(ParameterizedProducerRecord.class));
         verify(deviceEntraMembershipRepository).save(membership);
+    }
+
+    @Test
+    void publish_shouldSkipMembershipWithMissingEntraIds() {
+        DeviceEntraMembership membership = membership(EntraMembershipSyncStatus.NOT_SENT, MembershipStatus.ACTIVE);
+        membership.setDeviceEntraId(null);
+
+        service.publish(membership, false);
+
+        verify(eventProducer, never()).send(any(ParameterizedProducerRecord.class));
+        verify(deviceEntraMembershipRepository, never()).save(any());
+    }
+
+    @Test
+    void publish_shouldSendOnlyAfterTransactionCommit() {
+        DeviceEntraMembership membership = membership(EntraMembershipSyncStatus.NOT_SENT, MembershipStatus.ACTIVE);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.publish(membership, false);
+
+            verify(eventProducer, never()).send(any(ParameterizedProducerRecord.class));
+            verify(deviceEntraMembershipRepository).save(membership);
+            assertEquals(1, TransactionSynchronizationManager.getSynchronizations().size());
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(TransactionSynchronization::afterCommit);
+
+            verify(eventProducer).send(any(ParameterizedProducerRecord.class));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     private DeviceEntraMembership membership(EntraMembershipSyncStatus entraStatus, MembershipStatus membershipStatus) {

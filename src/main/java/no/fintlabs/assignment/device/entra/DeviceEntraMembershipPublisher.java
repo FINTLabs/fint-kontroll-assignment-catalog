@@ -1,15 +1,12 @@
 package no.fintlabs.assignment.device.entra;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.device.entra.DeviceEntraMembership;
-import no.fintlabs.assignment.device.entra.DeviceEntraMembershipRepository;
 import no.fintlabs.kafka.KafkaTopics;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.entra.membership.event.MembershipEventNames;
 import no.fintlabs.entra.membership.event.OperationType;
 import no.fintlabs.entra.membership.event.DeviceResourceGroupMembershipCommand;
-import no.fintlabs.kafka.KafkaEventTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -27,71 +24,99 @@ import java.util.UUID;
 @Service
 public class DeviceEntraMembershipPublisher {
 
-    private final ParameterizedTemplate<DeviceResourceGroupMembershipCommand> eventProducer;
+    private final ParameterizedTemplate<DeviceResourceGroupMembershipCommand> membershipProducer;
     private final EventTopicNameParameters resourceGroupMembershipTopicNameParameters;
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     public DeviceEntraMembershipPublisher(
-            ParameterizedTemplateFactory entityProducerFactory,
+            ParameterizedTemplateFactory producerFactory,
             EventTopicService entityTopicService,
             DeviceEntraMembershipRepository deviceEntraMembershipRepository
     ) {
-        eventProducer = entityProducerFactory.createTemplate(DeviceResourceGroupMembershipCommand.class);
+        membershipProducer = producerFactory.createTemplate(DeviceResourceGroupMembershipCommand.class);
         this.deviceEntraMembershipRepository = deviceEntraMembershipRepository;
 
-        resourceGroupMembershipTopicNameParameters = KafkaTopics.eventTopicNameParameters("resource-group-membership-device");
+        resourceGroupMembershipTopicNameParameters = KafkaTopics.eventTopicNameParameters(MembershipEventNames.RESOURCE_GROUP_MEMBERSHIP_DEVICE);
         entityTopicService.createOrModifyTopic(
                 resourceGroupMembershipTopicNameParameters,
                 KafkaTopics.eventTopicConfiguration()
         );
     }
 
+    public void publish(DeviceEntraMembership deviceEntraMembership) {
+        publish(deviceEntraMembership, false);
+    }
+
     public void publish(DeviceEntraMembership deviceEntraMembership, boolean force) {
+        if (!isValidMembership(deviceEntraMembership)) {
+            return;
+        }
+
         if (EntraMembershipSyncStatus.ERROR.equals(deviceEntraMembership.getEntraStatus()) && !force) {
-            log.warn("DeviceEntraMembership with id {} has AzureStatus ERROR. Skipping publishing to Azure.", deviceEntraMembership.getId());
+            log.warn("DeviceEntraMembership with id {} has EntraMembershipSyncStatus ERROR. Skipping publishing to Entra.", deviceEntraMembership.getId());
             return;
         }
         if (EntraMembershipSyncStatus.ERROR.equals(deviceEntraMembership.getEntraStatus())) {
-            log.warn("DeviceEntraMembership with id {} has AzureStatus ERROR. Force publishing to Azure.", deviceEntraMembership.getId());
+            log.warn("DeviceEntraMembership with id {} has EntraMembershipSyncStatus ERROR. Force publishing to Entra.", deviceEntraMembership.getId());
         }
-        log.info("Publishing to Entra - deviceEntraInfo with id: {}", deviceEntraMembership.getId());
+        log.info("Publishing to Entra - device Entra membership with id: {}", deviceEntraMembership.getId());
         if (MembershipStatus.ACTIVE.equals(deviceEntraMembership.getMembershipStatus())) {
-            publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
             deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.SENT);
             deviceEntraMembership.setSentToEntraAt(new Date());
+            deviceEntraMembershipRepository.save(deviceEntraMembership);
+            publishMembershipCommand(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.ADD);
         } else {
-            publish(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.REMOVE);
             deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.DELETION_SENT);
             deviceEntraMembership.setDeletionSentToEntraAt(new Date());
+            deviceEntraMembershipRepository.save(deviceEntraMembership);
+            publishMembershipCommand(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId(), OperationType.REMOVE);
         }
-        deviceEntraMembershipRepository.save(deviceEntraMembership);
     }
 
-    private void publish(UUID entraGroupId, UUID entraDeviceId, OperationType action) {
-        DeviceResourceGroupMembershipCommand entraGroupMembership = new DeviceResourceGroupMembershipCommand(action, entraGroupId, entraDeviceId);
+    private boolean isValidMembership(DeviceEntraMembership deviceEntraMembership) {
+        if (!hasValidEntraIds(deviceEntraMembership.getResourceEntraId(), deviceEntraMembership.getDeviceEntraId())) {
+            log.warn("Publishing device Entra membership skipped for membership id {}. Missing Entra group id ({}) or device id ({})",
+                    deviceEntraMembership.getId(),
+                    deviceEntraMembership.getResourceEntraId(),
+                    deviceEntraMembership.getDeviceEntraId());
+            return false;
+        }
+        return true;
+    }
 
-        log.info("Publishing to entra - groupId: {}, deviceId: {}, action: {}", entraGroupId, entraDeviceId, action);
+    private boolean hasValidEntraIds(UUID entraGroupId, UUID entraDeviceId) {
+        return entraGroupId != null && entraDeviceId != null;
+    }
 
+    private void publishMembershipCommand(UUID entraGroupId, UUID entraDeviceId, OperationType operationType) {
+        DeviceResourceGroupMembershipCommand membershipCommand = new DeviceResourceGroupMembershipCommand(operationType, entraGroupId, entraDeviceId);
+
+        log.info("Publishing {} to Entra - groupId: {}, deviceId: {}", operationType, entraGroupId, entraDeviceId);
+
+        send(membershipCommand);
+    }
+
+    private void send(DeviceResourceGroupMembershipCommand membershipCommand) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    send(entraGroupMembership);
+                    sendNow(membershipCommand);
                 }
             });
             return;
         }
 
-        send(entraGroupMembership);
+        sendNow(membershipCommand);
     }
 
-    private void send(DeviceResourceGroupMembershipCommand entraGroupMembership) {
+    private void sendNow(DeviceResourceGroupMembershipCommand membershipCommand) {
         String key = System.currentTimeMillis() + "-" + RandomStringUtils.randomAlphanumeric(6);
-        eventProducer.send(
+        membershipProducer.send(
                 ParameterizedProducerRecord.<DeviceResourceGroupMembershipCommand>builder()
                         .topicNameParameters(resourceGroupMembershipTopicNameParameters)
                         .key(key)
-                        .value(entraGroupMembership)
+                        .value(membershipCommand)
                         .build()
         );
     }

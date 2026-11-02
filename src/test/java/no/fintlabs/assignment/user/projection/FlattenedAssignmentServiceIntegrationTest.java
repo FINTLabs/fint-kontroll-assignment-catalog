@@ -120,7 +120,7 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
 
         assertThat(deactivatedFlattenedAssignment.getUserEntraMembership().getEntraStatus())
                 .isNotEqualTo(EntraMembershipSyncStatus.DELETION_CONFIRMED);
-        verify(assigmentEntityProducerService, times(1)).publishDeletion(flattenedAssignment1);
+        verify(assigmentEntityProducerService, times(1)).publishRemoval(flattenedAssignment1);
     }
 
     @Test
@@ -129,7 +129,7 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         savedFlattenedAssignment3 = flattenedAssignmentRepository.save(flattenedAssignment3);
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(flattenedAssignment1));
 
-        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
+        verify(assigmentEntityProducerService, never()).publishRemoval(flattenedAssignment1);
     }
 
     @Test
@@ -149,8 +149,8 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
 
         flattenedAssignmentService.publishDeactivatedFlattenedAssignmentsForDeletion(List.of(savedDirectAssignment));
 
-        verify(assigmentEntityProducerService, never()).publishDeletion(savedDirectAssignment);
-        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
+        verify(assigmentEntityProducerService, never()).publishRemoval(savedDirectAssignment);
+        verify(assigmentEntityProducerService, never()).publishRemoval(flattenedAssignment1);
     }
 
     @Test
@@ -171,6 +171,6 @@ public class FlattenedAssignmentServiceIntegrationTest extends DatabaseIntegrati
         assertThat(activeFlattenedAssignment.getUserEntraMembership().getEntraStatus())
                 .isEqualTo(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED);
 
-        verify(assigmentEntityProducerService, never()).publishDeletion(flattenedAssignment1);
+        verify(assigmentEntityProducerService, never()).publishRemoval(flattenedAssignment1);
     }
 }

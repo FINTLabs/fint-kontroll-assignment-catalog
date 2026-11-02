@@ -87,7 +87,7 @@ public class AssigmentEntityProducerServiceTest {
         assignment.setIdentityProviderGroupObjectId(groupRef);
         assignment.setIdentityProviderUserObjectId(userRef);
 
-        service.publishDeletion(assignment);
+        service.publishRemoval(assignment);
 
         ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.REMOVE, record.getValue().getOperation());
@@ -99,9 +99,16 @@ public class AssigmentEntityProducerServiceTest {
     public void shouldNotPublishDeletion_invalidAssignment() {
         FlattenedAssignment assignment = new FlattenedAssignment();
 
-        service.publishDeletion(assignment);
+        service.publishRemoval(assignment);
 
         verify(entityProducer, times(0)).send(any(ParameterizedProducerRecord.class));
+    }
+
+    @Test
+    public void shouldNotPublishDeletionWithInvalidEntraIds() {
+        service.publishRemoval(null, UUID.randomUUID());
+
+        verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
     }
 
     @Test
@@ -155,6 +162,37 @@ public class AssigmentEntityProducerServiceTest {
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
+    }
+
+    @Test
+    public void shouldSkipErrorMembershipUnlessForced() {
+        UserEntraMembership userEntraMembership = UserEntraMembership.builder()
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.ERROR)
+                .build();
+
+        service.publish(userEntraMembership, false);
+
+        verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
+        verify(userEntraMembershipRepository, never()).save(any());
+    }
+
+    @Test
+    public void shouldPublishErrorMembershipWhenForced() {
+        UserEntraMembership userEntraMembership = UserEntraMembership.builder()
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.ERROR)
+                .build();
+
+        service.publish(userEntraMembership, true);
+
+        ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
+        assertEquals(OperationType.ADD, record.getValue().getOperation());
+        verify(userEntraMembershipRepository).save(userEntraMembership);
     }
 
     @Test

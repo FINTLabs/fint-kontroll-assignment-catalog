@@ -17,8 +17,6 @@ import no.fintlabs.enforcement.LicenseEnforcementService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.function.Function;
@@ -366,20 +364,10 @@ public class FlattenedDeviceAssignmentService {
         deviceEntraMembershipRepository.saveAll(membershipsToPublish);
 
         log.info("Updated device entra id for {} flattened assignments", assignments.size());
-        publishAfterCommit(membershipsToPublish);
-    }
-
-    private void publishAfterCommit(Set<DeviceEntraMembership> membershipsToPublish) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    publishDeviceMemberships(membershipsToPublish);
-                }
-            });
-        } else {
-            publishDeviceMemberships(membershipsToPublish);
-        }
+        // DeviceEntraMembershipPublisher owns the after-commit scheduling.
+        // Wrapping this call in another afterCommit callback would register a
+        // callback while Spring is already running afterCommit callbacks.
+        publishDeviceMemberships(membershipsToPublish);
     }
 
     private void recalculateAssignedResources(Collection<FlattenedDeviceAssignment> flattenedAssignments) {
