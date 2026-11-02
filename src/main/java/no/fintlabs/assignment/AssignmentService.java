@@ -70,7 +70,7 @@ public class AssignmentService {
         log.info("Validated license capacity for resource {} : {}",
                 assignment.getResourceRef(), availableCapacity ? "Success" : "Failure");
         if (!availableCapacity) {
-            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef());
+            throw new ConflictException("Can't assign more licenses for resource " + assignment.getResourceRef()); //TODO make a better message
         }
 
         log.info("Saving assignment {}", assignment);

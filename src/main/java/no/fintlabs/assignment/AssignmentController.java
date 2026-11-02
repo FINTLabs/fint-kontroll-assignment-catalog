@@ -52,6 +52,14 @@ public class AssignmentController {
         return createNewAssignment(request).toSimpleAssignment();
     }
 
+    @DeleteMapping("{id}")
+    @ResponseStatus(HttpStatus.GONE)
+    public void deleteAssignment(@PathVariable("id") Long id) {
+        log.info("Deleting assignment with id {}", id);
+        deleteAssignmentByType(id);
+    }
+
+
     @GetMapping({"/resource/{id}/devicegroups", "/resource/{id}/deviceGroups"})
     @ResponseStatus(HttpStatus.OK)
     public Page<DeviceGroupAssignment> getDeviceGroupsByResourceId(
@@ -80,13 +88,6 @@ public class AssignmentController {
         );
 
         return deviceGroupAssignments;
-    }
-
-    @DeleteMapping("{id}")
-    @ResponseStatus(HttpStatus.GONE)
-    public void deleteAssignment(@PathVariable("id") Long id) {
-        log.info("Deleting assignment with id {}", id);
-        deleteAssignmentByType(id);
     }
 
     @OnlyDevelopers
@@ -247,7 +248,10 @@ public class AssignmentController {
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
             summary = "Backfill application resource location org units for active user assignments",
-            description = "Updates all active user and role assignments when updateAllResourceLocationOrgUnits is true; otherwise updates only those without a location org unit. It synchronizes affected flattened user assignments and recalculates their usage. No Entra membership commands are published. Device and removed assignments are excluded."
+            description = "Updates all active user and role assignments when updateAllResourceLocationOrgUnits is true;" +
+                    " otherwise updates only those without a location org unit." +
+                    " It synchronizes affected flattened user assignments and recalculates their usage. " +
+                    "No Entra membership commands are published. Device and removed assignments are excluded."
     )
     @PostMapping("/update-assignments-applicationresourcelocationorgunit")
     @ResponseStatus(HttpStatus.OK)
@@ -280,7 +284,9 @@ public class AssignmentController {
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
             summary = "Reconcile assigned resource usage",
-            description = "Recalculates user and device membership usage for every resource and resource location from active flattened assignments. It does not synchronize assignments or publish Entra membership commands; availability updates are published after each resource reconciliation commits."
+            description = "Recalculates user and device membership usage for every resource and resource location from active flattened assignments. " +
+                    "It does not synchronize assignments or publish Entra membership commands; " +
+                    "availability updates are published after each resource reconciliation commits."
     )
     @PostMapping("/update-assigned-resources-usage")
     @ResponseStatus(HttpStatus.OK)

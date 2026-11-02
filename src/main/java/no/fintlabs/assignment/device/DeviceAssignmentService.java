@@ -118,7 +118,8 @@ public class DeviceAssignmentService {
 
         String userName = opaService.getUserNameAuthenticatedUser();
 
-        Assignment assignment = assignmentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Assignment not found: " + id));
+        Assignment assignment = assignmentRepository.getReferenceById(id);
+
         validateDeviceAssignment(assignment);
 
         if (!userName.isEmpty()) {

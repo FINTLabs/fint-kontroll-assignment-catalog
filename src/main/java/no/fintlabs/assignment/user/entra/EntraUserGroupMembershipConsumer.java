@@ -81,7 +81,7 @@ public class EntraUserGroupMembershipConsumer {
     }
 
     private void handleNoChangesResponse(UserEntraMembership userEntraMembership, String key) {
-        log.info("Received no changes response for user {} in group {}, messageKey: {}",
+        log.warn("Received no changes response for user {} in group {}, messageKey: {}",
                 userEntraMembership.getUserEntraId(),
                 userEntraMembership.getResourceEntraId(),
                 key);
@@ -110,7 +110,7 @@ public class EntraUserGroupMembershipConsumer {
 
     private void confirmMembershipRemoved(UserEntraMembership userEntraMembership, String key) {
         if (userEntraMembership.getMembershipStatus() != MembershipStatus.INACTIVE) {
-            log.info("Received confirmation for removal of user {} from group {}, but local membership is active. Republishing addition, messageKey: {}",
+            log.warn("Received confirmation for removal of user {} from group {}, but local membership is active. Republishing addition, messageKey: {}",
                     userEntraMembership.getUserEntraId(),
                     userEntraMembership.getResourceEntraId(),
                     key);
@@ -122,7 +122,7 @@ public class EntraUserGroupMembershipConsumer {
 
     private void confirmMembershipAdded(UserEntraMembership userEntraMembership, String key) {
         if (userEntraMembership.getMembershipStatus() != MembershipStatus.ACTIVE) {
-            log.info("Received confirmation for addition of user {} to group {}, but local membership is inactive. Republishing removal, messageKey: {}",
+            log.warn("Received confirmation for addition of user {} to group {}, but local membership is inactive. Republishing removal, messageKey: {}",
                     userEntraMembership.getUserEntraId(),
                     userEntraMembership.getResourceEntraId(),
                     key);
