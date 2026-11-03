@@ -43,9 +43,18 @@ public class EntraGroupDeviceMembershipConsumer {
     @Transactional
     public void processGroupMembership(ConsumerRecord<String, EntraDeviceGroupMembership> record) {
         EntraDeviceGroupMembership entraResponse = record.value();
+        String key = record.key();
+        if (entraResponse == null) {
+            log.warn("Skipping null Entra device membership result for key {}", key);
+            return;
+        }
+        if (entraResponse.getCode() == null) {
+            log.warn("Skipping Entra device membership result with missing code for key {}", key);
+            return;
+        }
+
         UUID entraDeviceRef = entraResponse.getEntraDeviceRef();
         UUID entraGroupRef = entraResponse.getEntraGroupRef();
-        String key = record.key();
         Optional<DeviceEntraMembership> deviceEntraMembershipOptional = deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(entraDeviceRef, entraGroupRef);
         if (deviceEntraMembershipOptional.isEmpty()) {
             log.warn("No device Entra membership found for device {} and resource {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);

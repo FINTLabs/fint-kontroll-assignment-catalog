@@ -148,6 +148,20 @@ class EntraGroupDeviceMembershipConsumerTest {
         verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership, true);
     }
 
+    @Test
+    void processGroupMembership_shouldSkipNullResult() {
+        consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", null));
+
+        verifyNoInteractions(deviceEntraMembershipRepository, deviceAssigmentEntityProducerService);
+    }
+
+    @Test
+    void processGroupMembership_shouldSkipResultWithMissingCode() {
+        consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", createPayload(null)));
+
+        verifyNoInteractions(deviceEntraMembershipRepository, deviceAssigmentEntityProducerService);
+    }
+
     private EntraDeviceGroupMembership createPayload(EntraReturnCode code) {
         return EntraDeviceGroupMembership.builder()
                 .entraDeviceRef(deviceEntraId)
