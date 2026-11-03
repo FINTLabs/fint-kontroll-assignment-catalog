@@ -25,14 +25,16 @@ public class FlattenedDeviceAssignment  {
     private Long resourceRef;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
-    @Column(nullable = false)
-    private UUID identityProviderGroupObjectId;
     private Date assignmentCreationDate;
     private Date terminationDate;
 
     private String terminationReason;
     private Long deviceRef;
+    // Runtime-only mapping values. DeviceEntraMembership owns the persisted Entra pair.
+    @Transient
     private UUID identityProviderDeviceObjectId;
+    @Transient
+    private UUID identityProviderGroupObjectId;
     private Long assignmentViaGroupRef;
 
     @CreationTimestamp
@@ -44,7 +46,15 @@ public class FlattenedDeviceAssignment  {
     private Date modifiedDate;
 
     @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "device_entra_membership_id", updatable = false)
+    @JoinColumn(name = "device_entra_membership_id", nullable = false)
     private DeviceEntraMembership deviceEntraMembership;
+
+    public UUID getIdentityProviderDeviceObjectId() {
+        return deviceEntraMembership == null ? identityProviderDeviceObjectId : deviceEntraMembership.getDeviceEntraId();
+    }
+
+    public UUID getIdentityProviderGroupObjectId() {
+        return deviceEntraMembership == null ? identityProviderGroupObjectId : deviceEntraMembership.getResourceEntraId();
+    }
 
 }

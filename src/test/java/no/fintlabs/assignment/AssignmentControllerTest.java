@@ -7,6 +7,7 @@ import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
 import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupAssignment;
@@ -84,6 +85,9 @@ public class AssignmentControllerTest {
     private FlattenedAssignmentService flattenedAssignmentServiceMock;
 
     @MockBean
+    private UserEntraMembershipRepublisher membershipRepublisherMock;
+
+    @MockBean
     private UserEntraMembershipPublisher assigmentEntityProducerServiceMock;
 
     @MockBean
@@ -133,7 +137,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).republishAllActiveUserMemberships();
+        verify(membershipRepublisherMock).resendAddCommandsForActiveAssignments();
     }
 
     @Test
@@ -146,7 +150,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, false);
+        verify(flattenedAssignmentServiceMock).reconcileForAssignmentAsync(assignment, false);
     }
 
     @Test
@@ -159,7 +163,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+        verify(flattenedAssignmentServiceMock).reconcileForAssignmentAsync(assignment, true);
     }
 
     @Test
@@ -171,7 +175,7 @@ public class AssignmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+        verify(flattenedAssignmentServiceMock).reconcileForAssignmentAsync(assignment, true);
     }
 
     @Test
@@ -183,7 +187,7 @@ public class AssignmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+        verify(flattenedAssignmentServiceMock).reconcileForAssignmentAsync(assignment, true);
     }
 
     @Test
@@ -195,7 +199,7 @@ public class AssignmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).syncFlattenedAssignments(assignment, true);
+        verify(flattenedAssignmentServiceMock).reconcileForAssignmentAsync(assignment, true);
     }
 
     @Test
@@ -204,7 +208,7 @@ public class AssignmentControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).republishUnconfirmedUserEntraMemberships();
+        verify(membershipRepublisherMock).retryUnconfirmedMemberships();
     }
 
     @Test
@@ -213,7 +217,7 @@ public class AssignmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(flattenedAssignmentServiceMock).republishUnconfirmedUserEntraMembershipsByAssignmentId(1L);
+        verify(membershipRepublisherMock).retryUnconfirmedMembershipsForAssignment(1L);
     }
 
     @Test

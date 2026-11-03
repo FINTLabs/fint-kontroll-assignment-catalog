@@ -15,8 +15,8 @@ public class AssignmentMapper {
                 .userRef(assignment.getUserRef())
                 .identityProviderUserObjectId(assignment.getEntraUserId())
                 .resourceRef(assignment.getResourceRef())
-                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
                 .identityProviderGroupObjectId(assignment.getEntraGroupId())
+                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
                 .assignmentViaRoleRef(assignment.getRoleRef())
                 .assignmentCreationDate(assignment.getAssignmentDate())
                 .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
@@ -34,36 +34,6 @@ public class AssignmentMapper {
                 .terminationDate(assignment.getAssignmentRemovedDate())
                 .terminationReason(getTerminationReason(assignment))
                 .assignmentViaGroupRef(assignment.getDeviceGroupRef())
-                .build();
-    }
-
-    public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed) {
-        return FlattenedAssignment.builder()
-                .assignmentId(assignment.getId())
-                .userRef(assignment.getUserRef())
-                .identityProviderUserObjectId(assignment.getEntraUserId())
-                .resourceRef(assignment.getResourceRef())
-                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
-                .identityProviderGroupObjectId(assignment.getEntraGroupId())
-                .assignmentViaRoleRef(assignment.getRoleRef())
-                .assignmentCreationDate(assignment.getAssignmentDate())
-                .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(getTerminationReason(assignment))
-                .build();
-    }
-
-    public static FlattenedAssignment toFlattenedAssignment(Assignment assignment, boolean identityProviderGroupMembershipConfirmed, boolean identityProviderGroupMembershipDeletionConfirmed) {
-        return FlattenedAssignment.builder()
-                .assignmentId(assignment.getId())
-                .userRef(assignment.getUserRef())
-                .identityProviderUserObjectId(assignment.getEntraUserId())
-                .resourceRef(assignment.getResourceRef())
-                .applicationResourceLocationOrgUnitId(assignment.getApplicationResourceLocationOrgUnitId())
-                .identityProviderGroupObjectId(assignment.getEntraGroupId())
-                .assignmentViaRoleRef(assignment.getRoleRef())
-                .assignmentCreationDate(assignment.getAssignmentDate())
-                .assignmentTerminationDate(assignment.getAssignmentRemovedDate())
-                .assignmentTerminationReason(getTerminationReason(assignment))
                 .build();
     }
 

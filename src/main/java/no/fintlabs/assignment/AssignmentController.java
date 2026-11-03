@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
 import no.fintlabs.assignment.device.DeviceAssignmentService;
 import no.fintlabs.device.group.DeviceGroupAssignment;
 import no.fintlabs.enforcement.UpdateAssignedResourcesService;
@@ -40,6 +41,7 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
     private final FlattenedAssignmentService flattenedAssignmentService;
+    private final UserEntraMembershipRepublisher membershipRepublisher;
     private final MembershipService membershipService;
     private final UpdateAssignedResourcesService updateAssignedResourcesService;
     private final DeviceAssignmentService deviceAssignmentService;
@@ -102,7 +104,7 @@ public class AssignmentController {
 
         log.info("Republishing all active user memberships");
 
-        flattenedAssignmentService.republishAllActiveUserMemberships();
+        membershipRepublisher.resendAddCommandsForActiveAssignments();
 
         log.info("Republishing all active user memberships done");
 
@@ -144,7 +146,7 @@ public class AssignmentController {
         log.info("Starting to sync assignment {}", id);
 
         assignmentService.getAssignmentById(id)
-                .ifPresent(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
+                .ifPresent(assignment -> flattenedAssignmentService.reconcileForAssignmentAsync(assignment, true));
 
     }
 
@@ -160,7 +162,7 @@ public class AssignmentController {
         log.info("Starting to sync assignments for resource: {}", resourceId);
 
         assignmentService.getActiveUserAssignmentsByResource(resourceId)
-                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
+                .forEach(assignment -> flattenedAssignmentService.reconcileForAssignmentAsync(assignment, true));
 
         log.info("Started syncing all flattened assignments for resource: {}", resourceId);
 
@@ -177,7 +179,7 @@ public class AssignmentController {
     public void republishUnconfirmedUserEntraMemberships() {
         log.info("Republishing all user memberships awaiting Entra confirmation");
 
-        flattenedAssignmentService.republishUnconfirmedUserEntraMemberships();
+        membershipRepublisher.retryUnconfirmedMemberships();
 
     }
 
@@ -192,7 +194,7 @@ public class AssignmentController {
     public void republishSelectedFlattenedAssignments(@Valid @RequestBody List<Long> ids) {
         log.info("Republishing user memberships for {} selected flattened assignments", ids.size());
 
-        flattenedAssignmentService.republishSelectedFlattenedAssignments(ids);
+        membershipRepublisher.forceRepublishMembershipsForFlattenedAssignments(ids);
 
     }
 
@@ -208,7 +210,7 @@ public class AssignmentController {
         log.info("Starting to sync direct assignments for user {}", userId);
 
         assignmentService.getAssignmentsByUser(userId)
-                .forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, true));
+                .forEach(assignment -> flattenedAssignmentService.reconcileForAssignmentAsync(assignment, true));
 
     }
 
@@ -224,7 +226,7 @@ public class AssignmentController {
 
         log.info("Republishing unconfirmed user memberships for assignment {}", assignmentId);
 
-        flattenedAssignmentService.republishUnconfirmedUserEntraMembershipsByAssignmentId(assignmentId);
+        membershipRepublisher.retryUnconfirmedMembershipsForAssignment(assignmentId);
 
     }
 
@@ -314,7 +316,7 @@ public class AssignmentController {
         log.info("Starting to sync all assignments. publishPendingMemberships={}", publishPendingMemberships);
 
         List<Assignment> allAssignments = assignmentService.getAllUserAssignments();
-        allAssignments.forEach(assignment -> flattenedAssignmentService.syncFlattenedAssignments(assignment, publishPendingMemberships));
+        allAssignments.forEach(assignment -> flattenedAssignmentService.reconcileForAssignmentAsync(assignment, publishPendingMemberships));
     }
 
     private void deleteAssignmentByType(Long id) {

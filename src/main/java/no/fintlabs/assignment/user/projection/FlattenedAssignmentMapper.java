@@ -16,19 +16,18 @@ public class FlattenedAssignmentMapper {
                  originalAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(), originalAssignment.getResourceRef());
 
        for (FlattenedAssignment existingAssignment : existingAssignments) {
-            if (Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
-                Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId())
-            ) {
+            if (Objects.equals(originalAssignment.getAssignmentId(), existingAssignment.getAssignmentId()) &&
+                Objects.equals(originalAssignment.getUserRef(), existingAssignment.getUserRef()) &&
+                Objects.equals(originalAssignment.getAssignmentViaRoleRef(), existingAssignment.getAssignmentViaRoleRef()) &&
+                Objects.equals(originalAssignment.getResourceRef(), existingAssignment.getResourceRef())) {
                 if (hasNoChanges(originalAssignment, existingAssignment)) {
                     return Optional.empty(); // No changes, skip
                 }
 
                 log.info(
-                        "Flattened assignment already exist. Updating flattened assignment with  assignmentId: {}, userref: {}, roleref: {}, entraIdUserId: {}, " +
-                        "entraIdGroupId:" +
-                        " {}",
+                        "Flattened assignment already exists. Updating assignmentId: {}, userref: {}, roleref: {}, resourceRef: {}",
                         existingAssignment.getAssignmentId(), originalAssignment.getUserRef(), originalAssignment.getAssignmentViaRoleRef(),
-                        originalAssignment.getIdentityProviderUserObjectId(), originalAssignment.getIdentityProviderGroupObjectId());
+                        originalAssignment.getResourceRef());
 
                 mapWithOrigin(originalAssignment, existingAssignment);
                 return Optional.of(existingAssignment);
@@ -50,9 +49,7 @@ public class FlattenedAssignmentMapper {
                Objects.equals(originalAssignment.getResourceRef(), existingAssignment.getResourceRef()) &&
                Objects.equals(originalAssignment.getApplicationResourceLocationOrgUnitId(), existingAssignment.getApplicationResourceLocationOrgUnitId()) &&
                Objects.equals(originalAssignment.getAssignmentTerminationDate(), existingAssignment.getAssignmentTerminationDate()) &&
-               Objects.equals(originalAssignment.getAssignmentTerminationReason(), existingAssignment.getAssignmentTerminationReason()) &&
-               Objects.equals(originalAssignment.getIdentityProviderUserObjectId(), existingAssignment.getIdentityProviderUserObjectId()) &&
-               Objects.equals(originalAssignment.getIdentityProviderGroupObjectId(), existingAssignment.getIdentityProviderGroupObjectId());
+               Objects.equals(originalAssignment.getAssignmentTerminationReason(), existingAssignment.getAssignmentTerminationReason());
     }
 
     private void mapWithOrigin(FlattenedAssignment origin, FlattenedAssignment existing) {

@@ -75,175 +75,11 @@ public class FlattenedAssignmentServiceTest {
     }
 
     @Test
-    void shouldRepublishActiveUserMembershipsInBatches() {
-        List<UserEntraMembership> firstBatch = new ArrayList<>();
-        for (long id = 1; id <= 500; id++) {
-            firstBatch.add(UserEntraMembership.builder()
-                    .id(id)
-                    .userEntraId(UUID.randomUUID())
-                    .resourceEntraId(UUID.randomUUID())
-                    .membershipStatus(MembershipStatus.ACTIVE)
-                    .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
-                    .build());
-        }
-        UserEntraMembership third = UserEntraMembership.builder()
-                .id(501L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
-                .build();
-
-        when(userEntraMembershipRepository.findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(0L), any()))
-                .thenReturn(firstBatch);
-        when(userEntraMembershipRepository.findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(500L), any()))
-                .thenReturn(List.of(third));
-
-        flattenedAssignmentService.republishAllActiveUserMemberships();
-
-        verify(assigmentEntityProducerService, times(501)).republish(any(UserEntraMembership.class));
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-        verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(0L), any());
-        verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(500L), any());
-    }
-
-    @Test
-    void shouldRepublishUnconfirmedUserMembershipsInBatchesWithoutErrors() {
-        UserEntraMembership activeMembership = UserEntraMembership.builder()
-                .id(1L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.SENT)
-                .build();
-        UserEntraMembership inactiveMembership = UserEntraMembership.builder()
-                .id(2L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.DELETION_SENT)
-                .build();
-
-        when(userEntraMembershipRepository.findByEntraStatusInAndIdGreaterThanOrderByIdAsc(anyList(), eq(0L), any()))
-                .thenReturn(List.of(activeMembership, inactiveMembership));
-
-        flattenedAssignmentService.republishUnconfirmedUserEntraMemberships();
-
-        ArgumentCaptor<List<EntraMembershipSyncStatus>> statuses = ArgumentCaptor.forClass(List.class);
-        verify(userEntraMembershipRepository).findByEntraStatusInAndIdGreaterThanOrderByIdAsc(statuses.capture(), eq(0L), any());
-        assertEquals(List.of(
-                EntraMembershipSyncStatus.NOT_SENT,
-                EntraMembershipSyncStatus.SENT,
-                EntraMembershipSyncStatus.TO_BE_DELETED,
-                EntraMembershipSyncStatus.DELETION_SENT,
-                EntraMembershipSyncStatus.NEEDS_REPUBLISH
-        ), statuses.getValue());
-        verify(assigmentEntityProducerService).publish(activeMembership, false);
-        verify(assigmentEntityProducerService).publish(inactiveMembership, false);
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-    }
-
-    @Test
-    void shouldRepublishOnlyStaleUserMembershipsInBatches() {
-        Date cutoff = new Date();
-        UserEntraMembership activeMembership = UserEntraMembership.builder()
-                .id(1L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.SENT)
-                .build();
-        UserEntraMembership inactiveMembership = UserEntraMembership.builder()
-                .id(2L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.DELETION_SENT)
-                .build();
-
-        when(userEntraMembershipRepository.findStaleMembershipsByIdGreaterThanOrderByIdAsc(
-                anyList(), eq(MembershipStatus.ACTIVE), anyList(), eq(MembershipStatus.INACTIVE), anyList(), eq(cutoff), eq(0L), any()))
-                .thenReturn(List.of(activeMembership, inactiveMembership));
-
-        flattenedAssignmentService.republishStaleUserEntraMemberships(cutoff);
-
-        verify(userEntraMembershipRepository).findStaleMembershipsByIdGreaterThanOrderByIdAsc(
-                eq(List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.TO_BE_DELETED)),
-                eq(MembershipStatus.ACTIVE),
-                eq(List.of(EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
-                eq(MembershipStatus.INACTIVE),
-                eq(List.of(EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
-                eq(cutoff), eq(0L), any());
-        verify(assigmentEntityProducerService).publish(activeMembership, false);
-        verify(assigmentEntityProducerService).publish(inactiveMembership, false);
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-    }
-
-    @Test
-    void shouldRepublishUnconfirmedMembershipsForAssignmentInBatchesWithoutErrors() {
-        UserEntraMembership activeMembership = UserEntraMembership.builder()
-                .id(1L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.SENT)
-                .build();
-        UserEntraMembership inactiveMembership = UserEntraMembership.builder()
-                .id(2L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.DELETION_SENT)
-                .build();
-
-        when(userEntraMembershipRepository.findByAssignmentIdAndEntraStatusInAndIdGreaterThanOrderByIdAsc(eq(10L), anyList(), eq(0L), any()))
-                .thenReturn(List.of(activeMembership, inactiveMembership));
-
-        flattenedAssignmentService.republishUnconfirmedUserEntraMembershipsByAssignmentId(10L);
-
-        verify(assigmentEntityProducerService).publish(activeMembership, false);
-        verify(assigmentEntityProducerService).publish(inactiveMembership, false);
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-    }
-
-    @Test
-    void shouldRepublishEachMembershipOnceForSelectedFlattenedAssignmentsRegardlessOfStatus() {
-        UserEntraMembership erroredMembership = UserEntraMembership.builder()
-                .id(1L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.ACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.ERROR)
-                .build();
-        UserEntraMembership pendingDeletionMembership = UserEntraMembership.builder()
-                .id(2L)
-                .userEntraId(UUID.randomUUID())
-                .resourceEntraId(UUID.randomUUID())
-                .membershipStatus(MembershipStatus.INACTIVE)
-                .entraStatus(EntraMembershipSyncStatus.DELETION_SENT)
-                .build();
-        FlattenedAssignment first = flattenedAssignment(10L, null, UUID.randomUUID());
-        first.setUserEntraMembership(erroredMembership);
-        FlattenedAssignment duplicate = flattenedAssignment(11L, null, UUID.randomUUID());
-        duplicate.setUserEntraMembership(erroredMembership);
-        FlattenedAssignment terminated = flattenedAssignment(12L, new Date(), UUID.randomUUID());
-        terminated.setUserEntraMembership(pendingDeletionMembership);
-
-        when(flattenedAssignmentRepository.findAllById(List.of(10L, 11L, 12L)))
-                .thenReturn(List.of(first, duplicate, terminated));
-
-        flattenedAssignmentService.republishSelectedFlattenedAssignments(List.of(10L, 11L, 12L));
-
-        verify(assigmentEntityProducerService).publish(erroredMembership, true);
-        verify(assigmentEntityProducerService).publish(pendingDeletionMembership, true);
-        verifyNoMoreInteractions(assigmentEntityProducerService);
-    }
-    @Test
     public void shouldCreateUserAssignment_manual() {
         Assignment assignment = assignment(1L);
 
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        flattenedAssignmentService.createForNewAssignment(assignment);
 
         verify(flattenedAssignmentRepository, times(1)).saveAll(any());
         verify(flattenedAssignmentRepository, times(1)).flush();
@@ -261,7 +97,7 @@ public class FlattenedAssignmentServiceTest {
 
         when(flattenedAssignmentMembershipService.createFlattenedAssignmentsForNewRoleAssignment(assignment)).thenReturn(List.of(flattenedAssignment));
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        flattenedAssignmentService.createForNewAssignment(assignment);
 
         verify(flattenedAssignmentRepository, times(1)).saveAll(any());
         verify(flattenedAssignmentRepository, times(1)).flush();
@@ -271,7 +107,7 @@ public class FlattenedAssignmentServiceTest {
     public void shouldNotCreateFlattenedAssignmentsWhenBothUserRefAndRoleRefAreNull() {
         Assignment assignment = new Assignment();
 
-        flattenedAssignmentService.createFlattenedAssignments(assignment);
+        flattenedAssignmentService.createForNewAssignment(assignment);
 
         verify(flattenedAssignmentRepository, never()).save(any());
     }
@@ -326,11 +162,70 @@ public class FlattenedAssignmentServiceTest {
 
         flattenedAssignmentService.updateAssignmentsOnUserChange(user);
 
-        assertEquals(updatedUserEntraId, flattenedAssignment.getIdentityProviderUserObjectId());
         assertEquals(updatedUserEntraId, membership.getUserEntraId());
         verify(assigmentEntityProducerService, never()).publishRemoval(resourceEntraId, previousUserEntraId);
-        verify(assigmentEntityProducerService).publish(flattenedAssignment, true);
+        verify(assigmentEntityProducerService).publish(membership, true);
         verify(licenseEnforcementService).recalculateAssignedResourcesForResource(42L);
+    }
+
+    @Test
+    void shouldPublishSharedMembershipOnceWhenUserEntraIdChanges() {
+        UUID oldId = UUID.randomUUID();
+        UUID newId = UUID.randomUUID();
+        UUID resourceId = UUID.randomUUID();
+        UserEntraMembership membership = UserEntraMembership.builder()
+                .id(1L)
+                .userEntraId(oldId)
+                .resourceEntraId(resourceId)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .build();
+        FlattenedAssignment first = flattenedAssignment(1L, null, oldId);
+        FlattenedAssignment second = flattenedAssignment(2L, null, oldId);
+        first.setUserEntraMembership(membership);
+        second.setUserEntraMembership(membership);
+        User user = new User();
+        user.setId(10L);
+        user.setIdentityProviderUserObjectId(newId);
+
+        when(flattenedAssignmentRepository.findByUserRefAndAssignmentTerminationDateIsNull(10L))
+                .thenReturn(List.of(first, second));
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(newId, resourceId))
+                .thenReturn(Optional.empty());
+
+        flattenedAssignmentService.updateAssignmentsOnUserChange(user);
+
+        verify(assigmentEntityProducerService, times(1)).publish(membership, true);
+    }
+
+    @Test
+    void shouldPublishMigratedMembershipOnceForRoleMembershipChange() {
+        UUID oldId = UUID.randomUUID();
+        UUID newId = UUID.randomUUID();
+        UUID resourceId = UUID.randomUUID();
+        UserEntraMembership entraMembership = UserEntraMembership.builder()
+                .id(1L)
+                .userEntraId(oldId)
+                .resourceEntraId(resourceId)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .build();
+        FlattenedAssignment first = flattenedAssignment(1L, null, oldId);
+        FlattenedAssignment second = flattenedAssignment(2L, null, oldId);
+        first.setUserEntraMembership(entraMembership);
+        second.setUserEntraMembership(entraMembership);
+        Membership roleMembership = membership(10L, 20L, "ACTIVE", newId);
+
+        when(flattenedAssignmentRepository
+                .findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(100L, 10L, 20L))
+                .thenReturn(List.of(first, second));
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(newId, resourceId))
+                .thenReturn(Optional.empty());
+
+        flattenedAssignmentService.reconcileForRoleMembership(assignment(100L), roleMembership);
+
+        assertEquals(newId, entraMembership.getUserEntraId());
+        verify(assigmentEntityProducerService, times(1)).publish(entraMembership, false);
     }
 
     @Test
@@ -347,7 +242,7 @@ public class FlattenedAssignmentServiceTest {
         when(flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId())).thenReturn(existingAssignments);
         when(flattenedAssignmentMembershipService.createOrUpdateFlattenedAssignmentsForExistingAssignment(assignment, existingAssignments)).thenReturn(List.of(flattenedAssignment));//, true
 
-        flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
+        flattenedAssignmentService.reconcileForAssignmentAsync(assignment, false);
 
         verify(flattenedAssignmentRepository, times(1)).saveAll(any());
         verify(flattenedAssignmentRepository, times(1)).flush();
@@ -367,7 +262,7 @@ public class FlattenedAssignmentServiceTest {
         when(flattenedAssignmentRepository.findByAssignmentIdAndAssignmentTerminationDateIsNull(assignment.getId())).thenReturn(existingAssignments);
         when(flattenedAssignmentMapper.mapOriginWithExisting(any(), anyList())).thenReturn(Optional.of(flattenedAssignment));//, anyBoolean()
 
-        flattenedAssignmentService.syncFlattenedAssignments(assignment, false);
+        flattenedAssignmentService.reconcileForAssignmentAsync(assignment, false);
 
         verify(flattenedAssignmentRepository, times(1)).saveAll(any());
         verify(flattenedAssignmentRepository, times(1)).flush();
@@ -480,7 +375,7 @@ public class FlattenedAssignmentServiceTest {
                         100L, 10L, 20L))
                 .thenReturn(List.of());
 
-        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(a, m);
+        flattenedAssignmentService.reconcileForRoleMembership(a, m);
 
         verify(flattenedAssignmentRepository, never()).saveAll(any());
         verify(flattenedAssignmentRepository, never()).flush();
@@ -494,22 +389,25 @@ public class FlattenedAssignmentServiceTest {
 
         FlattenedAssignment active1 = flattenedAssignment(1L, null,  UUID.randomUUID());
         FlattenedAssignment active2 = flattenedAssignment(2L, null,  UUID.randomUUID());
+        UserEntraMembership sharedMembership = userEntraMembership(99L);
+        active1.setUserEntraMembership(sharedMembership);
+        active2.setUserEntraMembership(sharedMembership);
 
         when(flattenedAssignmentRepository
                 .findByAssignmentIdAndUserRefAndAssignmentViaRoleRefAndAssignmentTerminationDateIsNull(
                         100L, 10L, 20L))
                 .thenReturn(List.of(active1, active2));
 
-        ArgumentCaptor<Collection<FlattenedAssignment>> captor = ArgumentCaptor.forClass(Collection.class);
+        ArgumentCaptor<FlattenedAssignment> captor = ArgumentCaptor.forClass(FlattenedAssignment.class);
 
         long before = System.currentTimeMillis();
-        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(a, m);
+        flattenedAssignmentService.reconcileForRoleMembership(a, m);
         long after = System.currentTimeMillis();
 
-        verify(flattenedAssignmentRepository).saveAll(captor.capture());
-        verify(flattenedAssignmentRepository).flush();
+        verify(flattenedAssignmentRepository, times(2)).saveAndFlush(captor.capture());
+        verify(assigmentEntityProducerService, times(1)).publishRemoval(any(FlattenedAssignment.class));
 
-        Collection<FlattenedAssignment> saved = captor.getValue();
+        List<FlattenedAssignment> saved = captor.getAllValues();
         Assertions.assertEquals(2, saved.size());
         for (FlattenedAssignment f : saved) {
             assertNotNull(f.getAssignmentTerminationDate(), "Termination date must be set");
@@ -533,7 +431,7 @@ public class FlattenedAssignmentServiceTest {
 
         when(flattenedAssignmentRepository.saveAndFlush(any())).thenReturn(mapped);
 
-        flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(a, m);
+        flattenedAssignmentService.reconcileForRoleMembership(a, m);
 
         verify(flattenedAssignmentRepository).saveAndFlush(any());
     }

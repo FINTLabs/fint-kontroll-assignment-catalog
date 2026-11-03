@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,22 +43,32 @@ public class FlattenedAssignment extends AuditEntity {
     private Long id;
     @NonNull
     private Long assignmentId;
-    private Long assignerRef;
     private Long userRef;
-    @Column(nullable = false)
-    private UUID identityProviderUserObjectId;
     @Column(nullable = false)
     private Long resourceRef;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
-    @Column(nullable = false)
-    private UUID identityProviderGroupObjectId;
     private Long assignmentViaRoleRef;
     private Date assignmentCreationDate;
     private Date assignmentTerminationDate;
     private String assignmentTerminationReason;
 
+    // Used only while a new projection is linked to its canonical membership.
+    // Entra IDs are persisted exclusively by UserEntraMembership.
+    @Transient
+    private UUID identityProviderUserObjectId;
+    @Transient
+    private UUID identityProviderGroupObjectId;
+
     @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinColumn(name = "user_entra_membership_id", nullable = false)
     private UserEntraMembership userEntraMembership;
+
+    public UUID getIdentityProviderUserObjectId() {
+        return userEntraMembership == null ? identityProviderUserObjectId : userEntraMembership.getUserEntraId();
+    }
+
+    public UUID getIdentityProviderGroupObjectId() {
+        return userEntraMembership == null ? identityProviderGroupObjectId : userEntraMembership.getResourceEntraId();
+    }
 }

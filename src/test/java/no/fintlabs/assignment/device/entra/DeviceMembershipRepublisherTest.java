@@ -58,7 +58,7 @@ class DeviceMembershipRepublisherTest {
                 .entraStatus(EntraMembershipSyncStatus.SENT)
                 .build();
         when(deviceEntraMembershipRepository.findStaleMembershipsByIdGreaterThanOrderByIdAsc(
-                anyList(), eq(MembershipStatus.ACTIVE), anyList(), eq(MembershipStatus.INACTIVE), anyList(), any(), eq(0L), any()))
+                anyList(), eq(MembershipStatus.ACTIVE), any(), eq(MembershipStatus.INACTIVE), any(), any(), any(), any(), eq(0L), any()))
                 .thenReturn(List.of(membership));
 
         deviceMembershipRepublisher.republishStaleMemberships();
@@ -66,10 +66,11 @@ class DeviceMembershipRepublisherTest {
         verify(deviceEntraMembershipRepository).findStaleMembershipsByIdGreaterThanOrderByIdAsc(
                 eq(List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.TO_BE_DELETED)),
                 eq(MembershipStatus.ACTIVE),
-                eq(List.of(EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
+                eq(EntraMembershipSyncStatus.SENT),
                 eq(MembershipStatus.INACTIVE),
-                eq(List.of(EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH)),
-                any(), eq(0L), any());
+                eq(EntraMembershipSyncStatus.DELETION_SENT),
+                eq(EntraMembershipSyncStatus.NEEDS_REPUBLISH),
+                any(), any(), eq(0L), any());
         verify(deviceAssigmentEntityProducerService).publish(membership, false);
     }
 }

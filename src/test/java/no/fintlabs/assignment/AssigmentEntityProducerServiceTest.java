@@ -59,8 +59,12 @@ public class AssigmentEntityProducerServiceTest {
         UUID groupRef = UUID.randomUUID();
         UUID userRef = UUID.randomUUID();
         FlattenedAssignment assignment = new FlattenedAssignment();
-        assignment.setIdentityProviderGroupObjectId(groupRef);
-        assignment.setIdentityProviderUserObjectId(userRef);
+        assignment.setUserEntraMembership(UserEntraMembership.builder()
+                .resourceEntraId(groupRef)
+                .userEntraId(userRef)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
+                .build());
 
         service.publish(assignment);
 
@@ -84,8 +88,12 @@ public class AssigmentEntityProducerServiceTest {
         UUID groupRef = UUID.randomUUID();
         UUID userRef = UUID.randomUUID();
         FlattenedAssignment assignment = new FlattenedAssignment();
-        assignment.setIdentityProviderGroupObjectId(groupRef);
-        assignment.setIdentityProviderUserObjectId(userRef);
+        assignment.setUserEntraMembership(UserEntraMembership.builder()
+                .resourceEntraId(groupRef)
+                .userEntraId(userRef)
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
+                .build());
 
         service.publishRemoval(assignment);
 

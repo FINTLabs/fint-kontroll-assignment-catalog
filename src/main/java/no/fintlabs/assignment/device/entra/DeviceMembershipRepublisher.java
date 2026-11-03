@@ -35,7 +35,9 @@ public class DeviceMembershipRepublisher {
             timeUnit = java.util.concurrent.TimeUnit.HOURS
     )
     public void republishStaleMemberships() {
-        Date cutoff = Date.from(Instant.now().minus(Duration.ofHours(responseTimeoutHours)));
+        Instant now = Instant.now();
+        Date responseCutoff = Date.from(now.minus(Duration.ofHours(responseTimeoutHours)));
+        Date failedCutoff = Date.from(now.minus(Duration.ofHours(24)));
         long lastProcessedId = 0L;
         List<DeviceEntraMembership> memberships;
 
@@ -43,10 +45,12 @@ public class DeviceMembershipRepublisher {
             memberships = deviceEntraMembershipRepository.findStaleMembershipsByIdGreaterThanOrderByIdAsc(
                     List.of(EntraMembershipSyncStatus.NOT_SENT, EntraMembershipSyncStatus.TO_BE_DELETED),
                     MembershipStatus.ACTIVE,
-                    List.of(EntraMembershipSyncStatus.SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH),
+                    EntraMembershipSyncStatus.SENT,
                     MembershipStatus.INACTIVE,
-                    List.of(EntraMembershipSyncStatus.DELETION_SENT, EntraMembershipSyncStatus.NEEDS_REPUBLISH),
-                    cutoff,
+                    EntraMembershipSyncStatus.DELETION_SENT,
+                    EntraMembershipSyncStatus.NEEDS_REPUBLISH,
+                    responseCutoff,
+                    failedCutoff,
                     lastProcessedId,
                     PageRequest.of(0, REPUBLISH_BATCH_SIZE));
 

@@ -1,3 +1,4 @@
+-- Support stale membership reconciliation for both user and device memberships.
 CREATE INDEX idx_user_entra_memberships_stale_add
     ON user_entra_memberships (membership_status, entra_status, sent_to_entra_at, id);
 

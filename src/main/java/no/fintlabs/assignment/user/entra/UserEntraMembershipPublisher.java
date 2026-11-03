@@ -51,9 +51,8 @@ public class UserEntraMembershipPublisher {
     public void publish(FlattenedAssignment assignment, boolean force) {
         if (assignment.getUserEntraMembership() != null) {
             publish(assignment.getUserEntraMembership(), force);
-        } else if (isValidAssignment(assignment)) {
-            logAssignment(assignment, "Publishing flattened assignment");
-            publishMembershipCommand(assignment.getIdentityProviderGroupObjectId(), assignment.getIdentityProviderUserObjectId());
+        } else {
+            log.warn("Skipping flattened assignment {} because it has no user Entra membership", assignment.getId());
         }
     }
 
@@ -69,9 +68,8 @@ public class UserEntraMembershipPublisher {
             UserEntraMembership userEntraMembership = flattenedAssignment.getUserEntraMembership();
             userEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
             publish(userEntraMembership, true);
-        } else if (isValidAssignment(flattenedAssignment)) {
-            logAssignment(flattenedAssignment, "Publishing deletion of flattened assignment");
-            publishRemoval(flattenedAssignment.getIdentityProviderGroupObjectId(), flattenedAssignment.getIdentityProviderUserObjectId());
+        } else {
+            log.warn("Skipping flattened assignment removal {} because it has no user Entra membership", flattenedAssignment.getId());
         }
     }
 
@@ -107,40 +105,8 @@ public class UserEntraMembershipPublisher {
         }
     }
 
-    private void logAssignment(FlattenedAssignment assignment, String message) {
-        log.info("{} with id {}, assignmentid {}, entraId-groupId {}, entraId-userId {}, resourceRef {}",
-                 message,
-                 assignment.getId(),
-                 assignment.getAssignmentId(),
-                 assignment.getIdentityProviderGroupObjectId(),
-                 assignment.getIdentityProviderUserObjectId(),
-                 assignment.getResourceRef());
-    }
-
-    private boolean isValidAssignment(FlattenedAssignment assignment) {
-        if (assignment.getIdentityProviderGroupObjectId() == null ||
-            assignment.getIdentityProviderUserObjectId() == null ||
-            assignment.getIdentityProviderGroupObjectId().toString().startsWith("00000000") ||
-            assignment.getIdentityProviderUserObjectId().toString().startsWith("00000000")) {
-
-            log.warn("Publishing flattened assignment skipped for assignmentid {}. ResourceRef {}. Missing entraId group id ({}) or user " +
-                     "id ({})",
-                     assignment.getId(),
-                     assignment.getResourceRef(),
-                     assignment.getIdentityProviderGroupObjectId(),
-                     assignment.getIdentityProviderUserObjectId()
-            );
-
-            return false;
-        }
-
-        return true;
-    }
-
     private boolean isValidMembership(UserEntraMembership userEntraMembership) {
-        if (userEntraMembership.getResourceEntraId() == null || userEntraMembership.getUserEntraId() == null ||
-            userEntraMembership.getResourceEntraId().toString().startsWith("00000000") ||
-            userEntraMembership.getUserEntraId().toString().startsWith("00000000")) {
+        if (userEntraMembership.getResourceEntraId() == null || userEntraMembership.getUserEntraId() == null) {
 
             log.warn("Publishing user Entra membership skipped for membership id {}. Missing entraId group id ({}) or user id ({})",
                     userEntraMembership.getId(),
@@ -156,10 +122,6 @@ public class UserEntraMembershipPublisher {
 
     public void publishRemoval(UUID entraGroupId, UUID entraUserId) {
         publishMembershipCommand(entraGroupId, entraUserId, OperationType.REMOVE);
-    }
-
-    private void publishMembershipCommand(UUID entraGroupId, UUID entraUserId) {
-        publishMembershipCommand(entraGroupId, entraUserId, OperationType.ADD);
     }
 
     private void publishMembershipCommand(UUID entraGroupId, UUID entraUserId, OperationType operationType) {
@@ -181,9 +143,7 @@ public class UserEntraMembershipPublisher {
     }
 
     private boolean hasValidEntraIds(UUID entraGroupId, UUID entraUserId) {
-        return entraGroupId != null && entraUserId != null &&
-                !entraGroupId.toString().startsWith("00000000") &&
-                !entraUserId.toString().startsWith("00000000");
+        return entraGroupId != null && entraUserId != null;
     }
 
     private void send(UserResourceGroupMembershipCommand membershipCommand) {

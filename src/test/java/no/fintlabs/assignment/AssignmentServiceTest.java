@@ -265,7 +265,7 @@ class AssignmentServiceTest {
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(licenseEnforcementService,times(1)).validateAssignmentCapacity(isA(Assignment.class));
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
+        verify(flattenedAssignmentService).createForNewAssignment(assignment);
     }
 
     @Test
@@ -286,8 +286,7 @@ class AssignmentServiceTest {
         Assignment returnedAssignment = assignmentService.createNewAssignment(1L, "orgid1", 1L, null);
 
         assertThat(returnedAssignment).isEqualTo(assignment);
-        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
-        verify(flattenedAssignmentService, never()).createFlattenedAssignments(any());
+        verify(flattenedAssignmentService).createForNewAssignment(assignment);
     }
 
     @Test
@@ -319,7 +318,6 @@ class AssignmentServiceTest {
         assertThrows(AssignmentException.class, () -> assignmentService.createNewAssignment(1L, "orgid", 1L, null));
 
         verify(assignmentRepository, times(0)).saveAndFlush(any());
-        verify(flattenedAssignmentService, times(0)).createFlattenedAssignments(any());
     }
 
     @Test
@@ -370,7 +368,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(assignment);
-        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any(), anyString());
+        verify(flattenedAssignmentService, times(1)).terminateForRemovedAssignment(any(), anyString());
     }
 
     @Test
@@ -404,7 +402,7 @@ class AssignmentServiceTest {
         assignmentService.deactivateAssignmentsByUserId(user.getId());
 
         verify(assignmentRepository).saveAndFlush(assignment);
-        verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment, "User is no longer active");
+        verify(flattenedAssignmentService).terminateForRemovedAssignment(assignment, "User is no longer active");
 
         assertNotNull(assignment.getAssignmentRemovedDate());
     }
@@ -434,7 +432,7 @@ class AssignmentServiceTest {
         assignmentService.deactivateAssignmentsByResourceId(1L);
 
         verify(assignmentRepository).saveAndFlush(roleAssignment);
-        verify(flattenedAssignmentService).deleteFlattenedAssignments(roleAssignment, "Resource is no longer active");
+        verify(flattenedAssignmentService).terminateForRemovedAssignment(roleAssignment, "Resource is no longer active");
         verify(licenseEnforcementService).recalculateAssignedResources(roleAssignment);
     }
 
@@ -459,7 +457,7 @@ class AssignmentServiceTest {
         assertThat(assignment.getApplicationResourceLocationOrgUnitId()).isEqualTo("nearest-org-unit");
         verify(assignmentRepository).saveAll(List.of(assignment));
         verify(assignmentRepository).flush();
-        verify(flattenedAssignmentService).syncFlattenedAssignmentsSynchronously(assignment, false);
+        verify(flattenedAssignmentService).reconcileForAssignment(assignment, false);
         verify(flattenedDeviceAssignmentService, never()).updateApplicationResourceLocation(any());
     }
 
@@ -481,7 +479,7 @@ class AssignmentServiceTest {
         assignmentService.reassignLinkedAssignments(1L, "removed-org-unit");
 
         verify(flattenedDeviceAssignmentService).updateApplicationResourceLocation(assignment);
-        verify(flattenedAssignmentService, never()).syncFlattenedAssignmentsSynchronously(any(), anyBoolean());
+        verify(flattenedAssignmentService, never()).reconcileForAssignment(any(), anyBoolean());
     }
 
     // Copilot tests for createNewAssignment
@@ -502,7 +500,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
+        verify(flattenedAssignmentService).createForNewAssignment(assignment);
     }
 
     @DisplayName("Create new assignment - valid role reference")
@@ -524,7 +522,7 @@ class AssignmentServiceTest {
 
         assertThat(returnedAssignment).isEqualTo(assignment);
         verify(assignmentRepository, times(1)).saveAndFlush(any());
-        verify(flattenedAssignmentService).createFlattenedAssignmentsSync(assignment);
+        verify(flattenedAssignmentService).createForNewAssignment(assignment);
     }
 
 //    @DisplayName("Create new assignment - invalid user reference")
@@ -577,7 +575,7 @@ class AssignmentServiceTest {
 //
 //        assertThat(returnedAssignment).isEqualTo(assignment);
 //        verify(assignmentRepository, times(1)).saveAndFlush(assignment);
-//        verify(flattenedAssignmentService, times(1)).deleteFlattenedAssignments(any());
+//        verify(flattenedAssignmentService, times(1)).terminateForRemovedAssignment(any());
 //    }
 //
 //    @DisplayName("Delete assignment - invalid user")
@@ -613,7 +611,7 @@ class AssignmentServiceTest {
 //        assignmentService.deactivateAssignmentsByUser(user);
 //
 //        verify(assignmentRepository).saveAndFlush(assignment);
-//        verify(flattenedAssignmentService).deleteFlattenedAssignments(assignment);
+//        verify(flattenedAssignmentService).terminateForRemovedAssignment(assignment);
 //
 //        assertNotNull(assignment.getAssignmentRemovedDate());
 //    }

@@ -46,8 +46,8 @@ class MembershipServiceTest {
 
         verify(membershipRepository).findAllById(List.of("first", "second"));
         verify(assignmentService).getAssignmentsByRoles(List.of(10L));
-        verify(flattenedAssignmentService).createOrUpdateFlattenedAssignmentsForMembership(assignment, firstMembership);
-        verify(flattenedAssignmentService).createOrUpdateFlattenedAssignmentsForMembership(assignment, secondMembership);
+        verify(flattenedAssignmentService).reconcileForRoleMembership(assignment, firstMembership);
+        verify(flattenedAssignmentService).reconcileForRoleMembership(assignment, secondMembership);
     }
 
     @Test

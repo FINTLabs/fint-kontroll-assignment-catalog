@@ -17,7 +17,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 @Repository
@@ -126,8 +125,6 @@ public interface FlattenedAssignmentRepository extends JpaRepository<FlattenedAs
             @Param("resourceType") String resourceType,
             @Param("resourceIds") List<Long> resourceIds,
             @Param("search") String search, Pageable pageable);
-
-    List<FlattenedAssignment> findByIdentityProviderGroupObjectIdAndIdentityProviderUserObjectId(UUID identityProviderGroupObjectId, UUID identityProviderUserObjectId);
 
     List<FlattenedAssignment> findByUserEntraMembershipEntraStatusInAndAssignmentTerminationDateIsNullAndAssignmentId(List<EntraMembershipSyncStatus> entraStatuses, Long assignmentId);
 

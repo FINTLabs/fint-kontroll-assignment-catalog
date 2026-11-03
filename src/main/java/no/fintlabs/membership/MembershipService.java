@@ -69,7 +69,7 @@ public class MembershipService {
                 flattenedAssignmentIdsByUserAndRoleRef.size(),
                 membership.getId()
         );
-        flattenedAssignmentService.deactivateFlattenedAssignments(flattenedAssignmentIdsByUserAndRoleRef);
+        flattenedAssignmentService.terminateByIds(flattenedAssignmentIdsByUserAndRoleRef);
     }
 
     public void syncAssignmentsForMembership(Membership savedMembership) {
@@ -91,7 +91,7 @@ public class MembershipService {
         }
 
         assignmentsByRole.forEach(assignment ->
-                flattenedAssignmentService.createOrUpdateFlattenedAssignmentsForMembership(assignment, savedMembership));
+                flattenedAssignmentService.reconcileForRoleMembership(assignment, savedMembership));
     }
 
     public void updateUserMemberships(User savedUser) {

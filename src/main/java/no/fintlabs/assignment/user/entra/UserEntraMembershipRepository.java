@@ -54,22 +54,28 @@ public interface UserEntraMembershipRepository extends JpaRepository<UserEntraMe
                 membership.entraStatus IN :unpublishedStatuses
                 OR
                 (membership.membershipStatus = :activeStatus
-                    AND membership.entraStatus IN :addStatuses
-                    AND (membership.sentToEntraAt IS NULL OR membership.sentToEntraAt < :cutoff))
+                    AND ((membership.entraStatus = :sentStatus
+                        AND (membership.sentToEntraAt IS NULL OR membership.sentToEntraAt < :responseCutoff))
+                    OR (membership.entraStatus = :needsRepublishStatus
+                        AND (membership.sentToEntraAt IS NULL OR membership.sentToEntraAt < :failedCutoff))))
                 OR
                 (membership.membershipStatus = :inactiveStatus
-                    AND membership.entraStatus IN :removeStatuses
-                    AND (membership.deletionSentToEntraAt IS NULL OR membership.deletionSentToEntraAt < :cutoff))
+                    AND ((membership.entraStatus = :deletionSentStatus
+                        AND (membership.deletionSentToEntraAt IS NULL OR membership.deletionSentToEntraAt < :responseCutoff))
+                    OR (membership.entraStatus = :needsRepublishStatus
+                        AND (membership.deletionSentToEntraAt IS NULL OR membership.deletionSentToEntraAt < :failedCutoff))))
             )
             ORDER BY membership.id ASC
             """)
     List<UserEntraMembership> findStaleMembershipsByIdGreaterThanOrderByIdAsc(
             @Param("unpublishedStatuses") List<EntraMembershipSyncStatus> unpublishedStatuses,
             @Param("activeStatus") MembershipStatus activeStatus,
-            @Param("addStatuses") List<EntraMembershipSyncStatus> addStatuses,
+            @Param("sentStatus") EntraMembershipSyncStatus sentStatus,
             @Param("inactiveStatus") MembershipStatus inactiveStatus,
-            @Param("removeStatuses") List<EntraMembershipSyncStatus> removeStatuses,
-            @Param("cutoff") Date cutoff,
+            @Param("deletionSentStatus") EntraMembershipSyncStatus deletionSentStatus,
+            @Param("needsRepublishStatus") EntraMembershipSyncStatus needsRepublishStatus,
+            @Param("responseCutoff") Date responseCutoff,
+            @Param("failedCutoff") Date failedCutoff,
             @Param("lastProcessedId") Long lastProcessedId,
             Pageable pageable);
 

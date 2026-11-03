@@ -77,7 +77,7 @@ public class AssignmentService {
         Assignment newAssignment = assignmentRepository.saveAndFlush(assignment);
         log.info("Saved assignment {}", newAssignment);
 
-        flattenedAssignmentService.createFlattenedAssignmentsSync(newAssignment);
+        flattenedAssignmentService.createForNewAssignment(newAssignment);
         return newAssignment;
     }
 
@@ -115,7 +115,7 @@ public class AssignmentService {
 
         Assignment assignmentForDeletion = assignmentRepository.saveAndFlush(assignment);
 
-        flattenedAssignmentService.deleteFlattenedAssignments(assignment, "Associated assignment removed by user");
+        flattenedAssignmentService.terminateForRemovedAssignment(assignment, "Associated assignment removed by user");
 
         return assignmentForDeletion;
     }
@@ -273,7 +273,7 @@ public class AssignmentService {
         log.info("Deactivating assignment with id: {}", assignment.getId());
         assignment.setAssignmentRemovedDate(new Date());
         assignmentRepository.saveAndFlush(assignment);
-        flattenedAssignmentService.deleteFlattenedAssignments(assignment, terminationReason);
+        flattenedAssignmentService.terminateForRemovedAssignment(assignment, terminationReason);
         log.info("Updated license count after deactivating assignment {} : {}",
                 assignment.getId(), licenseEnforcementService.recalculateAssignedResources(assignment) ? "Success" : "Failure");
     }
@@ -299,7 +299,7 @@ public class AssignmentService {
 
         assignmentRepository.flush();
         updatedAssignments.forEach(assignment ->
-                flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false));
+                flattenedAssignmentService.reconcileForAssignment(assignment, false));
 
         log.info("Done updating application resource location org unit. Updated {} of {} assignments",
                 updatedAssignments.size(), ids.size());
@@ -355,6 +355,6 @@ public class AssignmentService {
             flattenedDeviceAssignmentService.updateApplicationResourceLocation(assignment);
             return;
         }
-        flattenedAssignmentService.syncFlattenedAssignmentsSynchronously(assignment, false);
+        flattenedAssignmentService.reconcileForAssignment(assignment, false);
     }
 }

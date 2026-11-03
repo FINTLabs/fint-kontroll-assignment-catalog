@@ -1,6 +1,6 @@
 package no.fintlabs.assignment;
 
-import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
@@ -13,14 +13,15 @@ class AssignmentPublishingComponentTest {
 
     @Test
     void republishStaleUserMemberships_usesTheConfiguredResponseGracePeriod() {
-        FlattenedAssignmentService flattenedAssignmentService = mock(FlattenedAssignmentService.class);
-        AssignmentPublishingComponent component = new AssignmentPublishingComponent(flattenedAssignmentService, 72);
+        UserEntraMembershipRepublisher membershipRepublisher = mock(UserEntraMembershipRepublisher.class);
+        AssignmentPublishingComponent component = new AssignmentPublishingComponent(membershipRepublisher, 72);
         long before = System.currentTimeMillis() - 72L * 60 * 60 * 1000;
 
         component.republishStaleUserMemberships();
 
-        verify(flattenedAssignmentService).republishStaleUserEntraMemberships(
-                argThat(cutoff -> isWithinOneSecondOf(cutoff, before)));
+        verify(membershipRepublisher).retryStaleMemberships(
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before)),
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before + 48L * 60 * 60 * 1000)));
     }
 
     private boolean isWithinOneSecondOf(Date value, long expectedMillis) {
