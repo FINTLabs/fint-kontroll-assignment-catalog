@@ -128,7 +128,7 @@ When a flattened assignment is terminated, the service checks whether another ac
 
 License counting is based on desired active Entra memberships, not on the number of top-level assignments.
 
-- The resource total is the number of `UserEntraMembership` rows with `membershipStatus = ACTIVE` plus the number of active `DeviceEntraMembership` rows for the resource group.
+- The resource total counts distinct `ACTIVE` user and device Entra memberships linked to flattened assignments for the resource group.
 - The count for an application-resource location is the number of distinct active flattened user memberships at that location plus distinct active flattened device memberships at that location.
 - The same user/device appearing through several roles/groups only counts once for a resource, because the Entra-membership table is unique on the user/device and resource Entra ids.
 - Counts are recalculated when flattened assignments are created or terminated, when role/device-group changes affect an assignment, after a user Entra-id migration, and by the manual reconciliation endpoint.
@@ -142,7 +142,7 @@ fint.kontroll.assignment-catalog.license-enforcement.hardstop-enable = true
 resource.licenseEnforcement = HARDSTOP
 ```
 
-Before saving an assignment, the service locks the resource and its application-resource locations, calculates the current counts, and adds the projected new memberships.
+For a hard-stop assignment, the service locks the resource and its application-resource locations, calculates the current counts, and adds the projected new memberships before saving.
 
 - A direct user assignment adds `1` only when the user is not already active in the resource Entra group.
 - A role assignment adds the active members of the role that do not already have an active membership in the resource Entra group.
@@ -192,7 +192,7 @@ The Kafka key is generated for every command as:
 <current epoch milliseconds>-<six random alphanumeric characters>
 ```
 
-Commands are scheduled after the surrounding database transaction commits. The membership row is marked `SENT` or `DELETION_SENT` inside that transaction, but there is no transactional outbox: a process failure after commit and before Kafka accepts the command is recovered by reconciliation rather than atomically with the database write.
+When a database transaction is active, commands are sent after it commits; otherwise they are sent immediately. Publishing marks the membership row `SENT` or `DELETION_SENT` and records the send time. There is no transactional outbox: a process failure after the row is saved but before Kafka accepts the command is recovered by reconciliation rather than atomically with the database write.
 
 ```json
 // resource-group-membership-user
@@ -239,13 +239,12 @@ Device results are consumed from event `graph-device-group-membership`:
 }
 ```
 
-`code` can be `ADDED`, `REMOVED`, `NO_CHANGES`, `FAILED` or `ERROR`.
+`code` can be `ADDED`, `ALREADY_PRESENT`, `REMOVED`, `ALREADY_REMOVED`, `FAILED` or `ERROR`.
 
 | Graph result | Stored Entra sync status |
 | --- | --- |
-| `ADDED` while the local membership is active | `MEMBERSHIP_CONFIRMED` |
-| `REMOVED` while the local membership is inactive | `DELETION_CONFIRMED` |
-| `NO_CHANGES` | Confirmed as active/inactive based on the current local membership status |
+| `ADDED` or `ALREADY_PRESENT` while the local membership is active | `MEMBERSHIP_CONFIRMED` |
+| `REMOVED` or `ALREADY_REMOVED` while the local membership is inactive | `DELETION_CONFIRMED` |
 | `FAILED` | `NEEDS_REPUBLISH` |
 | `ERROR` | `ERROR` |
 
@@ -258,8 +257,8 @@ Scheduling is enabled in the application. The jobs currently in the code are:
 
 | Job | When | What it does |
 | --- | --- | --- |
-| Reconcile stale user Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Immediately recovers memberships with no recorded command; otherwise retries an unconfirmed ADD or REMOVE after the configured 72-hour grace period. |
-| Reconcile stale device Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Uses the same immediate-recovery and state-aware 72-hour retry policy. |
+| Reconcile stale user Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Recovers unsent memberships, retries unconfirmed commands after the configured 72-hour timeout, and retries failed commands after 24 hours. |
+| Reconcile stale device Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Applies the same retry rules to device memberships. |
 | Publish flattened user assignment report | Every day at midnight, `Europe/Oslo`. | Streams the flattened user-assignment report to the reporting topic. |
 
 The reconciliation jobs work on the unique Entra membership records, not on flattened assignments. This ensures that one user/resource or device/resource membership produces at most one retry command per eligible run, even if several flattened assignments refer to it.
@@ -278,16 +277,16 @@ Both scheduling delays use ISO-8601 durations. The response timeout uses hours. 
 
 | Membership state | Eligible when | Command republished | Why |
 | --- | --- | --- | --- |
-| `SENT` and membership is `ACTIVE` | `sentToEntraAt` is older than the response timeout | ADD | An ADD was sent but confirmation has not arrived. |
-| `DELETION_SENT` and membership is `INACTIVE` | `deletionSentToEntraAt` is older than the response timeout | REMOVE | A REMOVE was sent but confirmation has not arrived. |
-| `NEEDS_REPUBLISH` and membership is `ACTIVE` | The most recent ADD attempt is older than the response timeout | ADD | Entra returned `FAILED` for the ADD, or another retryable failure was recorded. |
-| `NEEDS_REPUBLISH` and membership is `INACTIVE` | The most recent REMOVE attempt is older than the response timeout | REMOVE | Entra returned `FAILED` for the REMOVE, or another retryable failure was recorded. |
+| `SENT` and membership is `ACTIVE` | `sentToEntraAt` is missing or older than the response timeout | ADD | An ADD was sent but confirmation has not arrived. |
+| `DELETION_SENT` and membership is `INACTIVE` | `deletionSentToEntraAt` is missing or older than the response timeout | REMOVE | A REMOVE was sent but confirmation has not arrived. |
+| `NEEDS_REPUBLISH` and membership is `ACTIVE` | `sentToEntraAt` is missing or older than 24 hours | ADD | Entra returned `FAILED` for the ADD. |
+| `NEEDS_REPUBLISH` and membership is `INACTIVE` | `deletionSentToEntraAt` is missing or older than 24 hours | REMOVE | Entra returned `FAILED` for the REMOVE. |
 | `MEMBERSHIP_CONFIRMED` or `DELETION_CONFIRMED` | Never | None | The desired state was confirmed. |
 | `ERROR` | Never automatically | None | A terminal error needs explicit investigation or a forced/manual republish. |
-| `NOT_SENT` or `TO_BE_DELETED` | Immediately, on the next reconciliation run | ADD or REMOVE, matching the desired membership state | No command has been recorded. Normal creation publishes it first; reconciliation is the recovery path, including after the V40 backfill. |
+| `NOT_SENT` or `TO_BE_DELETED` | Immediately, on the next reconciliation run | ADD or REMOVE, matching the desired membership state | No command has been recorded. Normal creation publishes it first; reconciliation is the recovery path, including after the manual backfill. |
 
 
-After a retry is published, its matching sent timestamp is updated. The membership therefore becomes ineligible until both the response timeout and the next daily job run have passed. With the defaults, a command sent at Monday 10:00 that receives `FAILED` will not be retried before Thursday 10:00; in practice it is retried by the first daily reconciliation run after that time, no later than roughly 24 hours later.
+After a retry is published, its matching sent timestamp is updated. An unconfirmed command becomes eligible again after the response timeout; a command that receives `FAILED` becomes eligible after 24 hours. For example, a command sent at Monday 10:00 that receives `FAILED` can be retried by the first scheduled run after Tuesday 10:00.
 
 The same rules apply to user and device memberships. Each job pages through memberships in batches of 500, so a large retry backlog does not load all eligible records into memory at once.
 
@@ -309,16 +308,13 @@ This branch adds device assignment support and also hardens the existing user/ro
 
 | Migration | New rule |
 | --- | --- |
-| `V37` | At most one active assignment for a `(resource_ref, device_group_ref)` pair. |
-| `V38` | `assignment_resources.number_of_resources_assigned` is backfilled to `0`, defaulted to `0`, and made `NOT NULL`. |
-| `V40` | Renames user flattened assignments, backfills `user_entra_memberships`, links every migrated flattened assignment to its membership, and requires resource Entra group ids. |
-| `V41` | `assignment_roles.role_status` is backfilled to `ACTIVE` and made `NOT NULL`. |
-| `V42` | `assignments` must have exactly one of `user_ref`, `role_ref` or `device_group_ref`; users require `identity_provider_user_object_id`; active user/resource and role/resource pairs are unique. |
-| `V43` | User flattened assignments require user Entra id, resource Entra group id and a linked `user_entra_membership`; users require a status. Invalid legacy flattened rows are removed before enforcing this. |
-| `V44` | Assignments require `resource_ref` and `entra_group_id`; user flattened assignments require `resource_ref` and resource Entra group id. Invalid legacy assignments/projections are removed before enforcing this. |
-| `V45` | Adds indexes used by the paged stale-membership reconciliation queries for users and devices. |
+| `V35` | Creates the device membership and flattened assignment tables and allows at most one active assignment for a `(resource_ref, device_group_ref)` pair. |
+| `V36` | `assignment_resources.number_of_resources_assigned` is backfilled to `0`, defaulted to `0`, and made `NOT NULL`; obsolete assignment columns are removed. |
+| `V37` | Removes resources without Entra group ids and dependent records, renames user flattened assignments, creates the empty `user_entra_memberships` table, and requires resource references and Entra group ids on assignments. |
+| `V38` | Backfills role and user status, requires user Entra ids, adds the exactly-one-target check, and makes active user/resource and role/resource pairs unique. |
+| `V39` | Adds indexes used by the paged stale-membership reconciliation queries for users and devices. |
 
-The `V42` exactly-one-target check is added as `NOT VALID`. PostgreSQL enforces it for rows written after the migration, but existing rows are not scanned and validated by that migration.
+The `V38` exactly-one-target check is added as `NOT VALID`. PostgreSQL enforces it for rows written after the migration, but existing rows are not scanned and validated by that migration.
 
 ### Migration to Entra membership tables
 
@@ -326,13 +322,13 @@ The schema separates the desired Entra membership from the flattened assignments
 
 `V35` creates the device tables for the new device-assignment feature. It creates an empty `device_entra_memberships` table and `flattened_device_assignments`; there is no legacy device membership data to backfill.
 
-`V40` migrates the existing user model as follows:
+`V37` prepares the existing user model, and the manual script `db/manual/migrate_flattened_assignments_to_user_entra_memberships.sql` completes the backfill after Flyway reaches `V39` and before the new application version starts:
 
 1. It removes legacy resources without an Entra group id and their dependent assignments/projections, because those rows cannot produce a valid Entra membership command.
 
 2. It renames `flattened_assignments` to `flattened_user_assignments`.
 
-3. It creates one `user_entra_memberships` row per distinct `(identity_provider_user_object_id, identity_provider_group_object_id)` pair. The unique constraint prevents several flattened assignments for the same user and resource from creating duplicate Entra memberships.
+3. The manual script creates one `user_entra_memberships` row per distinct `(identity_provider_user_object_id, identity_provider_group_object_id)` pair. The unique constraint prevents several flattened assignments for the same user and resource from creating duplicate Entra memberships.
 
 4. For each pair, it derives the desired membership state. If any source flattened assignment is active, the membership is `ACTIVE`; otherwise it is `INACTIVE`.
 
@@ -343,9 +339,9 @@ The schema separates the desired Entra membership from the flattened assignments
    - inactive and every source removal confirmed: `DELETION_CONFIRMED`;
    - otherwise: `TO_BE_DELETED`.
 
-6. It adds `user_entra_membership_id` to every flattened user assignment and fills it from the matching Entra user/resource pair. The old per-flattened-assignment confirmation columns are then removed.
+6. `V37` adds `user_entra_membership_id` to flattened user assignments. The manual script fills it from the matching Entra user/resource pair, makes it required, and removes the old per-flattened-assignment confirmation and Entra id columns.
 
-The backfill does not invent historical command timestamps: `sent_to_entra_at` and `deletion_sent_to_entra_at` begin as `NULL`. `V43` subsequently removes any flattened user rows that cannot be linked to a valid membership and makes the link and the required Entra IDs `NOT NULL`.
+The backfill does not invent historical command timestamps: `sent_to_entra_at` and `deletion_sent_to_entra_at` begin as `NULL`. `V37` removes records with invalid resource references before the manual script links the remaining flattened user assignments to memberships.
 
 Migrated `NOT_SENT` and `TO_BE_DELETED` memberships are deliberately eligible for the reconciliation job's first run. It publishes the corresponding initial ADD or REMOVE command once; afterwards the record becomes `SENT` or `DELETION_SENT`, and any further automatic retry observes the configured response timeout. This prevents the migration from leaving previously unconfirmed additions or removals stranded while still avoiding repeated commands during downstream lag.
 
