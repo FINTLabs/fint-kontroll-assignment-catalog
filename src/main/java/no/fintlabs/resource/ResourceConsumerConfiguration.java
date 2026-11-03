@@ -2,7 +2,7 @@ package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -34,14 +34,18 @@ public class ResourceConsumerConfiguration {
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Resource.class,
                         this::processResource,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("resource-group"));
+                .createContainer(KafkaTopics.topicNameParameters("resource-group"));
     }
 
     void processResource(ConsumerRecord<String, Resource> record) {
         Resource incomingResource = record.value();
         log.info("Processing resource: {}", incomingResource.getId());
+        if(incomingResource.getIdentityProviderGroupObjectId() == null) {
+            log.warn("Resource {} has no identity provider group object id. Skipping.", incomingResource.getId());
+            return;
+        }
 
         Optional<Resource> existingResourceOptional = resourceRepository.findById(incomingResource.getId());
 

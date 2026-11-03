@@ -4,9 +4,11 @@ import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -14,6 +16,7 @@ import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -39,8 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @DataJpaTest
-@Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -60,7 +63,10 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+
+    @MockBean
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
@@ -82,6 +88,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @MockBean
     private LicenseEnforcementService licenseEnforcementService;
+
+    @MockBean
+    private ResourceAssignmentValidator resourceAssignmentValidator;
 
 
     @Autowired
@@ -186,5 +195,6 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
 
         assertNull(updatedAssignment.getApplicationResourceLocationOrgUnitId());
+        assertTrue(updatedAssignment.getIsInvalid());
     }
 }

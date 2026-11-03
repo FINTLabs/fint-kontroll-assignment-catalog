@@ -1,0 +1,74 @@
+package no.fintlabs.assignment.user.projection;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.audit.AuditEntity;
+import no.fintlabs.assignment.user.entra.UserEntraMembership;
+
+import java.util.Date;
+import java.util.UUID;
+
+@Getter
+@Setter
+@Builder
+@ToString
+@RequiredArgsConstructor
+@Slf4j
+@Entity
+@Table(name = "flattened_user_assignments")
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
+public class FlattenedAssignment extends AuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @NonNull
+    private Long assignmentId;
+    private Long userRef;
+    @Column(nullable = false)
+    private Long resourceRef;
+    @Column(name = "resource_consumer_org_unit_id")
+    private String applicationResourceLocationOrgUnitId;
+    private Long assignmentViaRoleRef;
+    private Date assignmentCreationDate;
+    private Date assignmentTerminationDate;
+    private String assignmentTerminationReason;
+
+    // Used only while a new projection is linked to its canonical membership.
+    // Entra IDs are persisted exclusively by UserEntraMembership.
+    @Transient
+    private UUID identityProviderUserObjectId;
+    @Transient
+    private UUID identityProviderGroupObjectId;
+
+    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinColumn(name = "user_entra_membership_id", nullable = false)
+    private UserEntraMembership userEntraMembership;
+
+    public UUID getIdentityProviderUserObjectId() {
+        return userEntraMembership == null ? identityProviderUserObjectId : userEntraMembership.getUserEntraId();
+    }
+
+    public UUID getIdentityProviderGroupObjectId() {
+        return userEntraMembership == null ? identityProviderGroupObjectId : userEntraMembership.getResourceEntraId();
+    }
+}

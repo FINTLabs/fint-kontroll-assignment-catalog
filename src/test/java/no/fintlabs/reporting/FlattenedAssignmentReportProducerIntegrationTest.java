@@ -3,9 +3,9 @@ package no.fintlabs.reporting;
 import io.micrometer.tracing.Tracer;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.ProblemDetailFactory;
-import no.fintlabs.assignment.AssigmentEntityProducerService;
-import no.fintlabs.assignment.AssignmentPublishingComponent;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.common.AsyncConfig;
 import no.fintlabs.common.GlobalAsyncExceptionHandler;
@@ -20,8 +20,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,13 +42,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 @Testcontainers
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {"testorg.testdomain.entity.flattened-assignment-reporting"})
-@TestPropertySource(properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@TestPropertySource(properties = {
+        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
+        "spring.flyway.locations=classpath:db/migration/,classpath:db/reporting-testdata/"
+})
 @ActiveProfiles("test")
 public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIntegrationTest {
 
@@ -64,13 +63,13 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
     private FlattenedAssignmentReportService flattenedAssignmentReportService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
 
     @MockBean
-    private AssignmentPublishingComponent assignmentPublishingComponent;
+    private UserEntraMembershipRepublisher userEntraMembershipRepublisher;
 
     @MockBean
     private ResourceAvailabilityProducerService resourceAvailabilityProducerService;

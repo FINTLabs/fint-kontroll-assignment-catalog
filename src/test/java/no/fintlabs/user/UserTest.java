@@ -10,26 +10,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UserTest {
     @Test
-    void convertedUserEqualsShouldReturnTrueForSameObject() {
+    void hasSamePersistedStateAsShouldReturnTrueForSameObject() {
         User user = new User();
-        assertTrue(user.convertedUserEquals(user));
+        assertTrue(user.hasSamePersistedStateAs(user));
     }
 
     @Test
-    void convertedUserEqualsShouldReturnFalseForNull() {
+    void hasSamePersistedStateAsShouldReturnFalseForNull() {
         User user = new User();
-        assertFalse(user.convertedUserEquals(null));
+        assertFalse(user.hasSamePersistedStateAs(null));
     }
 
     @Test
-    void convertedUserEqualsShouldReturnFalseForDifferentClass() {
-        User user = new User();
-        Object other = new Object();
-        assertFalse(user.convertedUserEquals(other));
-    }
-
-    @Test
-    void convertedUserEqualsShouldReturnTrueForEqualUsers() {
+    void hasSamePersistedStateAsShouldReturnTrueForEqualUsers() {
         User user1 = User.builder()
                 .id(1L)
                 .userName("testUser")
@@ -56,11 +49,11 @@ public class UserTest {
                 .statusChanged(user1.getStatusChanged())
                 .build();
 
-        assertTrue(user1.convertedUserEquals(user2));
+        assertTrue(user1.hasSamePersistedStateAs(user2));
     }
 
     @Test
-    void convertedUserEqualsShouldReturnFalseForDifferentUsers() {
+    void hasSamePersistedStateAsShouldReturnFalseForDifferentUsers() {
         User user1 = User.builder()
                 .id(1L)
                 .userName("testUser1")
@@ -87,6 +80,6 @@ public class UserTest {
                 .statusChanged(new Date())
                 .build();
 
-        assertFalse(user1.convertedUserEquals(user2));
+        assertFalse(user1.hasSamePersistedStateAs(user2));
     }
 }

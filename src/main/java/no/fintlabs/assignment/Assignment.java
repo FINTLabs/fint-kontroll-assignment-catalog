@@ -24,7 +24,6 @@ import no.fintlabs.audit.AuditEntity;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
@@ -53,29 +52,26 @@ public class Assignment extends AuditEntity {
     private String roleType;
     @Column(name = "user_ref")
     private Long userRef;
-    private UUID azureAdUserId;
+    private UUID entraUserId;
     private String userFirstName;
     private String userLastName;
     private String userUserType;
-    @Column(name = "resource_ref")
+    @Column(name = "resource_ref", nullable = false)
     private Long resourceRef;
+    private Long deviceGroupRef;
     private String resourceName;
-    private UUID azureAdGroupId;
+    @Column(nullable = false)
+    private UUID entraGroupId;
     private String organizationUnitId;
     @Column(name = "resource_consumer_org_unit_id")
     private String applicationResourceLocationOrgUnitId;
     @Column(name = "resource_consumer_org_unit_name")
     private String applicationResourceLocationOrgUnitName;
-    private Long assignerRef;
     private Long assignerRemoveRef;
     private Date assignmentRemovedDate;
     private String assignerUserName;
-    private UUID assignerAzureAdUserId;
-    private Long assignerRoleRef;
     @CreationTimestamp
     private Date assignmentDate;
-    private Date validFrom;
-    private Date validTo;
     @Builder.Default
     private Boolean isInvalid = false;
 
@@ -84,7 +80,7 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "user_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false)
     @JsonBackReference(value = "user-assignment")
     private User user;
 
@@ -93,7 +89,7 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "role_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false)
     @JsonBackReference(value = "role-assignment")
     private Role role;
 
@@ -102,7 +98,8 @@ public class Assignment extends AuditEntity {
     @JoinColumn(
             name = "resource_ref",
             insertable = false,
-            updatable = false)//, nullable = false
+            updatable = false,
+            nullable = false)
     @JsonBackReference(value = "resource-assignment")
     private Resource resource;
 
@@ -118,13 +115,13 @@ public class Assignment extends AuditEntity {
                 .builder()
                 .id(id)
                 .resourceRef(resourceRef)
-                .azureGroupRef(azureAdGroupId)
+                .entraGroupRef(entraGroupId)
                 .resourceName(resourceName)
                 .userRef(userRef)
-                .azureUserRef(azureAdUserId)
+                .entraUserRef(entraUserId)
+                .deviceGroupRef(deviceGroupRef)
                 .userDisplayname(displayname)
                 .assignerUsername(assignerUserName)
-                .assignerRef(assignerRef)
                 .userType(userUserType)
                 .roleRef(roleRef)
                 .organizationUnitId(organizationUnitId)
@@ -137,11 +134,16 @@ public class Assignment extends AuditEntity {
 
     @JsonIgnore
     public boolean isUserAssignment() {
-        return userRef != null && azureAdUserId != null;
+        return userRef != null && entraUserId != null;
     }
 
     @JsonIgnore
     public boolean isGroupAssignment() {
         return roleRef != null;
     }
+    @JsonIgnore
+    public boolean isDeviceGroupAssignment() {
+        return deviceGroupRef != null && entraGroupId != null;
+    }
+
 }

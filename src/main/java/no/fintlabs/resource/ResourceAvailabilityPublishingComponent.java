@@ -4,6 +4,8 @@ package no.fintlabs.resource;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocation;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 @Slf4j
@@ -28,6 +30,16 @@ public class ResourceAvailabilityPublishingComponent {
                 .assignedResources(resource.getNumberOfResourcesAssigned())
                 .resourceConsumerAssignmentDTO(resourceConsumerAssignmentDTO)
                 .build();
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    resourceAvailabilityProducerService.publish(resourceAvailabilityDTO);
+                }
+            });
+            return;
+        }
 
         resourceAvailabilityProducerService.publish(resourceAvailabilityDTO);
     }

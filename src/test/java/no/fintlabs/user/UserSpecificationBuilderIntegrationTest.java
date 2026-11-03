@@ -31,6 +31,7 @@ class UserSpecificationBuilderIntegrationTest extends DatabaseIntegrationTest {
             .firstName("Jan Anders")
             .lastName("Hansen")
             .userType("EMPLOYEESTAFF")
+            .status("ACTIVE")
             .build();
 
     List<String> allOrgUnitsAsList = List.of("ALLORGUNITS");

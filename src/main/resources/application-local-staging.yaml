@@ -1,3 +1,7 @@
+novari:
+  kafka:
+    default-replicas: 1
+
 fint:
   org-id: fintlabs.no
   flyt:
@@ -6,8 +10,6 @@ fint:
         enable: true
   client:
     base-url: https://beta.felleskomponent.no
-  kafka:
-    default-replicas: 1
   kontroll:
     opa:
       url: http://localhost:8181/v1/data/accessmanagement
@@ -57,4 +59,3 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
-
