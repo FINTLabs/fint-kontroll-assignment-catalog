@@ -54,22 +54,21 @@ public class EntraGroupDeviceMembershipConsumer {
             log.info("Received response for device {} in group {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);
             switch (entraResponse.getCode()) {
                 case ADDED -> confirmMembershipAdded(deviceEntraMembership, key);
+                case ALREADY_PRESENT -> {
+                    log.warn("Device {} was already present in Entra group {} when ADD was requested, messageKey: {}",
+                            entraDeviceRef, entraGroupRef, key);
+                    confirmMembershipAdded(deviceEntraMembership, key);
+                }
                 case REMOVED -> confirmMembershipRemoved(deviceEntraMembership, key);
+                case ALREADY_REMOVED -> {
+                    log.warn("Device {} was already absent from Entra group {} when REMOVE was requested, messageKey: {}",
+                            entraDeviceRef, entraGroupRef, key);
+                    confirmMembershipRemoved(deviceEntraMembership, key);
+                }
                 case ERROR -> markAsError(deviceEntraMembership, key);
                 case FAILED -> markAsFailed(deviceEntraMembership, key);
-                case NO_CHANGES -> handleNoChangesResponse(deviceEntraMembership, key);
-
             }
             deviceEntraMembershipRepository.save(deviceEntraMembership);
-        }
-    }
-
-    private void handleNoChangesResponse(DeviceEntraMembership deviceEntraMembership, String key) {
-        log.info("Received no changes response for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-        if (deviceEntraMembership.getMembershipStatus() == MembershipStatus.ACTIVE) {
-            deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED);
-        } else if (deviceEntraMembership.getMembershipStatus() == MembershipStatus.INACTIVE) {
-            deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.DELETION_CONFIRMED);
         }
     }
 

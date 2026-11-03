@@ -104,7 +104,7 @@ public class EntraUserGroupMembershipConsumerTest {
     }
 
     @Test
-    public void processGroupMembership_handlesNoChangesForActiveMembershipAsConfirmed() {
+    public void processGroupMembership_handlesAlreadyPresentAsConfirmed() {
         UUID groupId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.ACTIVE, no.fintlabs.entra.membership.EntraMembershipSyncStatus.SENT);
@@ -112,7 +112,7 @@ public class EntraUserGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraUserGroupMembershipResult(EntraReturnCode.NO_CHANGES, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraUserGroupMembershipResult(EntraReturnCode.ALREADY_PRESENT, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.membership.EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
@@ -120,7 +120,7 @@ public class EntraUserGroupMembershipConsumerTest {
     }
 
     @Test
-    public void processGroupMembership_handlesNoChangesForInactiveMembershipAsDeletionConfirmed() {
+    public void processGroupMembership_handlesAlreadyRemovedAsDeletionConfirmed() {
         UUID groupId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.INACTIVE, no.fintlabs.entra.membership.EntraMembershipSyncStatus.DELETION_SENT);
@@ -128,11 +128,25 @@ public class EntraUserGroupMembershipConsumerTest {
         when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
                 .thenReturn(Optional.of(userEntraMembership));
 
-        consumer.processGroupMembership(record(new EntraUserGroupMembershipResult(EntraReturnCode.NO_CHANGES, groupId, userId)));
+        consumer.processGroupMembership(record(new EntraUserGroupMembershipResult(EntraReturnCode.ALREADY_REMOVED, groupId, userId)));
 
         assertEquals(no.fintlabs.entra.membership.EntraMembershipSyncStatus.DELETION_CONFIRMED, userEntraMembership.getEntraStatus());
         verify(userEntraMembershipRepository).save(userEntraMembership);
         verifyNoInteractions(assigmentEntityProducerService);
+    }
+
+    @Test
+    public void processGroupMembership_republishesRemovalForLateAlreadyPresent() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntraMembership userEntraMembership = membership(userId, groupId, MembershipStatus.INACTIVE,
+                no.fintlabs.entra.membership.EntraMembershipSyncStatus.DELETION_SENT);
+        when(userEntraMembershipRepository.findByUserEntraIdAndResourceEntraId(userId, groupId))
+                .thenReturn(Optional.of(userEntraMembership));
+
+        consumer.processGroupMembership(record(new EntraUserGroupMembershipResult(EntraReturnCode.ALREADY_PRESENT, groupId, userId)));
+
+        verify(assigmentEntityProducerService).publish(userEntraMembership, true);
     }
 
     @Test

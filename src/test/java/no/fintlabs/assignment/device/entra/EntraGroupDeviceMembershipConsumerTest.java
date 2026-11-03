@@ -110,8 +110,8 @@ class EntraGroupDeviceMembershipConsumerTest {
     }
 
     @Test
-    void processGroupMembership_shouldSetDeletionConfirmed_whenCodeIsNoChangesAndInactive() {
-        EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.NO_CHANGES);
+    void processGroupMembership_shouldSetDeletionConfirmed_whenCodeIsAlreadyRemovedAndInactive() {
+        EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ALREADY_REMOVED);
         deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
 
         when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceEntraId, resourceEntraId))
@@ -121,6 +121,31 @@ class EntraGroupDeviceMembershipConsumerTest {
 
         verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraMembershipSyncStatus.DELETION_CONFIRMED));
         verifyNoInteractions(deviceAssigmentEntityProducerService);
+    }
+
+    @Test
+    void processGroupMembership_shouldConfirmAlreadyPresentWhenActive() {
+        EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ALREADY_PRESENT);
+        deviceEntraMembership.setMembershipStatus(MembershipStatus.ACTIVE);
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceEntraId, resourceEntraId))
+                .thenReturn(Optional.of(deviceEntraMembership));
+
+        consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
+
+        verify(deviceEntraMembershipRepository).save(argThat(info -> info.getEntraStatus() == EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED));
+        verifyNoInteractions(deviceAssigmentEntityProducerService);
+    }
+
+    @Test
+    void processGroupMembership_shouldRepublishRemovalForLateAlreadyPresent() {
+        EntraDeviceGroupMembership payload = createPayload(EntraReturnCode.ALREADY_PRESENT);
+        deviceEntraMembership.setMembershipStatus(MembershipStatus.INACTIVE);
+        when(deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(deviceEntraId, resourceEntraId))
+                .thenReturn(Optional.of(deviceEntraMembership));
+
+        consumer.processGroupMembership(new ConsumerRecord<>("topic", 0, 0L, "key", payload));
+
+        verify(deviceAssigmentEntityProducerService).publish(deviceEntraMembership, true);
     }
 
     private EntraDeviceGroupMembership createPayload(EntraReturnCode code) {

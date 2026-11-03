@@ -72,24 +72,21 @@ public class EntraUserGroupMembershipConsumer {
         log.info("Received response for user {} in group {}, messageKey: {}", entraUserRef, entraGroupRef, key);
         switch (entraResponse.getCode()) {
             case ADDED -> confirmMembershipAdded(userEntraMembership, key);
+            case ALREADY_PRESENT -> {
+                log.warn("User {} was already present in Entra group {} when ADD was requested, messageKey: {}",
+                        entraUserRef, entraGroupRef, key);
+                confirmMembershipAdded(userEntraMembership, key);
+            }
             case REMOVED -> confirmMembershipRemoved(userEntraMembership, key);
+            case ALREADY_REMOVED -> {
+                log.warn("User {} was already absent from Entra group {} when REMOVE was requested, messageKey: {}",
+                        entraUserRef, entraGroupRef, key);
+                confirmMembershipRemoved(userEntraMembership, key);
+            }
             case ERROR -> markAsError(userEntraMembership, key);
             case FAILED -> markAsFailed(userEntraMembership, key);
-            case NO_CHANGES -> handleNoChangesResponse(userEntraMembership, key);
         }
         userEntraMembershipRepository.save(userEntraMembership);
-    }
-
-    private void handleNoChangesResponse(UserEntraMembership userEntraMembership, String key) {
-        log.warn("Received no changes response for user {} in group {}, messageKey: {}",
-                userEntraMembership.getUserEntraId(),
-                userEntraMembership.getResourceEntraId(),
-                key);
-        if (userEntraMembership.getMembershipStatus() == MembershipStatus.ACTIVE) {
-            userEntraMembership.setEntraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED);
-        } else if (userEntraMembership.getMembershipStatus() == MembershipStatus.INACTIVE) {
-            userEntraMembership.setEntraStatus(EntraMembershipSyncStatus.DELETION_CONFIRMED);
-        }
     }
 
     private void markAsFailed(UserEntraMembership userEntraMembership, String key) {
