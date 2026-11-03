@@ -21,11 +21,14 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -113,13 +116,6 @@ public class AssigmentEntityProducerServiceTest {
     }
 
     @Test
-    public void shouldNotPublishDeletionWithInvalidEntraIds() {
-        service.publishRemoval(null, UUID.randomUUID());
-
-        verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
-    }
-
-    @Test
     public void shouldPublishAddFromUserEntraMembershipAndMarkAsSent() {
         UUID groupRef = UUID.randomUUID();
         UUID userRef = UUID.randomUUID();
@@ -135,7 +131,46 @@ public class AssigmentEntityProducerServiceTest {
         ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.ADD, record.getValue().getOperation());
         assertEquals(EntraMembershipSyncStatus.SENT, userEntraMembership.getEntraStatus());
+        assertNotNull(userEntraMembership.getSentToEntraAt());
+        assertNull(userEntraMembership.getDeletionSentToEntraAt());
         verify(userEntraMembershipRepository).save(userEntraMembership);
+    }
+
+    @Test
+    public void shouldRepublishAddAndUpdateLastSentTimeWithoutChangingConfirmedStatus() {
+        Date previousAdd = new Date(1_000L);
+        Date previousRemoval = new Date(2_000L);
+        UserEntraMembership membership = UserEntraMembership.builder()
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .sentToEntraAt(previousAdd)
+                .deletionSentToEntraAt(previousRemoval)
+                .build();
+
+        service.republish(membership);
+
+        assertEquals(OperationType.ADD, captureSentRecord().getValue().getOperation());
+        assertTrue(membership.getSentToEntraAt().after(previousAdd));
+        assertEquals(previousRemoval, membership.getDeletionSentToEntraAt());
+        assertEquals(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED, membership.getEntraStatus());
+        verify(userEntraMembershipRepository).save(membership);
+    }
+
+    @Test
+    public void shouldNotRecordRepublishWhenEntraIdsAreMissing() {
+        UserEntraMembership membership = UserEntraMembership.builder()
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build();
+
+        service.republish(membership);
+
+        assertNull(membership.getSentToEntraAt());
+        verify(userEntraMembershipRepository, never()).save(any());
+        verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
     }
 
     @Test
@@ -219,6 +254,8 @@ public class AssigmentEntityProducerServiceTest {
         ParameterizedProducerRecord<UserResourceGroupMembershipCommand> record = captureSentRecord();
         assertEquals(OperationType.REMOVE, record.getValue().getOperation());
         assertEquals(EntraMembershipSyncStatus.DELETION_SENT, userEntraMembership.getEntraStatus());
+        assertNotNull(userEntraMembership.getDeletionSentToEntraAt());
+        assertNull(userEntraMembership.getSentToEntraAt());
         verify(userEntraMembershipRepository).save(userEntraMembership);
     }
 

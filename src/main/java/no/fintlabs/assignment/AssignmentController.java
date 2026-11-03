@@ -96,7 +96,8 @@ public class AssignmentController {
     @Operation(
             tags = DEVELOPER_ENDPOINTS_TAG,
             summary = "Republish all active user memberships",
-            description = "Finds active flattened user assignments and republishes each associated user resource-group membership exactly once, regardless of its previous Kafka or Entra send status. Device assignments are not included."
+            description = "Finds active flattened user assignments and republishes each associated user resource-group membership exactly once, " +
+                    "regardless of its previous Kafka or Entra send status. Device assignments are not included."
     )
     @PostMapping("/republish")
     @ResponseStatus(HttpStatus.OK)

@@ -59,7 +59,9 @@ public class UserEntraMembershipPublisher {
     public void republish(UserEntraMembership userEntraMembership) {
         if (isValidMembership(userEntraMembership)) {
             log.info("Republishing user Entra membership with id: {}", userEntraMembership.getId());
-            republish(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId());
+            userEntraMembership.setSentToEntraAt(new Date());
+            userEntraMembershipRepository.save(userEntraMembership);
+            publishMembershipCommand(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
         }
     }
 
@@ -120,10 +122,6 @@ public class UserEntraMembershipPublisher {
         return true;
     }
 
-    public void publishRemoval(UUID entraGroupId, UUID entraUserId) {
-        publishMembershipCommand(entraGroupId, entraUserId, OperationType.REMOVE);
-    }
-
     private void publishMembershipCommand(UUID entraGroupId, UUID entraUserId, OperationType operationType) {
         if (!hasValidEntraIds(entraGroupId, entraUserId)) {
             log.warn("Publishing user Entra membership skipped. Missing Entra group id ({}) or user id ({})",
@@ -135,11 +133,6 @@ public class UserEntraMembershipPublisher {
 
         log.info("Publishing {} to Entra - groupId: {}, userId: {}", operationType, entraGroupId, entraUserId);
         send(membershipCommand);
-    }
-
-    private void republish(UUID entraGroupId, UUID entraUserId) {
-        log.info("Republishing resource {} assigned to user {}", entraGroupId, entraUserId);
-        publishMembershipCommand(entraGroupId, entraUserId, OperationType.ADD);
     }
 
     private boolean hasValidEntraIds(UUID entraGroupId, UUID entraUserId) {

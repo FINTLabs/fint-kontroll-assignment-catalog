@@ -1,5 +1,5 @@
 BEGIN;
-
+CREATE TABLE flattened_user_assignments_COPY AS SELECT * FROM flattened_user_assignments;
 INSERT INTO user_entra_memberships (user_entra_id,
                                     resource_entra_id,
                                     created_date,

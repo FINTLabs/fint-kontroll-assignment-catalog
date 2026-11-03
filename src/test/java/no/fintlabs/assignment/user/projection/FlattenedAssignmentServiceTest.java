@@ -163,7 +163,6 @@ public class FlattenedAssignmentServiceTest {
         flattenedAssignmentService.updateAssignmentsOnUserChange(user);
 
         assertEquals(updatedUserEntraId, membership.getUserEntraId());
-        verify(assigmentEntityProducerService, never()).publishRemoval(resourceEntraId, previousUserEntraId);
         verify(assigmentEntityProducerService).publish(membership, true);
         verify(licenseEnforcementService).recalculateAssignedResourcesForResource(42L);
     }
