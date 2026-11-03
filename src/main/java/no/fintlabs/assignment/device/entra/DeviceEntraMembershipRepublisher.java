@@ -1,10 +1,8 @@
 package no.fintlabs.assignment.device.entra;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.device.Device;
-import no.fintlabs.assignment.device.entra.DeviceEntraMembershipPublisher;
+import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -18,26 +16,39 @@ import java.util.List;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
-public class DeviceMembershipRepublisher {
+public class DeviceEntraMembershipRepublisher {
 
-    private static final int REPUBLISH_BATCH_SIZE = 500;
+    private static final int BATCH_SIZE = 500;
+    private static final Duration FAILED_RETRY_DELAY = Duration.ofHours(24);
 
     private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
-    private final DeviceEntraMembershipPublisher deviceAssigmentEntityProducerService;
+    private final DeviceEntraMembershipPublisher publisher;
+    private final long responseTimeoutHours;
 
-    @Value("${fint.kontroll.assignment-catalog.reconciliation.response-timeout:72}")
-    private long responseTimeoutHours;
+    public DeviceEntraMembershipRepublisher(
+            DeviceEntraMembershipRepository deviceEntraMembershipRepository,
+            DeviceEntraMembershipPublisher publisher,
+            @Value("${fint.kontroll.assignment-catalog.reconciliation.response-timeout:72}") long responseTimeoutHours
+    ) {
+        this.deviceEntraMembershipRepository = deviceEntraMembershipRepository;
+        this.publisher = publisher;
+        this.responseTimeoutHours = responseTimeoutHours;
+    }
 
     @Scheduled(
             initialDelayString = "${fint.kontroll.assignment-catalog.reconciliation.initial-delay}",
-            fixedDelayString = "${fint.kontroll.assignment-catalog.reconciliation.fixed-delay}",
-            timeUnit = java.util.concurrent.TimeUnit.HOURS
+            fixedDelayString = "${fint.kontroll.assignment-catalog.reconciliation.fixed-delay}"
     )
     public void republishStaleMemberships() {
         Instant now = Instant.now();
         Date responseCutoff = Date.from(now.minus(Duration.ofHours(responseTimeoutHours)));
-        Date failedCutoff = Date.from(now.minus(Duration.ofHours(24)));
+        Date failedCutoff = Date.from(now.minus(FAILED_RETRY_DELAY));
+        log.info("Republishing device Entra memberships without a response since {} or with a failure before {}", responseCutoff, failedCutoff);
+
+        retryStaleMemberships(responseCutoff, failedCutoff);
+    }
+
+    public void retryStaleMemberships(Date responseCutoff, Date failedCutoff) {
         long lastProcessedId = 0L;
         List<DeviceEntraMembership> memberships;
 
@@ -52,20 +63,20 @@ public class DeviceMembershipRepublisher {
                     responseCutoff,
                     failedCutoff,
                     lastProcessedId,
-                    PageRequest.of(0, REPUBLISH_BATCH_SIZE));
+                    PageRequest.of(0, BATCH_SIZE));
 
-            memberships.forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, false));
+            memberships.forEach(membership -> publisher.publish(membership, false));
 
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();
             }
-        } while (memberships.size() == REPUBLISH_BATCH_SIZE);
+        } while (memberships.size() == BATCH_SIZE);
     }
 
     public void republishErrorAssignmentsForDevice(Device device) {
         List<DeviceEntraMembership> deviceEntraMemberships = deviceEntraMembershipRepository.findAllByEntraStatusAndDeviceEntraId(EntraMembershipSyncStatus.ERROR, device.getDataObjectId());
         log.info("Sending to kafka device with id {} assignments that returned an error before. Found {} entries", device.getId(), deviceEntraMemberships.size());
-        deviceEntraMemberships.forEach(membership -> deviceAssigmentEntityProducerService.publish(membership, true));
+        deviceEntraMemberships.forEach(membership -> publisher.publish(membership, true));
     }
 
 

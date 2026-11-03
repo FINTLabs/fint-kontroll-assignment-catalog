@@ -5,9 +5,9 @@ import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,8 +29,13 @@ class UserEntraMembershipRepublisherTest {
     private UserEntraMembershipRepository userEntraMembershipRepository;
     @Mock
     private UserEntraMembershipPublisher assigmentEntityProducerService;
-    @InjectMocks
     private UserEntraMembershipRepublisher membershipRepublisher;
+
+    @BeforeEach
+    void setUp() {
+        membershipRepublisher = new UserEntraMembershipRepublisher(
+                userEntraMembershipRepository, flattenedAssignmentRepository, assigmentEntityProducerService, 72);
+    }
 
     private FlattenedAssignment flattenedAssignment(Long id, Date terminationDate, UUID idp) {
         FlattenedAssignment assignment = new FlattenedAssignment();
@@ -38,6 +43,23 @@ class UserEntraMembershipRepublisherTest {
         assignment.setAssignmentTerminationDate(terminationDate);
         assignment.setIdentityProviderUserObjectId(idp);
         return assignment;
+    }
+
+    @Test
+    void scheduledRepublishingUsesTheConfiguredResponseTimeoutAndOneDayFailureDelay() {
+        long before = System.currentTimeMillis();
+
+        membershipRepublisher.republishStaleMemberships();
+
+        verify(userEntraMembershipRepository).findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+                anyList(), any(), any(), any(), any(), any(),
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before - 72L * 60 * 60 * 1000)),
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before - 24L * 60 * 60 * 1000)),
+                eq(0L), any());
+    }
+
+    private boolean isWithinOneSecondOf(Date value, long expectedMillis) {
+        return Math.abs(value.getTime() - expectedMillis) < 1_000;
     }
 
     @Test

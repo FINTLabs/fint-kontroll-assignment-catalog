@@ -4,7 +4,7 @@ import io.micrometer.tracing.Tracer;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.ProblemDetailFactory;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
-import no.fintlabs.assignment.AssignmentPublishingComponent;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.common.AsyncConfig;
@@ -69,7 +69,7 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
     private OpaService opaService;
 
     @MockBean
-    private AssignmentPublishingComponent assignmentPublishingComponent;
+    private UserEntraMembershipRepublisher userEntraMembershipRepublisher;
 
     @MockBean
     private ResourceAvailabilityProducerService resourceAvailabilityProducerService;

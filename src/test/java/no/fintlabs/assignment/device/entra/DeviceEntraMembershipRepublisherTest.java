@@ -3,33 +3,55 @@ package no.fintlabs.assignment.device.entra;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
 import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.device.Device;
-import no.fintlabs.assignment.device.entra.DeviceEntraMembershipPublisher;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Date;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DeviceMembershipRepublisherTest {
+class DeviceEntraMembershipRepublisherTest {
 
     @Mock
     private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
 
     @Mock
-    private DeviceEntraMembershipPublisher deviceAssigmentEntityProducerService;
+    private DeviceEntraMembershipPublisher publisher;
 
-    @InjectMocks
-    private DeviceMembershipRepublisher deviceMembershipRepublisher;
+    private DeviceEntraMembershipRepublisher deviceMembershipRepublisher;
+
+    @BeforeEach
+    void setUp() {
+        deviceMembershipRepublisher = new DeviceEntraMembershipRepublisher(deviceEntraMembershipRepository, publisher, 72);
+    }
+
+    @Test
+    void scheduledRepublishingUsesTheConfiguredResponseTimeoutAndOneDayFailureDelay() {
+        long before = System.currentTimeMillis();
+
+        deviceMembershipRepublisher.republishStaleMemberships();
+
+        verify(deviceEntraMembershipRepository).findStaleMembershipsByIdGreaterThanOrderByIdAsc(
+                anyList(), any(), any(), any(), any(), any(),
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before - 72L * 60 * 60 * 1000)),
+                argThat(cutoff -> isWithinOneSecondOf(cutoff, before - 24L * 60 * 60 * 1000)),
+                eq(0L), any());
+    }
+
+    private boolean isWithinOneSecondOf(Date value, long expectedMillis) {
+        return Math.abs(value.getTime() - expectedMillis) < 1_000;
+    }
 
     @Test
     void republishErrorAssignmentsForDevice_shouldLookupByDataObjectId() {
@@ -47,7 +69,7 @@ class DeviceMembershipRepublisherTest {
         deviceMembershipRepublisher.republishErrorAssignmentsForDevice(device);
 
         verify(deviceEntraMembershipRepository).findAllByEntraStatusAndDeviceEntraId(EntraMembershipSyncStatus.ERROR, dataObjectId);
-        verify(deviceAssigmentEntityProducerService).publish(membership, true);
+        verify(publisher).publish(membership, true);
     }
 
     @Test
@@ -71,6 +93,6 @@ class DeviceMembershipRepublisherTest {
                 eq(EntraMembershipSyncStatus.DELETION_SENT),
                 eq(EntraMembershipSyncStatus.NEEDS_REPUBLISH),
                 any(), any(), eq(0L), any());
-        verify(deviceAssigmentEntityProducerService).publish(membership, false);
+        verify(publisher).publish(membership, false);
     }
 }

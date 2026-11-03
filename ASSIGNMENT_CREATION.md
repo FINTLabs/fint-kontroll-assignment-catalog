@@ -258,8 +258,8 @@ Scheduling is enabled in the application. The jobs currently in the code are:
 
 | Job | When | What it does |
 | --- | --- | --- |
-| Reconcile stale user Entra memberships | Initial delay: 2 hours. Fixed delay: 24 hours after the previous run finishes. | Immediately recovers memberships with no recorded command; otherwise retries an unconfirmed ADD or REMOVE after the configured 72-hour grace period. |
-| Reconcile stale device Entra memberships | Initial delay: 2 hours. Fixed delay: 24 hours after the previous run finishes. | Uses the same immediate-recovery and state-aware 72-hour retry policy. |
+| Reconcile stale user Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Immediately recovers memberships with no recorded command; otherwise retries an unconfirmed ADD or REMOVE after the configured 72-hour grace period. |
+| Reconcile stale device Entra memberships | Initial delay: 5 minutes. Fixed delay: 24 hours after the previous run finishes. | Uses the same immediate-recovery and state-aware 72-hour retry policy. |
 | Publish flattened user assignment report | Every day at midnight, `Europe/Oslo`. | Streams the flattened user-assignment report to the reporting topic. |
 
 The reconciliation jobs work on the unique Entra membership records, not on flattened assignments. This ensures that one user/resource or device/resource membership produces at most one retry command per eligible run, even if several flattened assignments refer to it.
@@ -270,11 +270,11 @@ The reconciliation jobs work on the unique Entra membership records, not on flat
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `initial-delay` | `2` hours | Wait after application startup before the first reconciliation run. |
-| `fixed-delay` | `24` hours | Wait after a run has completed before starting the next run. |
+| `initial-delay` | `PT5M` (5 minutes) | Wait after application startup before the first reconciliation run. |
+| `fixed-delay` | `PT24H` (24 hours) | Wait after a run has completed before starting the next run. |
 | `response-timeout` | `72` hours | Time to wait for Entra's response before retrying a command that was recorded as sent. |
 
-All values use `TimeUnit.HOURS`. The 72-hour timeout is deliberately longer than the daily schedule: a delayed downstream service is not retried on every run.
+Both scheduling delays use ISO-8601 durations. The response timeout uses hours. The 72-hour timeout is deliberately longer than the daily schedule: a delayed downstream service is not retried on every run.
 
 | Membership state | Eligible when | Command republished | Why |
 | --- | --- | --- | --- |

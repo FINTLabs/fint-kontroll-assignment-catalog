@@ -10,8 +10,8 @@ fint:
     assignment-catalog:
       pagesize: 50
       reconciliation:
-        initial-delay: 2
-        fixed-delay: 24
+        initial-delay: PT5M
+        fixed-delay: PT24H
         response-timeout: 72
       license-enforcement:
         hardstop-enable: true
