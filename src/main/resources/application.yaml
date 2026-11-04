@@ -22,8 +22,7 @@ fint:
       # All 5xx responses are notified. Add status codes that are operationally
       # important for a specific environment here.
       additional-http-statuses: 429
-      # Configure this per environment with a Grafana Explore or dashboard URL.
-      grafana-url: ''
+      grafana-url: 'https://grafana.flais.io/d/cg2oxl949bpq8d/kontroll-logs?timezone=browser'
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:

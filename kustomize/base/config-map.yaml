@@ -5,3 +5,4 @@ metadata:
 data:
   # Set correct url for OPA
   fint.kontroll.opa.url: 'http://fint-kontroll-opa:8181/v1/data/accessmanagement'
+  fint.kontroll.slack.grafana-namespace: 'fintlabs-no'

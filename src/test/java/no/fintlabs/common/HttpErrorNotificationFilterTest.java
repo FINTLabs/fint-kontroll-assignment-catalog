@@ -27,7 +27,7 @@ class HttpErrorNotificationFilterTest {
     void setUp() {
         slackMessenger = mock(SlackMessenger.class);
         SlackErrorNotifier notifier = new SlackErrorNotifier(
-                slackMessenger, "https://grafana.example/explore", Set.of(429));
+                slackMessenger, "https://grafana.example/explore", "fint-kontroll-assignment-catalog", "fintlabs-no", Set.of(429));
         filter = new HttpErrorNotificationFilter(notifier);
     }
 
@@ -60,7 +60,7 @@ class HttpErrorNotificationFilterTest {
     @Test
     void shouldNotifyFor404WhenExplicitlyConfiguredForAnEnvironment() throws Exception {
         SlackErrorNotifier notifier = new SlackErrorNotifier(
-                slackMessenger, "https://grafana.example/explore", Set.of(404, 429));
+                slackMessenger, "https://grafana.example/explore", "fint-kontroll-assignment-catalog", "fintlabs-no", Set.of(404, 429));
         HttpErrorNotificationFilter filterWithMisconfiguredStatus = new HttpErrorNotificationFilter(notifier);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/assignments/missing");
         MockHttpServletResponse response = new MockHttpServletResponse();

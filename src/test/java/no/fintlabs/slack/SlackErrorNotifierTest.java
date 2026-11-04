@@ -17,7 +17,8 @@ class SlackErrorNotifierTest {
     void shouldLinkToAGrafanaWindowAroundTheLogTimestamp() {
         SlackMessenger slackMessenger = mock(SlackMessenger.class);
         SlackErrorNotifier notifier = new SlackErrorNotifier(slackMessenger,
-                "https://grafana.flais.io/d/dashboard/logs?orgId=1&from=now-3h&to=now", Set.of(429));
+                "https://grafana.flais.io/d/cg2oxl949bpq8d/kontroll-logs?from=now-12h&to=now&timezone=browser&var-filters=old",
+                "fint-kontroll-assignment-catalog", "fintlabs-no", Set.of(429));
         LoggingEvent event = new LoggingEvent();
         event.setLevel(Level.ERROR);
         event.setLoggerName("no.fintlabs.Example");
@@ -28,7 +29,10 @@ class SlackErrorNotifierTest {
 
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(slackMessenger).sendErrorMessage(message.capture());
-        assertThat(message.getValue()).contains("from=1699999700000&to=1700000300000");
-        assertThat(message.getValue()).doesNotContain("from=now-3h");
+        assertThat(message.getValue())
+                .contains("/kontroll-logs?timezone=browser&from=1699999970000&to=1700000030000")
+                .contains("var-filters=app%7C%3D%7Cfint-kontroll-assignment-catalog")
+                .contains("var-filters=namespace%7C%3D%7Cfintlabs-no")
+                .doesNotContain("now-12h", "var-filters=old");
     }
 }

@@ -77,9 +77,6 @@ patches:
 
   - patch: |-
       - op: add
-        path: "/data/fint.kontroll.slack.grafana-url"
-        value: "https://grafana.flais.io/d/cg2oxl949bpq8d/logs-assignment-catalog?orgId=1&from=now-3h&to=now&timezone=browser"
-      - op: add
         path: "/data/fint.kontroll.slack.additional-http-statuses"
         value: "409,404,422"
       - op: add
