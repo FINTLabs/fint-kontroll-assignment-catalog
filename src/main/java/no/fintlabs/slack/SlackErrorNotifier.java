@@ -17,18 +17,24 @@ import java.util.Set;
 public class SlackErrorNotifier {
 
     private static final int MAX_STACK_TRACE_LENGTH = 3_000;
-    private static final Duration GRAFANA_CONTEXT_WINDOW = Duration.ofMinutes(5);
+    private static final Duration GRAFANA_CONTEXT_WINDOW = Duration.ofSeconds(30);
 
     private final SlackMessenger slackMessenger;
     private final String grafanaUrl;
+    private final String applicationId;
+    private final String namespace;
     private final Set<Integer> additionalHttpStatuses;
 
     public SlackErrorNotifier(
             SlackMessenger slackMessenger,
             @Value("${fint.kontroll.slack.grafana-url:}") String grafanaUrl,
+            @Value("${fint.application-id}") String applicationId,
+            @Value("${fint.kontroll.slack.grafana-namespace:}") String namespace,
             @Value("${fint.kontroll.slack.additional-http-statuses:429}") Set<Integer> additionalHttpStatuses) {
         this.slackMessenger = slackMessenger;
         this.grafanaUrl = grafanaUrl;
+        this.applicationId = applicationId;
+        this.namespace = namespace;
         this.additionalHttpStatuses = additionalHttpStatuses;
     }
 
@@ -86,6 +92,7 @@ public class SlackErrorNotifier {
             return UriComponentsBuilder.fromUriString(grafanaUrl)
                     .replaceQueryParam("from", occurredAt.minus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
                     .replaceQueryParam("to", occurredAt.plus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
+                    .replaceQueryParam("var-filters", "app|=|" + applicationId, "namespace|=|" + namespace)
                     .build()
                     .encode()
                     .toUriString();
