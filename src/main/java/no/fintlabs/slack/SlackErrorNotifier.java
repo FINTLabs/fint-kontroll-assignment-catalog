@@ -20,7 +20,8 @@ import java.util.Set;
 public class SlackErrorNotifier {
 
     private static final int MAX_STACK_TRACE_LENGTH = 3_000;
-    private static final Duration GRAFANA_CONTEXT_WINDOW = Duration.ofMinutes(10);
+    private static final Duration HTTP_ERROR_CONTEXT_WINDOW = Duration.ofMinutes(10);
+    private static final Duration ERROR_LOG_CONTEXT_WINDOW = Duration.ofSeconds(30);
 
     private final SlackMessenger slackMessenger;
     private final String grafanaUrl;
@@ -65,7 +66,7 @@ public class SlackErrorNotifier {
             message.append("\n🔹 *Correlation ID:* `").append(correlationId).append("`");
         }
 
-        dispatch(message, Instant.now(), correlationId);
+        dispatch(message, Instant.now(), HTTP_ERROR_CONTEXT_WINDOW, correlationId);
     }
 
     public void notifyErrorLog(ILoggingEvent event) {
@@ -86,27 +87,27 @@ public class SlackErrorNotifier {
             message.append("\n🔹 *Correlation ID:* `").append(correlationId).append("`");
         }
 
-        dispatch(message, Instant.ofEpochMilli(event.getTimeStamp()), correlationId);
+        dispatch(message, Instant.ofEpochMilli(event.getTimeStamp()), ERROR_LOG_CONTEXT_WINDOW, null);
     }
 
-    private void dispatch(StringBuilder message, Instant occurredAt, String correlationId) {
-        appendGrafanaLink(message, occurredAt, correlationId);
+    private void dispatch(StringBuilder message, Instant occurredAt, Duration contextWindow, String correlationId) {
+        appendGrafanaLink(message, occurredAt, contextWindow, correlationId);
         slackMessenger.sendErrorMessage(message.toString());
     }
 
-    private void appendGrafanaLink(StringBuilder message, Instant occurredAt, String correlationId) {
+    private void appendGrafanaLink(StringBuilder message, Instant occurredAt, Duration contextWindow, String correlationId) {
         if (!grafanaUrl.isBlank()) {
             message.append("\n🔹 *Investigate:* <")
-                    .append(grafanaLinkFor(occurredAt, correlationId))
+                    .append(grafanaLinkFor(occurredAt, contextWindow, correlationId))
                     .append("|Open Grafana logs around this error>");
         }
     }
 
-    private String grafanaLinkFor(Instant occurredAt, String correlationId) {
+    private String grafanaLinkFor(Instant occurredAt, Duration contextWindow, String correlationId) {
         try {
             UriComponentsBuilder url = UriComponentsBuilder.fromUriString(grafanaUrl)
-                    .replaceQueryParam("from", occurredAt.minus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
-                    .replaceQueryParam("to", occurredAt.plus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
+                    .replaceQueryParam("from", occurredAt.minus(contextWindow).toEpochMilli())
+                    .replaceQueryParam("to", occurredAt.plus(contextWindow).toEpochMilli())
                     .replaceQueryParam("var-filters", "app|=|" + applicationId, "namespace|=|" + namespace);
             if (correlationId != null && !correlationId.isBlank()) {
                 url.replaceQueryParam("var-lineContains", correlationId);
