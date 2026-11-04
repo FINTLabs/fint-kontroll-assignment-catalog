@@ -15,7 +15,7 @@ import static org.mockito.Mockito.verify;
 class SlackErrorNotifierTest {
 
     @Test
-    void shouldLinkToAGrafanaWindowAroundTheLogTimestamp() {
+    void shouldLinkToThirtySecondsAroundErrorLogWithoutCorrelationSearch() {
         SlackMessenger slackMessenger = mock(SlackMessenger.class);
         SlackErrorNotifier notifier = new SlackErrorNotifier(slackMessenger,
                 "https://grafana.flais.io/d/cg2oxl949bpq8d/kontroll-logs?from=now-12h&to=now&timezone=browser&orgId=1&tab=queries&var-filters=old&var-lineContains=old",
@@ -32,10 +32,11 @@ class SlackErrorNotifierTest {
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(slackMessenger).sendErrorMessage(message.capture());
         assertThat(message.getValue())
-                .contains("/kontroll-logs?timezone=browser&orgId=1&tab=queries&from=1699999400000&to=1700000600000")
+                .contains("/kontroll-logs?timezone=browser&orgId=1&tab=queries&from=1699999970000&to=1700000030000")
                 .contains("var-filters=app%7C%3D%7Cfint-kontroll-assignment-catalog")
                 .contains("var-filters=namespace%7C%3D%7Cfintlabs-no")
-                .contains("var-lineContains=trace-123")
+                .contains("Correlation ID:* `trace-123`")
+                .doesNotContain("var-lineContains=")
                 .doesNotContain("now-12h", "var-filters=old", "var-lineContains=old");
     }
 
@@ -57,7 +58,7 @@ class SlackErrorNotifierTest {
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(slackMessenger).sendErrorMessage(message.capture());
         assertThat(message.getValue())
-                .contains("from=1699999400000&to=1700000600000")
+                .contains("from=1699999970000&to=1700000030000")
                 .doesNotContain("var-lineContains=");
     }
 }

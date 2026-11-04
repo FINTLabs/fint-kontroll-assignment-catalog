@@ -44,6 +44,9 @@ spring:
       - db
       - kafka
 logging:
+  # Keep the trace ID for Grafana searches; omit the thread and span ID.
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace=%X{traceId:-}] %logger{36} : %msg%n%wEx'
   level:
     root: INFO
     org.apache.kafka: WARN

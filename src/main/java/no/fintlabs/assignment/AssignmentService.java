@@ -52,7 +52,7 @@ public class AssignmentService {
                 .userRef(userRef)
                 .roleRef(roleRef)
                 .build();
-
+        log.error("TEST error log");
         Resource resource = resourceAssignmentValidator.getActiveResourceOrThrow(resourceRef);
 
         if (userRef != null) {
