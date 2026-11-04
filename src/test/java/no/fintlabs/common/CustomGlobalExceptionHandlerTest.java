@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 class CustomGlobalExceptionHandlerTest {
 
     @Test
-    void missingRoleProducesOneConciseLogAndCorrelatedSlackAlert() throws Exception {
+    void missingRoleProducesOneFullErrorLogAndCorrelatedSlackAlert() throws Exception {
         ProblemDetailFactory factory = mock(ProblemDetailFactory.class);
         SlackMessenger messenger = mock(SlackMessenger.class);
         HttpErrorNotificationFilter filter = new HttpErrorNotificationFilter(new SlackErrorNotifier(
@@ -49,16 +49,19 @@ class CustomGlobalExceptionHandlerTest {
         filterLogger.addAppender(filterLogs);
         try {
             filter.doFilter(request, response, (ignoredRequest, httpResponse) -> {
-                new CustomGlobalExceptionHandler(factory).handleGenericException(exception, request);
+                new CustomGlobalExceptionHandler(factory, Set.of(404)).handleGenericException(exception, request);
                 ((MockHttpServletResponse) httpResponse).setStatus(404);
             });
 
             assertThat(handlerLogs.list).hasSize(1);
-            assertThat(handlerLogs.list.getFirst().getLevel()).isEqualTo(Level.WARN);
+            assertThat(handlerLogs.list.getFirst().getLevel()).isEqualTo(Level.ERROR);
             assertThat(handlerLogs.list.getFirst().getFormattedMessage())
                     .contains("HTTP 404 POST /api/assignments correlationId=trace-123")
-                    .contains("Role not found: 6999999996");
-            assertThat(handlerLogs.list.getFirst().getThrowableProxy()).isNull();
+                    .contains("Role not found: 6999999996")
+                    .doesNotContain("origin=");
+            assertThat(handlerLogs.list.getFirst().getThrowableProxy()).isNotNull();
+            assertThat(handlerLogs.list.getFirst().getThrowableProxy().getMessage())
+                    .isEqualTo("Role not found: 6999999996");
             assertThat(filterLogs.list).isEmpty();
             verify(messenger).sendErrorMessage(contains("Correlation ID:* `trace-123`"));
             verify(messenger).sendErrorMessage(argThat(message -> message.contains("var-lineContains=trace-123")));
