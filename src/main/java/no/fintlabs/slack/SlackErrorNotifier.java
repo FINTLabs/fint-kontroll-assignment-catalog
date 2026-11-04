@@ -3,6 +3,8 @@ package no.fintlabs.slack;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import no.fintlabs.common.HttpErrorNotificationFilter;
+import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -17,7 +20,7 @@ import java.util.Set;
 public class SlackErrorNotifier {
 
     private static final int MAX_STACK_TRACE_LENGTH = 3_000;
-    private static final Duration GRAFANA_CONTEXT_WINDOW = Duration.ofSeconds(30);
+    private static final Duration GRAFANA_CONTEXT_WINDOW = Duration.ofMinutes(10);
 
     private final SlackMessenger slackMessenger;
     private final String grafanaUrl;
@@ -56,7 +59,13 @@ public class SlackErrorNotifier {
                     .append("`");
         }
 
-        dispatch(message, Instant.now());
+        Object correlationIdAttribute = request.getAttribute(HttpErrorNotificationFilter.CORRELATION_ID_ATTRIBUTE);
+        String correlationId = correlationIdAttribute == null ? MDC.get("traceId") : correlationIdAttribute.toString();
+        if (correlationId != null && !correlationId.isBlank()) {
+            message.append("\n🔹 *Correlation ID:* `").append(correlationId).append("`");
+        }
+
+        dispatch(message, Instant.now(), correlationId);
     }
 
     public void notifyErrorLog(ILoggingEvent event) {
@@ -71,28 +80,40 @@ public class SlackErrorNotifier {
                     .append("```");
         }
 
-        dispatch(message, Instant.ofEpochMilli(event.getTimeStamp()));
+        Map<String, String> mdc = event.getMDCPropertyMap();
+        String correlationId = mdc == null ? null : mdc.get("traceId");
+        if (correlationId != null && !correlationId.isBlank()) {
+            message.append("\n🔹 *Correlation ID:* `").append(correlationId).append("`");
+        }
+
+        dispatch(message, Instant.ofEpochMilli(event.getTimeStamp()), correlationId);
     }
 
-    private void dispatch(StringBuilder message, Instant occurredAt) {
-        appendGrafanaLink(message, occurredAt);
+    private void dispatch(StringBuilder message, Instant occurredAt, String correlationId) {
+        appendGrafanaLink(message, occurredAt, correlationId);
         slackMessenger.sendErrorMessage(message.toString());
     }
 
-    private void appendGrafanaLink(StringBuilder message, Instant occurredAt) {
+    private void appendGrafanaLink(StringBuilder message, Instant occurredAt, String correlationId) {
         if (!grafanaUrl.isBlank()) {
             message.append("\n🔹 *Investigate:* <")
-                    .append(grafanaLinkFor(occurredAt))
+                    .append(grafanaLinkFor(occurredAt, correlationId))
                     .append("|Open Grafana logs around this error>");
         }
     }
 
-    private String grafanaLinkFor(Instant occurredAt) {
+    private String grafanaLinkFor(Instant occurredAt, String correlationId) {
         try {
-            return UriComponentsBuilder.fromUriString(grafanaUrl)
+            UriComponentsBuilder url = UriComponentsBuilder.fromUriString(grafanaUrl)
                     .replaceQueryParam("from", occurredAt.minus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
                     .replaceQueryParam("to", occurredAt.plus(GRAFANA_CONTEXT_WINDOW).toEpochMilli())
-                    .replaceQueryParam("var-filters", "app|=|" + applicationId, "namespace|=|" + namespace)
+                    .replaceQueryParam("var-filters", "app|=|" + applicationId, "namespace|=|" + namespace);
+            if (correlationId != null && !correlationId.isBlank()) {
+                url.replaceQueryParam("var-lineContains", correlationId);
+            } else {
+                url.replaceQueryParam("var-lineContains");
+            }
+            return url
                     .build()
                     .encode()
                     .toUriString();

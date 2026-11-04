@@ -23,10 +23,22 @@ public class CustomGlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGenericException(Exception ex, HttpServletRequest request) {
-        log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
-                "Unhandled exception for {} {}", request.getMethod(), request.getRequestURI(), ex);
+        ProblemDetail problem = problemDetailFactory.createProblemDetail(ex, request);
         request.setAttribute(HttpErrorNotificationFilter.HANDLED_EXCEPTION_ATTRIBUTE, ex);
+        Object correlationId = problem.getProperties() == null ? null : problem.getProperties().get("correlationId");
+        request.setAttribute(HttpErrorNotificationFilter.CORRELATION_ID_ATTRIBUTE, correlationId);
 
-        return problemDetailFactory.createProblemDetail(ex, request);
+        if (problem.getStatus() >= 500) {
+            log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
+                    "HTTP {} {} {} correlationId={} exception={} detail={}",
+                    problem.getStatus(), request.getMethod(), request.getRequestURI(), correlationId,
+                    ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        } else {
+            log.warn("HTTP {} {} {} correlationId={} exception={} detail={}",
+                    problem.getStatus(), request.getMethod(), request.getRequestURI(), correlationId,
+                    ex.getClass().getSimpleName(), ex.getMessage());
+        }
+
+        return problem;
     }
 }
