@@ -27,6 +27,8 @@ public class HttpErrorNotificationFilter extends OncePerRequestFilter {
 
     public static final String HANDLED_EXCEPTION_ATTRIBUTE =
             HttpErrorNotificationFilter.class.getName() + ".HANDLED_EXCEPTION";
+    public static final String CORRELATION_ID_ATTRIBUTE =
+            HttpErrorNotificationFilter.class.getName() + ".CORRELATION_ID";
     private static final String NOTIFIED_ATTRIBUTE =
             HttpErrorNotificationFilter.class.getName() + ".NOTIFIED";
 
@@ -47,6 +49,9 @@ public class HttpErrorNotificationFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } catch (Exception exception) {
+            log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
+                    "HTTP 500 {} {} exception={} detail={}", request.getMethod(), request.getRequestURI(),
+                    exception.getClass().getSimpleName(), exception.getMessage(), exception);
             notifyIfNeeded(request, 500, exception);
             throw exception;
         }
@@ -63,12 +68,13 @@ public class HttpErrorNotificationFilter extends OncePerRequestFilter {
 
         request.setAttribute(NOTIFIED_ATTRIBUTE, true);
 
-        if (exception != null) {
-            log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
-                    "Unhandled exception for {} {}", request.getMethod(), request.getRequestURI(), exception);
-        } else {
-            log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
-                    "Request {} {} completed with HTTP {}", request.getMethod(), request.getRequestURI(), status);
+        if (exception == null) {
+            if (status >= 500) {
+                log.error(SlackNotificationMarkers.NOTIFIED_DIRECTLY,
+                        "HTTP {} {} {}", status, request.getMethod(), request.getRequestURI());
+            } else {
+                log.warn("HTTP {} {} {}", status, request.getMethod(), request.getRequestURI());
+            }
         }
 
         slackErrorNotifier.notifyHttpError(status, request, exception);
