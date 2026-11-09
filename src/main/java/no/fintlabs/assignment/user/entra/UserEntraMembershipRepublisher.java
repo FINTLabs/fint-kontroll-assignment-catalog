@@ -45,12 +45,13 @@ public class UserEntraMembershipRepublisher {
             fixedDelayString = "${fint.kontroll.assignment-catalog.reconciliation.fixed-delay}"
     )
     public void republishStaleMemberships() {
+        log.info("Starting user Entra membership republishing job");
         Instant now = Instant.now();
         Date responseCutoff = Date.from(now.minus(Duration.ofHours(responseTimeoutHours)));
         Date failedCutoff = Date.from(now.minus(FAILED_RETRY_DELAY));
-        log.info("Republishing user Entra memberships without a response since {} or with a failure before {}", responseCutoff, failedCutoff);
 
-        retryStaleMemberships(responseCutoff, failedCutoff);
+        long processed = retryStaleMemberships(responseCutoff, failedCutoff);
+        log.info("User Entra membership republishing job finished: {} memberships processed", processed);
     }
 
     public void resendAddCommandsForActiveAssignments() {
@@ -98,8 +99,9 @@ public class UserEntraMembershipRepublisher {
         } while (memberships.size() == BATCH_SIZE);
     }
 
-    public void retryStaleMemberships(Date responseCutoff, Date failedCutoff) {
+    public long retryStaleMemberships(Date responseCutoff, Date failedCutoff) {
         long lastProcessedId = 0L;
+        long processed = 0L;
         List<UserEntraMembership> memberships;
 
         do {
@@ -115,11 +117,13 @@ public class UserEntraMembershipRepublisher {
                     lastProcessedId,
                     PageRequest.of(0, BATCH_SIZE));
             memberships.forEach(membership -> publisher.publish(membership, false));
+            processed += memberships.size();
 
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();
             }
         } while (memberships.size() == BATCH_SIZE);
+        return processed;
     }
 
     public void forceRepublishMembershipsForFlattenedAssignments(List<Long> selectedIds) {

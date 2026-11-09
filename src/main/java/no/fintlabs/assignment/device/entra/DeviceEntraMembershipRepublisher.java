@@ -40,16 +40,18 @@ public class DeviceEntraMembershipRepublisher {
             fixedDelayString = "${fint.kontroll.assignment-catalog.reconciliation.fixed-delay}"
     )
     public void republishStaleMemberships() {
+        log.info("Starting device Entra membership republishing job");
         Instant now = Instant.now();
         Date responseCutoff = Date.from(now.minus(Duration.ofHours(responseTimeoutHours)));
         Date failedCutoff = Date.from(now.minus(FAILED_RETRY_DELAY));
-        log.info("Republishing device Entra memberships without a response since {} or with a failure before {}", responseCutoff, failedCutoff);
 
-        retryStaleMemberships(responseCutoff, failedCutoff);
+        long processed = retryStaleMemberships(responseCutoff, failedCutoff);
+        log.info("Device Entra membership republishing job finished: {} memberships processed", processed);
     }
 
-    public void retryStaleMemberships(Date responseCutoff, Date failedCutoff) {
+    public long retryStaleMemberships(Date responseCutoff, Date failedCutoff) {
         long lastProcessedId = 0L;
+        long processed = 0L;
         List<DeviceEntraMembership> memberships;
 
         do {
@@ -66,11 +68,13 @@ public class DeviceEntraMembershipRepublisher {
                     PageRequest.of(0, BATCH_SIZE));
 
             memberships.forEach(membership -> publisher.publish(membership, false));
+            processed += memberships.size();
 
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();
             }
         } while (memberships.size() == BATCH_SIZE);
+        return processed;
     }
 
     public void republishErrorAssignmentsForDevice(Device device) {
