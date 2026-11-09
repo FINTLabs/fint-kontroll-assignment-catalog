@@ -230,6 +230,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
         User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(savedUser.getIdentityProviderUserObjectId())
@@ -288,6 +289,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
         User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .resourceRef(savedResourceAdobek12.getId())
@@ -344,6 +346,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
         User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(savedUser.getIdentityProviderUserObjectId())
@@ -403,6 +406,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .resourceRef(savedResourceAdobek12.getId())
@@ -457,6 +461,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
         User savedUser = userRepository.saveAndFlush(studentUser);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(savedUser.getIdentityProviderUserObjectId())
@@ -502,6 +507,7 @@ class AssignmentUserServiceIntegrationTest extends DatabaseIntegrationTest {
 
     private Assignment createAssignment(Long roleId, Long userId, UUID azureUserId, Long resourceId, String assignerUserName, Date assignmentRemovedDate) {
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName(assignerUserName)
                 .assignmentRemovedDate(assignmentRemovedDate)
                 .roleRef(roleId)

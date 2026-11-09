@@ -34,6 +34,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,12 +101,17 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Test
     public void shouldGetAssignmentsNotDeleted() {
+        resourceRepository.save(Resource.builder().id(1L).build());
         Assignment activeAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null).build();
 
         Assignment deletedAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("456")
                 .assignerUserName("deleted")
                 .assignmentRemovedDate(new Date()).build();
@@ -121,7 +127,10 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     @Transactional
     @Test
     public void shouldDeleteAssignment() {
+        resourceRepository.save(Resource.builder().id(1L).build());
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null).build();
@@ -153,6 +162,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         resourceRepository.save(resource);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .resourceRef(1L)
                 .organizationUnitId("realfagavd")
@@ -181,6 +191,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         resourceRepository.saveAndFlush(resource);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .resourceRef(2L)
                 .organizationUnitId("realfagavd")

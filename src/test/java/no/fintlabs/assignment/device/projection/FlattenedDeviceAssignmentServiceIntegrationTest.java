@@ -14,6 +14,8 @@ import no.fintlabs.device.group.DeviceGroupRepository;
 import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.enforcement.LicenseEnforcementService;
+import no.fintlabs.resource.Resource;
+import no.fintlabs.resource.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,10 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
     private DeviceEntraMembershipRepository deviceEntraMembershipRepository;
     @Autowired
     private AssignmentRepository assignmentRepository;
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
     @Autowired
     private DeviceRepository deviceRepository;
 
@@ -104,6 +110,11 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
 
         deviceGroupRepository.saveAndFlush(deviceGroup);
 
+        resourceRepository.saveAndFlush(Resource.builder()
+                .id(1L)
+                .identityProviderGroupObjectId(deviceGroupAzureId)
+                .build());
+
         membership = DeviceGroupMembership.builder()
                 .deviceId(deviceId)
                 .deviceGroupId(deviceGroupId)
@@ -116,6 +127,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         assignment.setId(assignmentId);
         assignment.setDeviceGroupRef(deviceGroupId);
         assignment.setEntraGroupId(deviceGroupAzureId);
+        assignment.setResourceRef(1L);
         assignmentRepository.saveAndFlush(assignment);
     }
 
@@ -232,6 +244,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentRepository.saveAndFlush(
                 FlattenedDeviceAssignment.builder()
                         .assignmentId(assignmentId)
+                        .resourceRef(1L)
                         .deviceRef(40L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(deviceGroupAzureId)
@@ -268,6 +281,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentRepository.saveAndFlush(
                 FlattenedDeviceAssignment.builder()
                         .assignmentId(assignmentId)
+                        .resourceRef(1L)
                         .deviceRef(deviceId)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(deviceGroupAzureId)
@@ -335,6 +349,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentRepository.saveAndFlush(
                 FlattenedDeviceAssignment.builder()
                         .assignmentId(assignmentId1)
+                        .resourceRef(1L)
                         .deviceRef(1L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(resourceAzureId)
@@ -347,6 +362,7 @@ class FlattenedDeviceAssignmentServiceIntegrationTest extends DatabaseIntegratio
         flattenedDeviceAssignmentRepository.saveAndFlush(
                 FlattenedDeviceAssignment.builder()
                         .assignmentId(assignmentId2)
+                        .resourceRef(1L)
                         .deviceRef(1L)
                         .identityProviderDeviceObjectId(deviceAzureId)
                         .identityProviderGroupObjectId(resourceAzureId)

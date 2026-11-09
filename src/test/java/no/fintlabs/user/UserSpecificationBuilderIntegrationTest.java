@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,6 +38,7 @@ class UserSpecificationBuilderIntegrationTest extends DatabaseIntegrationTest {
     List<String> allOrgUnitsAsList = List.of("ALLORGUNITS");
 
     Assignment assignment = Assignment.builder()
+            .entraGroupId(UUID.randomUUID())
             .id(1L)
             .userRef(1L)
             .resourceRef(1L)

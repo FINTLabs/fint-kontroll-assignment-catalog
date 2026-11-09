@@ -136,6 +136,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResource.getId())
@@ -185,6 +186,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(entraIdUserId)
@@ -237,6 +239,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(entraIdUserId)
@@ -291,6 +294,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(entraIdUserId)
@@ -342,6 +346,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(null)
                 .userRef(savedUser.getId())
                 .entraUserId(entraIdUserId)
@@ -400,6 +405,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(role.getId())
                 .userRef(null)
                 .resourceRef(savedResource.getId())
@@ -450,6 +456,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         userRepository.save(user);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null)
@@ -491,6 +498,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
@@ -500,6 +508,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
 
         Assignment assignmentZip = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceZip.getId())
@@ -541,6 +550,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment assignmentAdobek12 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceAdobek12.getId())
@@ -550,6 +560,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment savedAssignmentAdobek12 = assignmentRepository.saveAndFlush(assignmentAdobek12);
 
         Assignment assignmentZip = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .roleRef(savedRole.getId())
                 .userRef(null)
                 .resourceRef(savedResourceZip.getId())
@@ -587,6 +598,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         userRepository.save(user);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .assignerUserName("deleted")
                 .assignmentRemovedDate(new Date())
@@ -629,6 +641,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         User savedUser = userRepository.saveAndFlush(user);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(null)
@@ -716,6 +729,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment roleAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(savedRole.getId())
@@ -733,6 +747,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         FlattenedAssignment savedFlattenedAssignmentInDirect = saveFlattenedAssignment(flattenedAssignmentIndirect);
 
         Assignment userAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(null)
@@ -838,6 +853,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Role savedRole = roleRepository.saveAndFlush(role);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(savedRole.getId())
@@ -847,6 +863,7 @@ public class AssignmentResourceServiceIntegrationTest extends DatabaseIntegratio
         Assignment savedAssignment = assignmentRepository.saveAndFlush(assignment);
 
         Assignment assignment2 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("test@test.no")
                 .assignmentRemovedDate(null)
                 .roleRef(savedRole.getId())

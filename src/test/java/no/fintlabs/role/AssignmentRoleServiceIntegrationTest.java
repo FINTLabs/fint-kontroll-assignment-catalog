@@ -29,6 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -109,6 +110,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
         roleRepository.save(role);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null)
@@ -167,6 +169,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
         roleRepository.save(role2);
 
         Assignment assignment1 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null)
                 .userRef(123L)
@@ -176,6 +179,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
         assignmentRepository.save(assignment1);
 
         Assignment assignment2 = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignerUserName("not-deleted2")
                 .assignmentRemovedDate(null)
                 .userRef(123L)
@@ -233,6 +237,7 @@ public class AssignmentRoleServiceIntegrationTest extends DatabaseIntegrationTes
         roleRepository.save(role);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .assignerUserName("deleted")
                 .assignmentRemovedDate(new Date())

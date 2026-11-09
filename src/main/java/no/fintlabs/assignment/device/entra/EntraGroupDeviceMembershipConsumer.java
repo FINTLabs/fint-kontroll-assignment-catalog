@@ -1,111 +1,33 @@
 package no.fintlabs.assignment.device.entra;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.assignment.device.entra.DeviceEntraMembershipPublisher;
-import no.fintlabs.entra.membership.MembershipStatus;
+import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.fintlabs.entra.membership.event.MembershipEventNames;
 import no.fintlabs.kafka.KafkaTopics;
-import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
-import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.UUID;
 
-@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class EntraGroupDeviceMembershipConsumer {
 
-    private final DeviceEntraMembershipRepository deviceEntraMembershipRepository;
-    private final DeviceEntraMembershipPublisher deviceAssigmentEntityProducerService;
+    private static final int MAX_POLL_RECORDS = 100;
+
+    private final EntraGroupDeviceMembershipProcessor processor;
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
 
     @Bean
     public ConcurrentMessageListenerContainer<String, EntraDeviceGroupMembership> entraDeviceMembershipConsumer(
             ParameterizedListenerContainerFactoryService eventConsumerFactoryService
     ) {
-
-        return eventConsumerFactoryService.createRecordListenerContainerFactory(
+        return eventConsumerFactoryService.createBatchListenerContainerFactory(
                         EntraDeviceGroupMembership.class,
-                        this::processGroupMembership,
-                        KafkaTopics.defaultListenerConfiguration(),
+                        processor::processBatch,
+                        KafkaTopics.listenerConfigurationWithMaxPollRecords(MAX_POLL_RECORDS),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
                 .createContainer(KafkaTopics.eventTopicNameParameters(MembershipEventNames.ENTRA_DEVICE_GROUP_MEMBERSHIP));
-    }
-
-    @Transactional
-    public void processGroupMembership(ConsumerRecord<String, EntraDeviceGroupMembership> record) {
-        EntraDeviceGroupMembership entraResponse = record.value();
-        String key = record.key();
-        if (entraResponse == null) {
-            log.warn("Skipping null Entra device membership result for key {}", key);
-            return;
-        }
-        if (entraResponse.getCode() == null) {
-            log.warn("Skipping Entra device membership result with missing code for key {}", key);
-            return;
-        }
-
-        UUID entraDeviceRef = entraResponse.getEntraDeviceRef();
-        UUID entraGroupRef = entraResponse.getEntraGroupRef();
-        Optional<DeviceEntraMembership> deviceEntraMembershipOptional = deviceEntraMembershipRepository.findByDeviceEntraIdAndResourceEntraId(entraDeviceRef, entraGroupRef);
-        if (deviceEntraMembershipOptional.isEmpty()) {
-            log.warn("No device Entra membership found for device {} and resource {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);
-        } else {
-            DeviceEntraMembership deviceEntraMembership = deviceEntraMembershipOptional.get();
-            log.info("Received response for device {} in group {}, messageKey: {}", entraDeviceRef, entraGroupRef, key);
-            switch (entraResponse.getCode()) {
-                case ADDED -> confirmMembershipAdded(deviceEntraMembership, key);
-                case ALREADY_PRESENT -> {
-                    log.warn("Device {} was already present in Entra group {} when ADD was requested, messageKey: {}",
-                            entraDeviceRef, entraGroupRef, key);
-                    confirmMembershipAdded(deviceEntraMembership, key);
-                }
-                case REMOVED -> confirmMembershipRemoved(deviceEntraMembership, key);
-                case ALREADY_REMOVED -> {
-                    log.warn("Device {} was already absent from Entra group {} when REMOVE was requested, messageKey: {}",
-                            entraDeviceRef, entraGroupRef, key);
-                    confirmMembershipRemoved(deviceEntraMembership, key);
-                }
-                case ERROR -> markAsError(deviceEntraMembership, key);
-                case FAILED -> markAsFailed(deviceEntraMembership, key);
-            }
-            deviceEntraMembershipRepository.save(deviceEntraMembership);
-        }
-    }
-
-    private void markAsFailed(DeviceEntraMembership deviceEntraMembership, String key) {
-        log.warn("Received failed status for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-        deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.NEEDS_REPUBLISH);
-    }
-
-    private void markAsError(DeviceEntraMembership deviceEntraMembership, String key) {
-        log.warn("Received error for device {} in group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-        deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.ERROR);
-    }
-
-    private void confirmMembershipRemoved(DeviceEntraMembership deviceEntraMembership, String key) {
-        if (deviceEntraMembership.getMembershipStatus() != MembershipStatus.INACTIVE) {
-            log.info("Received confirmation for removal of device {} from group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-            deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
-        } else {
-            deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.DELETION_CONFIRMED);
-        }
-    }
-
-    private void confirmMembershipAdded(DeviceEntraMembership deviceEntraMembership, String key) {
-        if (deviceEntraMembership.getMembershipStatus() != MembershipStatus.ACTIVE) {
-            log.info("Received confirmation for addition of device {} to group {}, messageKey: {}", deviceEntraMembership.getDeviceEntraId(), deviceEntraMembership.getResourceEntraId(), key);
-            deviceAssigmentEntityProducerService.publish(deviceEntraMembership, true);
-        } else {
-            deviceEntraMembership.setEntraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED);
-        }
     }
 }
