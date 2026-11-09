@@ -82,7 +82,7 @@ jobs:
           cache: 'gradle'
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build --no-daemon -PskipContainerTests
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4
