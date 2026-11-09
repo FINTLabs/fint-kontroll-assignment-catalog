@@ -17,12 +17,6 @@ fint:
         hardstop-enable: true
     slack:
       enabled: false
-      api-url: https://slack.com/api/chat.postMessage
-      channel-id: fint-kontroll-errors
-      # All 5xx responses are notified. Add status codes that are operationally
-      # important for a specific environment here.
-      additional-http-statuses: 429
-      grafana-url: 'https://grafana.flais.io/d/cg2oxl949bpq8d/kontroll-logs?timezone=browser&orgId=1&tab=queries'
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
@@ -44,9 +38,9 @@ spring:
       - db
       - kafka
 logging:
-  # Keep the trace ID for Grafana searches; omit the thread and span ID.
+  # Keep the correlation ID for Grafana searches; omit the thread and span ID.
   pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace=%X{traceId:-}] %logger{36} : %msg%n%wEx'
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [correlationId=%X{correlationId:-}] %logger{36} : %msg%n%wEx'
   level:
     root: INFO
     org.apache.kafka: WARN
