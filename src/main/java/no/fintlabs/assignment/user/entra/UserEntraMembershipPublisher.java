@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -63,6 +64,26 @@ public class UserEntraMembershipPublisher {
             userEntraMembershipRepository.save(userEntraMembership);
             publishMembershipCommand(userEntraMembership.getResourceEntraId(), userEntraMembership.getUserEntraId(), OperationType.ADD);
         }
+    }
+
+    public void republishBatch(List<UserEntraMembership> memberships) {
+        List<UserEntraMembership> validMemberships = memberships.stream()
+                .filter(this::isValidMembership)
+                .toList();
+        if (validMemberships.isEmpty()) {
+            return;
+        }
+
+        Date sentAt = new Date();
+        validMemberships.forEach(membership -> membership.setSentToEntraAt(sentAt));
+        userEntraMembershipRepository.saveAll(validMemberships);
+
+        validMemberships.forEach(membership -> send(new UserResourceGroupMembershipCommand(
+                OperationType.ADD,
+                membership.getResourceEntraId(),
+                membership.getUserEntraId()
+        )));
+        log.info("Republished {} user Entra memberships", validMemberships.size());
     }
 
     public void publishRemoval(FlattenedAssignment flattenedAssignment) {

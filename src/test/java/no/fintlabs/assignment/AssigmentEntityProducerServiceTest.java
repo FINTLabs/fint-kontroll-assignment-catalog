@@ -15,6 +15,7 @@ import no.novari.kafka.topic.EventTopicService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -171,6 +173,45 @@ public class AssigmentEntityProducerServiceTest {
         assertNull(membership.getSentToEntraAt());
         verify(userEntraMembershipRepository, never()).save(any());
         verify(entityProducer, never()).send(any(ParameterizedProducerRecord.class));
+    }
+
+    @Test
+    public void shouldSaveRepublishPageBeforeEnqueueingCommands() {
+        UserEntraMembership first = UserEntraMembership.builder()
+                .id(1L)
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build();
+        UserEntraMembership second = UserEntraMembership.builder()
+                .id(2L)
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
+                .build();
+        UserEntraMembership invalid = UserEntraMembership.builder()
+                .id(3L)
+                .userEntraId(UUID.randomUUID())
+                .build();
+
+        service.republishBatch(List.of(first, invalid, second));
+
+        InOrder order = inOrder(userEntraMembershipRepository, entityProducer);
+        order.verify(userEntraMembershipRepository).saveAll(List.of(first, second));
+        ArgumentCaptor<ParameterizedProducerRecord> records = ArgumentCaptor.forClass(ParameterizedProducerRecord.class);
+        order.verify(entityProducer, times(2)).send(records.capture());
+        UserResourceGroupMembershipCommand firstCommand = (UserResourceGroupMembershipCommand) records.getAllValues().get(0).getValue();
+        UserResourceGroupMembershipCommand secondCommand = (UserResourceGroupMembershipCommand) records.getAllValues().get(1).getValue();
+        assertEquals(OperationType.ADD, firstCommand.getOperation());
+        assertEquals(first.getResourceEntraId(), firstCommand.getEntraGroupRef());
+        assertEquals(first.getUserEntraId(), firstCommand.getEntraUserRef());
+        assertEquals(OperationType.ADD, secondCommand.getOperation());
+        assertEquals(second.getResourceEntraId(), secondCommand.getEntraGroupRef());
+        assertEquals(second.getUserEntraId(), secondCommand.getEntraUserRef());
+        assertNotNull(first.getSentToEntraAt());
+        assertEquals(first.getSentToEntraAt(), second.getSentToEntraAt());
+        assertNull(invalid.getSentToEntraAt());
+        assertEquals(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED, first.getEntraStatus());
     }
 
     @Test

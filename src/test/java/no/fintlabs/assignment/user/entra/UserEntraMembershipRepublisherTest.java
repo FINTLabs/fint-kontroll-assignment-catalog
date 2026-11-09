@@ -89,7 +89,8 @@ class UserEntraMembershipRepublisherTest {
 
         membershipRepublisher.resendAddCommandsForActiveAssignments();
 
-        verify(assigmentEntityProducerService, times(501)).republish(any(UserEntraMembership.class));
+        verify(assigmentEntityProducerService).republishBatch(firstBatch);
+        verify(assigmentEntityProducerService).republishBatch(List.of(third));
         verifyNoMoreInteractions(assigmentEntityProducerService);
         verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(0L), any());
         verify(userEntraMembershipRepository).findActiveMembershipsByIdGreaterThanOrderByIdAsc(eq(500L), any());

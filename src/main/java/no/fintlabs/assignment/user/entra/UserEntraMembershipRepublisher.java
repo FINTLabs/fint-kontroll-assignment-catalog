@@ -61,7 +61,7 @@ public class UserEntraMembershipRepublisher {
         do {
             memberships = membershipRepository.findActiveMembershipsByIdGreaterThanOrderByIdAsc(
                     lastProcessedId, PageRequest.of(0, BATCH_SIZE));
-            memberships.forEach(publisher::republish);
+            publisher.republishBatch(memberships);
 
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();
