@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RetryConfigTest {
 
     @Test
-    void kafkaRetryTemplate_shouldTryTenTimesBeforeFailing() {
+    void kafkaRetryTemplate_shouldTryThreeTimesBeforeFailing() {
         RetryTemplate retryTemplate = new RetryConfig().kafkaRetryTemplate();
         retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
         AtomicInteger attempts = new AtomicInteger();

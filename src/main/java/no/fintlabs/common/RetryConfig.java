@@ -7,12 +7,12 @@ import org.springframework.retry.support.RetryTemplate;
 @Configuration
 public class RetryConfig {
 
-    public static final int KAFKA_RETRY_MAX_ATTEMPTS = 10;
+    public static final int KAFKA_RETRY_MAX_ATTEMPTS = 3;
 
     @Bean
     public RetryTemplate kafkaRetryTemplate() {
         return RetryTemplate.builder()
-                .exponentialBackoff(5000, 2.0, 100000)
+                .exponentialBackoff(1000, 2.0, 2000)
                 .maxAttempts(KAFKA_RETRY_MAX_ATTEMPTS)
                 .build();
     }

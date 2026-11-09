@@ -73,6 +73,16 @@ public final class KafkaTopics {
                 .build();
     }
 
+    public static ListenerConfiguration listenerConfigurationWithMaxPollRecords(int maxPollRecords) {
+        return ListenerConfiguration
+                .stepBuilder()
+                .groupIdApplicationDefault()
+                .maxPollRecords(maxPollRecords)
+                .maxPollIntervalKafkaDefault()
+                .continueFromPreviousOffsetOnAssignment()
+                .build();
+    }
+
     public static EventTopicConfiguration eventTopicConfiguration() {
         return EventTopicConfiguration
                 .stepBuilder()

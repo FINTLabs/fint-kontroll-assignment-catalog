@@ -18,6 +18,8 @@ import static no.fintlabs.common.RetryConfig.KAFKA_RETRY_MAX_ATTEMPTS;
 @RequiredArgsConstructor
 public class DeviceGroupMembershipConsumer {
 
+    private static final int MAX_POLL_RECORDS = 10;
+
     private final DeviceGroupMembershipService deviceGroupMembershipService;
     private final RetryTemplate kafkaRetryTemplate;
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
@@ -30,11 +32,11 @@ public class DeviceGroupMembershipConsumer {
                 .createRecordListenerContainerFactory(
                         DeviceGroupMembership.class,
                         this::processWithRetry,
-                        KafkaTopics.defaultListenerConfiguration(),
+                        KafkaTopics.listenerConfigurationWithMaxPollRecords(MAX_POLL_RECORDS),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
                 .createContainer(KafkaTopics.topicNameParameters("kontroll-device-group-membership"));
     }
-    private void processWithRetry(ConsumerRecord<String, DeviceGroupMembership> record) {
+    void processWithRetry(ConsumerRecord<String, DeviceGroupMembership> record) {
         try {
             kafkaRetryTemplate.execute(context -> {
                 if (context.getRetryCount() > 0) {
@@ -53,8 +55,11 @@ public class DeviceGroupMembershipConsumer {
             });
         } catch (RuntimeException exception) {
             log.error(
-                    "Failed to process device group membership after {} attempts. key={}, deviceId={}, deviceGroupId={}. Record will be handled by Kafka error handler.",
+                    "Failed to process device group membership after {} attempts. topic={}, partition={}, offset={}, key={}, deviceId={}, deviceGroupId={}. Passing record to Kafka skip handler.",
                     KAFKA_RETRY_MAX_ATTEMPTS,
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
                     record.key(),
                     getDeviceId(record),
                     getDeviceGroupId(record),
@@ -65,6 +70,7 @@ public class DeviceGroupMembershipConsumer {
     }
     private void processDeviceGroupMembership(ConsumerRecord<String, DeviceGroupMembership> stringDeviceGroupMembershipConsumerRecord) {
         DeviceGroupMembership incomingMembership = stringDeviceGroupMembershipConsumerRecord.value();
+
         if (incomingMembership != null) {
             deviceGroupMembershipService.saveOrUpdate(incomingMembership);
         }
