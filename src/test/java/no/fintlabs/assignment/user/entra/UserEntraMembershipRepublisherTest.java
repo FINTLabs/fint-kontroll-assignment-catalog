@@ -165,8 +165,7 @@ class UserEntraMembershipRepublisherTest {
                 eq(EntraMembershipSyncStatus.DELETION_SENT),
                 eq(EntraMembershipSyncStatus.NEEDS_REPUBLISH),
                 eq(responseCutoff), eq(failedCutoff), eq(0L), any());
-        verify(assigmentEntityProducerService).publish(activeMembership, false);
-        verify(assigmentEntityProducerService).publish(inactiveMembership, false);
+        verify(assigmentEntityProducerService).republishBatch(List.of(activeMembership, inactiveMembership));
         verifyNoMoreInteractions(assigmentEntityProducerService);
     }
 

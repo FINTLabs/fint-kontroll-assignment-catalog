@@ -75,11 +75,21 @@ public class UserEntraMembershipPublisher {
         }
 
         Date sentAt = new Date();
-        validMemberships.forEach(membership -> membership.setSentToEntraAt(sentAt));
+        validMemberships.forEach(membership -> {
+            if (MembershipStatus.ACTIVE.equals(membership.getMembershipStatus())) {
+                membership.setSentToEntraAt(sentAt);
+                if (membership.getEntraStatus() != EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED) {
+                    membership.setEntraStatus(EntraMembershipSyncStatus.SENT);
+                }
+            } else {
+                membership.setDeletionSentToEntraAt(sentAt);
+                membership.setEntraStatus(EntraMembershipSyncStatus.DELETION_SENT);
+            }
+        });
         userEntraMembershipRepository.saveAll(validMemberships);
 
         validMemberships.forEach(membership -> send(new UserResourceGroupMembershipCommand(
-                OperationType.ADD,
+                MembershipStatus.ACTIVE.equals(membership.getMembershipStatus()) ? OperationType.ADD : OperationType.REMOVE,
                 membership.getResourceEntraId(),
                 membership.getUserEntraId()
         )));

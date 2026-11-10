@@ -181,12 +181,14 @@ public class AssigmentEntityProducerServiceTest {
                 .id(1L)
                 .resourceEntraId(UUID.randomUUID())
                 .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
                 .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
                 .build();
         UserEntraMembership second = UserEntraMembership.builder()
                 .id(2L)
                 .resourceEntraId(UUID.randomUUID())
                 .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
                 .entraStatus(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED)
                 .build();
         UserEntraMembership invalid = UserEntraMembership.builder()
@@ -212,6 +214,40 @@ public class AssigmentEntityProducerServiceTest {
         assertEquals(first.getSentToEntraAt(), second.getSentToEntraAt());
         assertNull(invalid.getSentToEntraAt());
         assertEquals(EntraMembershipSyncStatus.MEMBERSHIP_CONFIRMED, first.getEntraStatus());
+    }
+
+    @Test
+    public void shouldBatchPendingAddsAndRemovalsWithTheirOwnStatusesAndTimestamps() {
+        UserEntraMembership active = UserEntraMembership.builder()
+                .id(1L)
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.ACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.NOT_SENT)
+                .build();
+        UserEntraMembership inactive = UserEntraMembership.builder()
+                .id(2L)
+                .resourceEntraId(UUID.randomUUID())
+                .userEntraId(UUID.randomUUID())
+                .membershipStatus(MembershipStatus.INACTIVE)
+                .entraStatus(EntraMembershipSyncStatus.TO_BE_DELETED)
+                .build();
+
+        service.republishBatch(List.of(active, inactive));
+
+        ArgumentCaptor<ParameterizedProducerRecord> records = ArgumentCaptor.forClass(ParameterizedProducerRecord.class);
+        verify(entityProducer, times(2)).send(records.capture());
+        assertEquals(OperationType.ADD,
+                ((UserResourceGroupMembershipCommand) records.getAllValues().get(0).getValue()).getOperation());
+        assertEquals(OperationType.REMOVE,
+                ((UserResourceGroupMembershipCommand) records.getAllValues().get(1).getValue()).getOperation());
+        assertEquals(EntraMembershipSyncStatus.SENT, active.getEntraStatus());
+        assertNotNull(active.getSentToEntraAt());
+        assertNull(active.getDeletionSentToEntraAt());
+        assertEquals(EntraMembershipSyncStatus.DELETION_SENT, inactive.getEntraStatus());
+        assertNotNull(inactive.getDeletionSentToEntraAt());
+        assertNull(inactive.getSentToEntraAt());
+        verify(userEntraMembershipRepository).saveAll(List.of(active, inactive));
     }
 
     @Test

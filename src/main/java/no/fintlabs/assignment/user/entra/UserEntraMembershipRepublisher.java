@@ -116,7 +116,7 @@ public class UserEntraMembershipRepublisher {
                     failedCutoff,
                     lastProcessedId,
                     PageRequest.of(0, BATCH_SIZE));
-            memberships.forEach(membership -> publisher.publish(membership, false));
+            publisher.republishBatch(memberships);
             processed += memberships.size();
 
             if (!memberships.isEmpty()) {

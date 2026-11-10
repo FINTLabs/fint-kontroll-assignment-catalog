@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
 
     @Test
-    void upgradesDeployedV33AndCombinesAssignmentsIntoDistinctMemberships() {
+    void upgradesDeployedV33AndBackfillsActionableAssignmentsBeforeHistory() {
         Flyway deployed = Flyway.configure()
                 .dataSource(postgreSQLContainer.getJdbcUrl(), postgreSQLContainer.getUsername(), postgreSQLContainer.getPassword())
                 .locations("classpath:db/migration")
@@ -42,7 +42,8 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
                     (1, '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', true, false, 1, NULL),
                     (2, '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', false, false, 1, NULL),
                     (3, '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', true, true, 1, now()),
-                    (1, '10000000-0000-0000-0000-000000000003', NULL, false, false, 1, NULL)
+                    (1, '10000000-0000-0000-0000-000000000003', NULL, false, false, 1, NULL),
+                    (4, '10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', true, false, 1, now())
                 """);
         Flyway upgraded = Flyway.configure()
                 .dataSource(deployed.getConfiguration().getDataSource())
@@ -61,7 +62,7 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
                 WHERE table_name = 'flattened_user_assignments' AND column_name = 'assigner_ref'
                 """, Long.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flattened_user_assignments WHERE user_entra_membership_id IS NULL", Long.class))
-                .isEqualTo(4L);
+                .isEqualTo(5L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flattened_user_assignments WHERE identity_provider_group_object_id IS NULL", Long.class))
                 .isZero();
 
@@ -77,9 +78,24 @@ class AssignmentMigrationIntegrationTest extends DatabaseIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT entra_status FROM user_entra_memberships WHERE user_entra_id = ?", String.class, userId))
                 .isEqualTo("NOT_SENT");
         assertThat(jdbc.queryForObject("SELECT entra_status FROM user_entra_memberships WHERE membership_status = 'INACTIVE'", String.class))
-                .isEqualTo("DELETION_CONFIRMED");
+                .isEqualTo("TO_BE_DELETED");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flattened_user_assignments WHERE user_entra_membership_id IS NOT NULL", Long.class))
                 .isEqualTo(4L);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM flattened_user_assignments
+                WHERE user_entra_membership_id IS NULL AND assignment_termination_date IS NOT NULL
+                  AND identity_provider_group_membership_deletion_confirmed IS TRUE
+                """, Long.class)).isEqualTo(1L);
+
+        new ResourceDatabasePopulator(new ClassPathResource(
+                "db/manual/complete_flattened_assignments_to_user_entra_memberships.sql"
+        )).execute(jdbc.getDataSource());
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_entra_memberships", Long.class)).isEqualTo(4L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM user_entra_memberships WHERE entra_status = 'DELETION_CONFIRMED'", Long.class))
+                .isEqualTo(1L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flattened_user_assignments WHERE user_entra_membership_id IS NOT NULL", Long.class))
+                .isEqualTo(5L);
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(DISTINCT user_entra_membership_id)
                 FROM flattened_user_assignments
