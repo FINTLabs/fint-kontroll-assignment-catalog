@@ -22,19 +22,13 @@ patches:
       - op: replace
         path: "/spec/env/4/value"
         value: "fintlabs-no"
+      - op: remove
+        path: "/spec/envFrom/1"
       - op: add
         path: "/spec/env/-"
         value:
-          name: "fint.kontroll.slack.channel-id"
-          value: "fint-kontroll-errors-beta"
+          name: "fint.kontroll.slack.enabled"
+          value: "false"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
-
-  - patch: |-
-      - op: replace
-        path: "/spec/itemPath"
-        value: "vaults/aks-beta-vault/items/kontroll-slack-setup"
-    target:
-      kind: OnePasswordItem
-      name: fint-kontroll-slack-secrets
