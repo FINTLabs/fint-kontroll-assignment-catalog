@@ -63,11 +63,6 @@ patches:
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"
-      - op: add
-        path: "/spec/env/-"
-        value:
-          name: "fint.kontroll.slack.channel-id"
-          value: "C089300TSSV"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
