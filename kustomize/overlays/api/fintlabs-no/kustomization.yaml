@@ -66,11 +66,6 @@ patches:
       - op: add
         path: "/spec/env/-"
         value:
-          name: "fint.kontroll.slack.additional-http-statuses"
-          value: "409,404,422"
-      - op: add
-        path: "/spec/env/-"
-        value:
           name: "fint.kontroll.slack.channel-id"
           value: "C089300TSSV"
     target:
