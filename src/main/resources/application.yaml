@@ -17,6 +17,7 @@ fint:
         hardstop-enable: true
     slack:
       enabled: false
+      additional-http-statuses: [409, 404, 422]
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
