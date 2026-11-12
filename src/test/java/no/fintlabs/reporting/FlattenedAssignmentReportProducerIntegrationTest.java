@@ -8,7 +8,6 @@ import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.common.AsyncConfig;
-import no.fintlabs.common.GlobalAsyncExceptionHandler;
 import no.fintlabs.opa.OpaApiClient;
 import no.fintlabs.opa.OpaService;
 import no.fintlabs.opa.RestTemplateOpaProvider;
@@ -85,21 +84,12 @@ public class FlattenedAssignmentReportProducerIntegrationTest extends DatabaseIn
 
     @MockBean
     private Tracer tracer;
-
-    @MockBean
-    private ProblemDetailFactory problemDetailFactory;
-
-
-
-
+    
     @MockBean
     private FintKontrollSecurityConfig fintKontrollSecurityConfig;
 
     @MockBean
     private AsyncConfig asyncConfig;
-
-    @MockBean
-    private GlobalAsyncExceptionHandler globalAsyncExceptionHandler;
 
     @MockBean
     private SlackMessenger slackMessenger;
