@@ -52,11 +52,7 @@ public class LicenseEnforcementService {
         if (assignments.isEmpty()) {
             log.info("No assignment found for device group {} with id : {}", deviceGroup.getName(), deviceGroup.getId());
         }
-        assignments.stream()
-                .map(Assignment::getResourceRef)
-                .filter(Objects::nonNull)
-                .distinct()
-                .forEach(this::recalculateAssignedResourcesForResource);
+        recalculateAssignedResourcesInOrder(assignments);
     }
 
     private boolean isHardStop(Resource resource) {
@@ -76,12 +72,17 @@ public class LicenseEnforcementService {
         if (assignments.isEmpty()) {
             log.info("No assignment found for role {} with id : {}", role.getRoleName(), role.getId());
         }
+        recalculateAssignedResourcesInOrder(assignments);
+        return true;
+    }
+
+    private void recalculateAssignedResourcesInOrder(List<Assignment> assignments) {
         assignments.stream()
                 .map(Assignment::getResourceRef)
                 .filter(Objects::nonNull)
                 .distinct()
+                .sorted()
                 .forEach(this::recalculateAssignedResourcesForResource);
-        return true;
     }
 
     public boolean recalculateAssignedResources(Assignment assignment) {

@@ -8,6 +8,7 @@ import no.fintlabs.assignment.user.entra.UserEntraMembershipRepository;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentRepository;
 import no.fintlabs.assignment.device.entra.DeviceEntraMembershipRepository;
+import no.fintlabs.device.group.DeviceGroup;
 import no.fintlabs.device.groupmembership.DeviceGroupMembershipRepository;
 import no.fintlabs.entra.membership.MembershipStatus;
 import no.fintlabs.kodeverk.Handhevingstype;
@@ -15,10 +16,12 @@ import no.fintlabs.membership.MembershipRepository;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
 import no.fintlabs.resource.ResourceRepository;
+import no.fintlabs.role.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -29,6 +32,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,6 +101,46 @@ class LicenseEnforcementServiceTest {
                 .build();
 
         ReflectionTestUtils.setField(licenseEnforcementService, "hardstopEnabled", true);
+    }
+
+    @Test
+    void roleRecalculationLocksResourcesInAscendingOrder() {
+        givenTwoResources();
+        given(assignmentRepository.findAssignmentsByRoleRefAndAssignmentRemovedDateIsNull(7L))
+                .willReturn(assignmentsInReverseOrder());
+
+        assertThat(licenseEnforcementService.recalculateAssignmentsForRole(Role.builder().id(7L).build())).isTrue();
+
+        verifyResourceLockOrder();
+    }
+
+    @Test
+    void deviceGroupRecalculationLocksResourcesInAscendingOrder() {
+        givenTwoResources();
+        given(assignmentRepository.findAssignmentsByDeviceGroupRefAndAssignmentRemovedDateIsNull(7L))
+                .willReturn(assignmentsInReverseOrder());
+
+        licenseEnforcementService.updateAssignedResourcesOnDeviceGroupUpdate(DeviceGroup.builder().id(7L).build());
+
+        verifyResourceLockOrder();
+    }
+
+    private void givenTwoResources() {
+        given(resourceRepository.lockByResourceId(1L)).willReturn(Resource.builder().id(1L).build());
+        given(resourceRepository.lockByResourceId(2L)).willReturn(Resource.builder().id(2L).build());
+    }
+
+    private List<Assignment> assignmentsInReverseOrder() {
+        return List.of(
+                Assignment.builder().resourceRef(2L).build(),
+                Assignment.builder().resourceRef(1L).build(),
+                Assignment.builder().resourceRef(2L).build());
+    }
+
+    private void verifyResourceLockOrder() {
+        ArgumentCaptor<Long> ids = ArgumentCaptor.forClass(Long.class);
+        verify(resourceRepository, times(2)).lockByResourceId(ids.capture());
+        assertThat(ids.getAllValues()).containsExactly(1L, 2L);
     }
 
     @Test
