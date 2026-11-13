@@ -1,5 +1,6 @@
 package no.fintlabs.assignment.user.entra;
 
+import jakarta.persistence.EntityManager;
 import no.fintlabs.assignment.user.projection.FlattenedAssignment;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
@@ -29,12 +30,14 @@ class UserEntraMembershipRepublisherTest {
     private UserEntraMembershipRepository userEntraMembershipRepository;
     @Mock
     private UserEntraMembershipPublisher assigmentEntityProducerService;
+    @Mock
+    private EntityManager entityManager;
     private UserEntraMembershipRepublisher membershipRepublisher;
 
     @BeforeEach
     void setUp() {
         membershipRepublisher = new UserEntraMembershipRepublisher(
-                userEntraMembershipRepository, flattenedAssignmentRepository, assigmentEntityProducerService, 72);
+                userEntraMembershipRepository, flattenedAssignmentRepository, assigmentEntityProducerService, entityManager,72);
     }
 
     private FlattenedAssignment flattenedAssignment(Long id, Date terminationDate, UUID idp) {

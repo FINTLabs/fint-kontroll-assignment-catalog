@@ -59,7 +59,7 @@ patches:
         path: "/spec/env/5"
         value:
           name: "JAVA_TOOL_OPTIONS"
-          value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"
+          value: "-XX:+ExitOnOutOfMemoryError -Xmx4500m"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog

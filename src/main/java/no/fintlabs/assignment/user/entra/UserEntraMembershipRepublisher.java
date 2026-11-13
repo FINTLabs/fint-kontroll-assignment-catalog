@@ -1,5 +1,6 @@
 package no.fintlabs.assignment.user.entra;
 
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.entra.membership.EntraMembershipSyncStatus;
@@ -26,17 +27,20 @@ public class UserEntraMembershipRepublisher {
     private final UserEntraMembershipRepository membershipRepository;
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final UserEntraMembershipPublisher publisher;
+    private final EntityManager entityManager;
     private final long responseTimeoutHours;
 
     public UserEntraMembershipRepublisher(
             UserEntraMembershipRepository membershipRepository,
             FlattenedAssignmentRepository flattenedAssignmentRepository,
             UserEntraMembershipPublisher publisher,
+            EntityManager entityManager,
             @Value("${fint.kontroll.assignment-catalog.reconciliation.response-timeout:72}") long responseTimeoutHours
     ) {
         this.membershipRepository = membershipRepository;
         this.flattenedAssignmentRepository = flattenedAssignmentRepository;
         this.publisher = publisher;
+        this.entityManager = entityManager;
         this.responseTimeoutHours = responseTimeoutHours;
     }
 
@@ -66,6 +70,7 @@ public class UserEntraMembershipRepublisher {
             if (!memberships.isEmpty()) {
                 lastProcessedId = memberships.getLast().getId();
             }
+            entityManager.clear();
         } while (memberships.size() == BATCH_SIZE);
     }
 
