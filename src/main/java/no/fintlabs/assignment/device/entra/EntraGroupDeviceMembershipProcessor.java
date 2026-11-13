@@ -78,7 +78,7 @@ public class EntraGroupDeviceMembershipProcessor {
                 }
                 matchedRecords++;
 
-                log.debug("Received response for device {} in group {}, messageKey: {}",
+                log.info("Received response for device {} in group {}, messageKey: {}",
                         response.getEntraDeviceRef(), response.getEntraGroupRef(), record.key());
                 switch (response.getCode()) {
                     case ADDED -> confirmMembershipAdded(membership, record.key());
@@ -132,8 +132,8 @@ public class EntraGroupDeviceMembershipProcessor {
             log.error("Entra device membership batch completed with failures: received={}, failedRecords={}, failedSaves={}. Failed results were logged and skipped.",
                     records.size(), failedRecords, failedSaves);
         } else {
-            log.info("Processed Entra device membership batch: received={}, matched={}, saved={}",
-                    records.size(), matchedRecords, changed.size());
+            log.info("Processed Entra device membership batch of {} records.",
+                    records.size());
         }
     }
 
