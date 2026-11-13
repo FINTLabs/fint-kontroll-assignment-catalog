@@ -55,7 +55,6 @@ public class EntraUserGroupMembershipProcessor {
         }
 
         Set<UserEntraMembership> changed = new LinkedHashSet<>();
-        int matchedRecords = 0;
         int failedRecords = 0;
         for (ConsumerRecord<String, EntraUserGroupMembershipResult> record : records) {
             try {
@@ -76,7 +75,6 @@ public class EntraUserGroupMembershipProcessor {
                             response.getEntraUserRef(), response.getEntraGroupRef(), record.key());
                     continue;
                 }
-                matchedRecords++;
 
                 log.debug("Received response for user {} in group {}, messageKey: {}",
                         response.getEntraUserRef(), response.getEntraGroupRef(), record.key());
@@ -132,8 +130,8 @@ public class EntraUserGroupMembershipProcessor {
             log.error("Entra user membership batch completed with failures: received={}, failedRecords={}, failedSaves={}. Failed results were logged and skipped.",
                     records.size(), failedRecords, failedSaves);
         } else {
-            log.info("Processed Entra user membership batch: received={}, matched={}, saved={}",
-                    records.size(), matchedRecords, changed.size());
+            log.info("Processed Entra user membership batch of {} records.",
+                    records.size());
         }
     }
 

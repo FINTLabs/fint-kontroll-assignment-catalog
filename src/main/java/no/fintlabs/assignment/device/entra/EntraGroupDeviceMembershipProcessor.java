@@ -55,7 +55,6 @@ public class EntraGroupDeviceMembershipProcessor {
         }
 
         Set<DeviceEntraMembership> changed = new LinkedHashSet<>();
-        int matchedRecords = 0;
         int failedRecords = 0;
         for (ConsumerRecord<String, EntraDeviceGroupMembership> record : records) {
             try {
@@ -76,7 +75,6 @@ public class EntraGroupDeviceMembershipProcessor {
                             response.getEntraDeviceRef(), response.getEntraGroupRef(), record.key());
                     continue;
                 }
-                matchedRecords++;
 
                 log.info("Received response for device {} in group {}, messageKey: {}",
                         response.getEntraDeviceRef(), response.getEntraGroupRef(), record.key());

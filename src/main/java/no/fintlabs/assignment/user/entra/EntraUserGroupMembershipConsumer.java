@@ -15,7 +15,7 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @RequiredArgsConstructor
 public class EntraUserGroupMembershipConsumer {
 
-    private static final int MAX_POLL_RECORDS = 100;
+    private static final int MAX_POLL_RECORDS = 500;
 
     private final EntraUserGroupMembershipProcessor processor;
     private final KafkaConsumerConfigurationDefaults kafkaConsumerConfigurationDefaults;
