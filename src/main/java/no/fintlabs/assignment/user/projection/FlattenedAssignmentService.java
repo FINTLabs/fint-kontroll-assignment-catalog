@@ -272,11 +272,15 @@ public class FlattenedAssignmentService {
                 .map(FlattenedAssignment::getResourceRef)
                 .filter(Objects::nonNull)
                 .distinct()
+                .sorted()
                 .forEach(this::recalculateAssignedResources);
     }
 
     private void recalculateAssignedResources(Set<Long> resourceRefs) {
-        resourceRefs.forEach(this::recalculateAssignedResources);
+        resourceRefs.stream()
+                .filter(Objects::nonNull)
+                .sorted()
+                .forEach(this::recalculateAssignedResources);
     }
 
     private void recalculateAssignedResources(Long resourceRef) {

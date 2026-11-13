@@ -75,6 +75,26 @@ public class FlattenedAssignmentServiceTest {
     }
 
     @Test
+    void shouldRecalculateResourcesInAscendingOrderWhenTerminatingMembershipAssignments() {
+        FlattenedAssignment first = flattenedAssignment(1L, null, null);
+        first.setResourceRef(20L);
+        FlattenedAssignment second = flattenedAssignment(2L, null, null);
+        second.setResourceRef(10L);
+        FlattenedAssignment third = flattenedAssignment(3L, null, null);
+        third.setResourceRef(20L);
+
+        when(flattenedAssignmentRepository.findById(1L)).thenReturn(Optional.of(first));
+        when(flattenedAssignmentRepository.findById(2L)).thenReturn(Optional.of(second));
+        when(flattenedAssignmentRepository.findById(3L)).thenReturn(Optional.of(third));
+
+        flattenedAssignmentService.terminateByIds(new LinkedHashSet<>(List.of(1L, 2L, 3L)));
+
+        ArgumentCaptor<Long> resourceIds = ArgumentCaptor.forClass(Long.class);
+        verify(licenseEnforcementService, times(2)).recalculateAssignedResourcesForResource(resourceIds.capture());
+        assertEquals(List.of(10L, 20L), resourceIds.getAllValues());
+    }
+
+    @Test
     public void shouldCreateUserAssignment_manual() {
         Assignment assignment = assignment(1L);
 
