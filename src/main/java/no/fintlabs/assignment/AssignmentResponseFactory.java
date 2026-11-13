@@ -1,6 +1,6 @@
 package no.fintlabs.assignment;
 
-import no.vigoiks.resourceserver.security.FintJwtEndUserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -15,38 +15,12 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class AssignmentResponseFactory {
 
-    //private final FintFilterService fintFilterService;
     private final AssignmentRepository assignmentRepository;
-    private final AssignmentService assignmentService;
 
-    public AssignmentResponseFactory(AssignmentRepository assignmentRepository,
-                                     AssignmentService assignmentService) //FintFilterService fintFilterService,
-    {
-        //this.fintFilterService = fintFilterService;
-        this.assignmentRepository = assignmentRepository;
-        this.assignmentService = assignmentService;
-    }
-    public ResponseEntity<Map<String, Object>> toResponseEntity(FintJwtEndUserPrincipal principal,
-                                                                String search,
-                                                                List<String> orgUnits,
-                                                                int page,
-                                                                int size
-    ){
-        List<SimpleAssignment> simpleAssignments = assignmentService.getSimpleAssignments();//,search,orgUnits
-        ResponseEntity<Map<String,Object>> entity = toResponseEntity(toPage(simpleAssignments,PageRequest.of(page,size)));
-
-        return entity;
-    }
-
-    public ResponseEntity<Map<String, Object>> toResponseEntity(
-            FintJwtEndUserPrincipal principal,
-            //String filter,
-            int pageNumber,
-            int pageSize,
-            String userType
-    ) {
+    public ResponseEntity<Map<String, Object>> toResponseEntity(int pageNumber, int pageSize) {
         Specification<Assignment> spec = AssignmentSpecificationBuilder.notDeleted();
         List<Assignment> allAssignments = assignmentRepository.findAll(spec);
 
@@ -79,18 +53,4 @@ public class AssignmentResponseFactory {
         );
     }
 
-//    Pageable page = PageRequest.of(pageNumber,
-//                                   pageSize,
-//                                   Sort.by("resourceName").ascending()
-//                                           .and(Sort.by("userDisplayname")).ascending());
-    //Page<SimpleAssignment> assignmentPage = assignmentRepository.findAll(page);
-    //return toResponseEntity(assignmentPage);
-    //                toPage(
-    //                        StringUtils.hasText(filter)
-    //                                ? fintFilterService
-    //                                .from(assignmentStream, filter)
-    //                                .map(Assignment::toSimpleAssignment).toList()
-    //                                : assignmentStream.map(Assignment::toSimpleAssignment).toList(),
-    //                        PageRequest.of(page, size)
-    //                )
 }

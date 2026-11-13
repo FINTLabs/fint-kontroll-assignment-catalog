@@ -4,6 +4,7 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+          batch_size: 50
           lob:
             non_contextual_creation: true
         dialect: org.hibernate.dialect.PostgreSQLDialect

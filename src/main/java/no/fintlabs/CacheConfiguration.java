@@ -2,6 +2,9 @@ package no.fintlabs;
 
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.cache.FintCacheManager;
+import no.fintlabs.device.Device;
+import no.fintlabs.device.group.DeviceGroup;
+import no.fintlabs.device.groupmembership.DeviceGroupMembership;
 import no.fintlabs.membership.Membership;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
@@ -32,6 +35,21 @@ public class CacheConfiguration {
     @Bean
     FintCache<Long, User> userCache() {
         return createCacheLongKey(User.class);
+    }
+
+    @Bean
+    FintCache<Long, Device> deviceCache() {
+        return createCacheLongKey(Device.class);
+    }
+
+    @Bean
+    FintCache<Long, DeviceGroup> deviceGroupCache() {
+        return createCacheLongKey(DeviceGroup.class);
+    }
+
+    @Bean
+    FintCache<Long, DeviceGroupMembership> deviceGroupMembershipCache() {
+        return createCacheLongKey(DeviceGroupMembership.class);
     }
 
     private <V> FintCache<String, V> createCacheStringKey(Class<V> resourceClass) {

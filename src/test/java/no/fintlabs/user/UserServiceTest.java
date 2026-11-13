@@ -40,9 +40,11 @@ public class UserServiceTest {
         User user = mock(User.class);
         User updatedUser = mock(User.class);
 
-        when(user.convertedUserEquals(updatedUser)).thenReturn(false);
+        when(user.hasSamePersistedStateAs(updatedUser)).thenReturn(false);
         when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
+        when(user.getStatus()).thenReturn("ACTIVE");
+        when(updatedUser.getStatus()).thenReturn("ACTIVE");
 
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
@@ -58,9 +60,11 @@ public class UserServiceTest {
         User user = mock(User.class);
         User updatedUser = mock(User.class);
 
-        when(user.convertedUserEquals(updatedUser)).thenReturn(false);
+        when(user.hasSamePersistedStateAs(updatedUser)).thenReturn(false);
         when(user.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
         when(updatedUser.getIdentityProviderUserObjectId()).thenReturn(new UUID(0, 0));
+        when(user.getStatus()).thenReturn("ACTIVE");
+        when(updatedUser.getStatus()).thenReturn("ACTIVE");
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
         User result = userService.updateUser(user, updatedUser);
@@ -75,7 +79,7 @@ public class UserServiceTest {
         User user = mock(User.class);
         User updatedUser = mock(User.class);
 
-        when(user.convertedUserEquals(updatedUser)).thenReturn(true);
+        when(user.hasSamePersistedStateAs(updatedUser)).thenReturn(true);
 
         User result = userService.updateUser(user, updatedUser);
 
@@ -104,9 +108,10 @@ public class UserServiceTest {
     }
 
     @Test
-    void updateUser_shouldDeactivateAssignmentsWhenStatusChangesFromNullToInactive() {
+    void updateUser_shouldDeactivateAssignmentsWhenStatusChangesFromActiveToInactive() {
         User user = User.builder()
                 .id(1L)
+                .status("ACTIVE")
                 .identityProviderUserObjectId(new UUID(0, 0))
                 .build();
         User updatedUser = User.builder()

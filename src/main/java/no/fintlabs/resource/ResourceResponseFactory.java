@@ -28,7 +28,7 @@ public class ResourceResponseFactory {
             int pageNumber,
             int pageSize
     ){
-        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(userId, roleId, resourceType, orgUnits, orgUnitsInScope,searchString, resourceIds);
+        ResourceSpecificationBuilder builder = new ResourceSpecificationBuilder(userId, roleId, resourceType,searchString, resourceIds);
         Pageable page = PageRequest.of(pageNumber,
                 pageSize,
                 Sort.by("resourceName").ascending());
@@ -41,7 +41,7 @@ public class ResourceResponseFactory {
         }
     }
 
-    public ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
+    public static ResponseEntity<Map<String, Object>> toResponseEntity(Page<AssignmentResource> resourcePage) {
 
         return new ResponseEntity<>(
                 Map.of( "resources", resourcePage.getContent(),
@@ -67,5 +67,4 @@ public class ResourceResponseFactory {
         );
     }
 }
-
 
