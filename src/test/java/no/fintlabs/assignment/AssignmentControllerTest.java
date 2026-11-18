@@ -5,6 +5,7 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.ServletException;
 import no.fintlabs.ExceptionMappingRegistry;
 import no.fintlabs.ProblemDetailFactory;
+import no.fintlabs.RequestBodyLogging;
 import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.assignment.user.entra.UserEntraMembershipRepublisher;
@@ -104,6 +105,9 @@ public class AssignmentControllerTest {
 
     @MockBean
     private Tracer tracer;
+
+    @MockBean
+    private RequestBodyLogging requestBodyLogging;
 
     @SpyBean
     private ProblemDetailFactory problemDetailFactory;
@@ -449,8 +453,7 @@ public class AssignmentControllerTest {
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(result -> result.getResponse().getContentAsString().contains("Exactly one of userRef or roleRef must be set"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -484,6 +487,22 @@ public class AssignmentControllerTest {
         mockMvc.perform(post("/api/assignments")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void createAssignment_missingRole_returnsNotFound() throws Exception {
+        NewAssignmentRequest newAssignmentRequest = new NewAssignmentRequest();
+        newAssignmentRequest.resourceRef = 123L;
+        newAssignmentRequest.organizationUnitId = "99999999";
+        newAssignmentRequest.roleRef = 6999999996L;
+
+        doThrow(new ResourceNotFoundException("Role not found: 6999999996"))
+                .when(assignmentServiceMock).createNewAssignment(123L, "99999999", null, 6999999996L);
+
+        mockMvc.perform(post("/api/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(newAssignmentRequest)))
                 .andExpect(status().isNotFound());
     }
 

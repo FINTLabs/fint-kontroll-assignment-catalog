@@ -15,9 +15,6 @@ fint:
         response-timeout: 72
       license-enforcement:
         hardstop-enable: true
-    slack:
-      url: http://localhost/
-      enabled: false
     opa:
       url: http://fint-kontroll-opa:8181/v1/data/accessmanagement
     authorization:
@@ -39,6 +36,9 @@ spring:
       - db
       - kafka
 logging:
+  # Keep the correlation ID for Grafana searches; omit the thread and span ID.
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [correlationId=%X{correlationId:-}] %logger{36} : %msg%n%wEx'
   level:
     root: INFO
     org.apache.kafka: WARN

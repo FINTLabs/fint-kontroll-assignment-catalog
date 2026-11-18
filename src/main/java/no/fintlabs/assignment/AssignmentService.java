@@ -15,7 +15,6 @@ import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.role.Role;
-import no.fintlabs.role.RoleNotFoundException;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
 import no.fintlabs.user.UserRepository;
@@ -196,7 +195,7 @@ public class AssignmentService {
             assignment.setRoleName(role.getRoleName());
             assignment.setRoleType(role.getRoleType());
         }, () -> {
-            throw new RoleNotFoundException(roleRef.toString());
+            throw new ResourceNotFoundException("Role not found: " + roleRef);
         });
     }
 

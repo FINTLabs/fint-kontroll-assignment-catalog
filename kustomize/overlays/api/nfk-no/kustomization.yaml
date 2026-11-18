@@ -58,19 +58,14 @@ patches:
       - op: replace
         path: "/spec/env/4/value"
         value: "nfk-no"
+      - op: replace
+        path: "/spec/env/5/value"
+        value: "nfk-no"
       - op: add
-        path: "/spec/env/5"
+        path: "/spec/env/-"
         value:
           name: "JAVA_TOOL_OPTIONS"
           value: "-XX:+ExitOnOutOfMemoryError -Xmx5870m"
     target:
       kind: Application
       name: fint-kontroll-assignment-catalog
-
-  - patch: |-
-      - op: replace
-        path: "/spec/itemPath"
-        value: "vaults/aks-api-vault/items/kontroll-slack-nfk-no"
-    target:
-      kind: OnePasswordItem
-      name: fint-kontroll-slack-secrets
