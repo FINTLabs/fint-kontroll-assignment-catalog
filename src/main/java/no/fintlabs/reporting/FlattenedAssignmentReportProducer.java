@@ -1,7 +1,7 @@
 package no.fintlabs.reporting;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -18,8 +18,8 @@ public class FlattenedAssignmentReportProducer {
     public FlattenedAssignmentReportProducer(ParameterizedTemplateFactory entityProducerFactory, EntityTopicService entityTopicService) {
         entityProducer = entityProducerFactory.createTemplate(FlattenedAssignmentReport.class);
 
-        topicNameParameters = KafkaEntityTopics.topicNameParameters("flattened-assignment-reporting");
-        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaEntityTopics.compactedTopicConfiguration());
+        topicNameParameters = KafkaTopics.topicNameParameters("flattened-assignment-reporting");
+        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaTopics.compactedTopicConfiguration());
     }
 
     public void publish(FlattenedAssignmentReport flattenedAssignmentReport) {

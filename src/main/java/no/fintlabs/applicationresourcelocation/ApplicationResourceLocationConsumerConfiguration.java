@@ -2,7 +2,7 @@ package no.fintlabs.applicationresourcelocation;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -53,9 +53,9 @@ public class ApplicationResourceLocationConsumerConfiguration {
                                 log.info("Created ApplicationResourceLocation {}", incoming.getId());
                             }
                         },
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("applicationresourcelocation-extended"));
+                .createContainer(KafkaTopics.topicNameParameters("applicationresourcelocation-extended"));
     }
 
 

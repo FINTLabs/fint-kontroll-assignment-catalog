@@ -20,7 +20,7 @@ spring:
         enable_lazy_load_no_trans: true
 
   flyway:
-    locations: classpath:db/migration/,classpath:db/testdata/
+    locations: classpath:db/migration/
     lock-retry-count: 300
     enabled: false
 

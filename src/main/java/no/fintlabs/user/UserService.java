@@ -1,9 +1,9 @@
 package no.fintlabs.user;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.AssignmentService;
 import no.fintlabs.membership.MembershipService;
-import no.fintlabs.role.AssignmentRoleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,31 +14,20 @@ import java.util.Locale;
 @Service
 @Slf4j
 @Transactional
+@RequiredArgsConstructor
 public class UserService {
     private static final String ACTIVE_STATUS = "ACTIVE";
 
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
-    private final AssignmentRoleService assignmentRoleService;
     private final MembershipService membershipService;
-
-    public UserService(UserRepository userRepository, AssignmentService assignmentService, AssignmentRoleService assignmentRoleService, MembershipService membershipService) {
-        this.userRepository = userRepository;
-        this.assignmentService = assignmentService;
-        this.assignmentRoleService = assignmentRoleService;
-        this.membershipService = membershipService;
-    }
-
-    public User save(User user) {
-        return userRepository.save(user);
-    }
 
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 
     public User updateUser(User existing, User updatedUser) {
-        if (!existing.convertedUserEquals(updatedUser)) {
+        if (!existing.hasSamePersistedStateAs(updatedUser)) {
             User savedUser = saveUser(updatedUser);
 
             if (statusChanged(existing, updatedUser) && isInactive(updatedUser)) {
@@ -56,7 +45,7 @@ public class UserService {
     }
 
     public boolean statusChanged(User existing, User incoming) {
-        return !Objects.equals(normalizedStatus(existing), normalizedStatus(incoming));
+        return !incoming.getStatus().equalsIgnoreCase(existing.getStatus());
     }
 
     public User saveUser(User user) {
@@ -64,11 +53,7 @@ public class UserService {
     }
 
     private boolean isInactive(User user) {
-        return user.getStatus() != null && !ACTIVE_STATUS.equalsIgnoreCase(user.getStatus());
-    }
-
-    private String normalizedStatus(User user) {
-        return user.getStatus() == null ? null : user.getStatus().toUpperCase(Locale.ROOT);
+        return !ACTIVE_STATUS.equalsIgnoreCase(user.getStatus());
     }
 
     @Transactional

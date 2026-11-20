@@ -4,9 +4,11 @@ import jakarta.transaction.Transactional;
 import no.fintlabs.DatabaseIntegrationTest;
 import no.fintlabs.applicationresourcelocation.ApplicationResourceLocationService;
 import no.fintlabs.applicationresourcelocation.NearestResourceLocationDto;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMapper;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentMembershipService;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMapper;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentMembershipService;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentService;
+import no.fintlabs.assignment.device.projection.FlattenedDeviceAssignmentService;
+import no.fintlabs.assignment.user.entra.UserEntraMembershipPublisher;
 import no.fintlabs.enforcement.LicenseEnforcementService;
 import no.fintlabs.opa.AuthorizationClient;
 import no.fintlabs.opa.OpaApiClient;
@@ -14,6 +16,7 @@ import no.fintlabs.opa.OpaService;
 import no.fintlabs.resource.Resource;
 import no.fintlabs.resource.ResourceAvailabilityProducerService;
 import no.fintlabs.resource.ResourceAvailabilityPublishingComponent;
+import no.fintlabs.resource.ResourceAssignmentValidator;
 import no.fintlabs.resource.ResourceRepository;
 import no.fintlabs.role.RoleRepository;
 import no.fintlabs.user.User;
@@ -31,6 +34,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,8 +43,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @DataJpaTest
-@Import({AssignmentService.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
-        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, AssigmentEntityProducerService.class})
+@Import({AssignmentService.class, AssignmentResourceEnricher.class, FlattenedAssignmentService.class, OpaService.class, AuthorizationClient.class, OpaApiClient.class,
+        RestTemplate.class, AuthenticationUtil.class, FlattenedAssignmentMapper.class, FlattenedAssignmentMembershipService.class, UserEntraMembershipPublisher.class})
 @Testcontainers
 public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
@@ -60,7 +64,10 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     private FlattenedAssignmentService flattenedAssignmentService;
 
     @MockBean
-    private AssigmentEntityProducerService assigmentEntityProducerService;
+    private FlattenedDeviceAssignmentService flattenedDeviceAssignmentService;
+
+    @MockBean
+    private UserEntraMembershipPublisher assigmentEntityProducerService;
 
     @MockBean
     private OpaService opaService;
@@ -83,6 +90,9 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     @MockBean
     private LicenseEnforcementService licenseEnforcementService;
 
+    @MockBean
+    private ResourceAssignmentValidator resourceAssignmentValidator;
+
 
     @Autowired
     private AssignmentService assignmentService;
@@ -91,12 +101,17 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
 
     @Test
     public void shouldGetAssignmentsNotDeleted() {
+        resourceRepository.save(Resource.builder().id(1L).build());
         Assignment activeAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null).build();
 
         Assignment deletedAssignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("456")
                 .assignerUserName("deleted")
                 .assignmentRemovedDate(new Date()).build();
@@ -112,7 +127,10 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
     @Transactional
     @Test
     public void shouldDeleteAssignment() {
+        resourceRepository.save(Resource.builder().id(1L).build());
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
+                .resourceRef(1L)
                 .assignmentId("123")
                 .assignerUserName("not-deleted")
                 .assignmentRemovedDate(null).build();
@@ -144,6 +162,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         resourceRepository.save(resource);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .resourceRef(1L)
                 .organizationUnitId("realfagavd")
@@ -172,6 +191,7 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         resourceRepository.saveAndFlush(resource);
 
         Assignment assignment = Assignment.builder()
+                .entraGroupId(UUID.randomUUID())
                 .assignmentId("123")
                 .resourceRef(2L)
                 .organizationUnitId("realfagavd")
@@ -186,5 +206,6 @@ public class AssignmentServiceIntegrationTest extends DatabaseIntegrationTest {
         Assignment updatedAssignment = assignmentRepository.findById(assignmentId).get();
 
         assertNull(updatedAssignment.getApplicationResourceLocationOrgUnitId());
+        assertTrue(updatedAssignment.getIsInvalid());
     }
 }

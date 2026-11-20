@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.cache.FintCache;
 import no.fintlabs.common.KafkaConsumerConfigurationDefaults;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.consuming.ParameterizedListenerContainerFactoryService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Bean;
@@ -33,9 +33,9 @@ public class MembershipConsumer {
         return entityConsumerFactoryService.createRecordListenerContainerFactory(
                         Membership.class,
                         this::processMemberships,
-                        KafkaEntityTopics.defaultListenerConfiguration(),
+                        KafkaTopics.defaultListenerConfiguration(),
                         kafkaConsumerConfigurationDefaults.defaultErrorHandler())
-                .createContainer(KafkaEntityTopics.topicNameParameters("role-catalog-membership"));
+                .createContainer(KafkaTopics.topicNameParameters("role-catalog-membership"));
     }
 
     void processMemberships(ConsumerRecord<String, Membership> consumerRecord) {

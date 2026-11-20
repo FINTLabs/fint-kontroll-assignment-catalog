@@ -79,4 +79,8 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    if (project.hasProperty('skipContainerTests')) {
+        exclude '**/*IntegrationTest.*'
+        exclude '**/*ConcurrencyTest.*'
+    }
 }

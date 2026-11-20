@@ -25,6 +25,10 @@ import java.util.UUID;
 @Slf4j
 @Entity
 @Table(name = "AssignmentResources")
+@AttributeOverrides({
+        @AttributeOverride(name = "createdDate", column = @Column(name = "created_date", updatable = false)),
+        @AttributeOverride(name = "createdBy", column = @Column(name = "created_by", updatable = false))
+})
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Builder
@@ -39,8 +43,9 @@ public class Resource extends AuditEntity {
     private String resourceName;
     private String resourceType;
     private String licenseEnforcement;
-    @Column(name="number_of_resources_assigned")
-    private Long numberOfResourcesAssigned;
+    @Column(name = "number_of_resources_assigned", nullable = false)
+    @Builder.Default
+    private Long numberOfResourcesAssigned = 0L;
     private Long resourceLimit;
     @Column(nullable = false)
     @Builder.Default
@@ -54,6 +59,13 @@ public class Resource extends AuditEntity {
     @ToString.Exclude
     @Builder.Default
     private Set<Assignment> assignments = new HashSet<>();
+
+    @PrePersist
+    private void initializeAssignedCount() {
+        if (numberOfResourcesAssigned == null) {
+            numberOfResourcesAssigned = 0L;
+        }
+    }
 
     public AssignmentResource toSimpleResource() {
         return AssignmentResource

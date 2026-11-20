@@ -1,7 +1,7 @@
 package no.fintlabs.resource;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.kafka.KafkaEntityTopics;
+import no.fintlabs.kafka.KafkaTopics;
 import no.novari.kafka.producing.ParameterizedProducerRecord;
 import no.novari.kafka.producing.ParameterizedTemplate;
 import no.novari.kafka.producing.ParameterizedTemplateFactory;
@@ -20,8 +20,8 @@ public class ResourceAvailabilityProducerService {
             EntityTopicService entityTopicService) {
 
         entityProducer = entityProducerFactory.createTemplate(ResourceAvailabilityDTO.class);
-        topicNameParameters = KafkaEntityTopics.topicNameParameters("resourceavailability");
-        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaEntityTopics.compactedTopicConfiguration());
+        topicNameParameters = KafkaTopics.topicNameParameters("resourceavailability");
+        entityTopicService.createOrModifyTopic(topicNameParameters, KafkaTopics.compactedTopicConfiguration());
     }
 
     public void publish(ResourceAvailabilityDTO resourceAvailabilityDTO) {

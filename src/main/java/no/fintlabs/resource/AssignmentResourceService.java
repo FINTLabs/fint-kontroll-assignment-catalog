@@ -1,10 +1,11 @@
 package no.fintlabs.resource;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.assignment.Assignment;
 import no.fintlabs.assignment.AssignmentService;
-import no.fintlabs.assignment.flattened.FlattenedAssignment;
-import no.fintlabs.assignment.flattened.FlattenedAssignmentRepository;
+import no.fintlabs.assignment.user.projection.FlattenedAssignment;
+import no.fintlabs.assignment.user.projection.FlattenedAssignmentRepository;
 import no.fintlabs.authorization.AuthorizationUtil;
 import no.fintlabs.role.Role;
 import no.fintlabs.user.User;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AssignmentResourceService {
 
     private final ResourceRepository resourceRepository;
@@ -25,18 +27,6 @@ public class AssignmentResourceService {
 
     private final FlattenedAssignmentRepository flattenedAssignmentRepository;
     private final AuthorizationUtil authorizationUtil;
-
-    public AssignmentResourceService(
-            ResourceRepository resourceRepository,
-            AssignmentService assignmentService,
-            FlattenedAssignmentRepository flattenedAssignmentRepository,
-            AuthorizationUtil authorizationUtil
-    ) {
-        this.resourceRepository = resourceRepository;
-        this.assignmentService = assignmentService;
-        this.flattenedAssignmentRepository = flattenedAssignmentRepository;
-        this.authorizationUtil = authorizationUtil;
-    }
 
     public Page<AssignmentResource> getResourcesAssignedToUser(Long userId, Specification<Resource> spec, Pageable page) {
         Page<AssignmentResource> resources = resourceRepository.findAll(spec, page)
@@ -51,7 +41,7 @@ public class AssignmentResourceService {
     }
 
     public Page<AssignmentResource> getResourcesAssignedToRole(Long roleId, Specification<Resource> spec, Pageable page) {
-        Page<AssignmentResource> resources = resourceRepository.findAll(spec, page)
+        return resourceRepository.findAll(spec, page)
                 .map(Resource::toSimpleResource)
                 .map(resource -> {
                     assignmentService.getAssignmentRefForRoleAssignment(roleId, resource.getId()).ifPresent(resource::setAssignmentRef);
@@ -59,7 +49,6 @@ public class AssignmentResourceService {
                     assignmentService.getAssignerDisplaynameForRoleAssignment(roleId, resource.getId()).ifPresent(resource::setAssignerDisplayname);
                     return resource;
                 });
-        return resources;
     }
 
     public Page<UserAssignmentResource> findUserAssignmentResourcesByRole(Long roleId, String resourceType, List<String> orgUnits,
