@@ -44,7 +44,7 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
-    implementation  'org.apache.commons:commons-lang3:3.12.0'
+    implementation  'org.apache.commons:commons-lang3:3.22.0'
 
     implementation 'io.netty:netty-resolver-dns-native-macos:4.1.90.Final:osx-aarch_64'
     implementation 'org.flywaydb:flyway-core'
